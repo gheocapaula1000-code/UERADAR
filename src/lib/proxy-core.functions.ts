@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import type { FeedResponse, Bando } from "./bandocore-types";
+import type { Json } from "@/integrations/supabase/types";
 
 const PROXY_CORE_URL = "https://proxy-core.com";
 
@@ -78,7 +79,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
     // Persist in feed_cache for offline availability
     await supabase.from("feed_cache").insert({
       user_id: userId,
-      payload: { bandi },
+      payload: { bandi } as unknown as Json,
       fetched_at,
     });
 

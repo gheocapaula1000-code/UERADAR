@@ -213,8 +213,10 @@ function Row({ l, v }: { l: string; v: string }) {
   );
 }
 
+import type { Bando } from "@/lib/bandocore-types";
+
 function buildInstanceText(
-  bando: NonNullable<ReturnType<Parameters<typeof BandoDetail>[0] extends never ? never : never>> | { titolo: string; ente: string; id: string; scadenza?: string; pec?: string },
+  bando: Bando,
   profile: CompanyProfile | null | undefined,
 ): string {
   if (!profile) return "Completa prima il profilo aziendale.";
@@ -222,7 +224,7 @@ function buildInstanceText(
 Bando: ${bando.titolo}
 Ente erogatore: ${bando.ente}
 Riferimento: ${bando.id}
-${"scadenza" in bando && bando.scadenza ? `Scadenza: ${new Date(bando.scadenza).toLocaleDateString("it-IT")}` : ""}
+${bando.scadenza ? `Scadenza: ${new Date(bando.scadenza).toLocaleDateString("it-IT")}` : ""}
 
 DATI DEL RICHIEDENTE (autofill BandoCore)
 Ragione Sociale: ${profile.ragione_sociale}
