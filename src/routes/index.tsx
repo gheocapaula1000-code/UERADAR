@@ -6,8 +6,8 @@ export const Route = createFileRoute("/")({
     meta: [
       { title: "BandoCore — Il radar dei bandi per PMI, SRL e Partite IVA" },
       { name: "description", content: "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda." },
-      { property: "og:title", content: "BandoCore — Il radar dei bandi per la tua impresa" },
-      { property: "og:description", content: "Bandi compatibili al 100% con il tuo ATECO e la tua sede legale." },
+      { property: "og:title", content: "BandoCore — Il radar dei bandi per PMI, SRL e Partite IVA" },
+      { property: "og:description", content: "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda." },
     ],
   }),
   component: Landing,

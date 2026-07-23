@@ -77,14 +77,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BandoCore — Bandi, fondo perduto e incentivi per PMI e P.IVA" },
-      { name: "description", content: "Piattaforma B2B per scovare bandi regionali, nazionali ed europei, fondo perduto, credito d'imposta e finanziamenti agevolati filtrati sul tuo codice ATECO." },
+      { title: "BandoCore — Il radar dei bandi per PMI, SRL e Partite IVA" },
+      { name: "description", content: "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda." },
       { name: "author", content: "BandoCore" },
       { name: "theme-color", content: "#1c2536" },
-      { property: "og:title", content: "BandoCore — Il radar dei bandi per la tua impresa" },
-      { property: "og:description", content: "Scovare bonus, bandi e fondo perduto compatibili al 100% con la tua azienda." },
+      { property: "og:title", content: "BandoCore — Il radar dei bandi per PMI, SRL e Partite IVA" },
+      { property: "og:description", content: "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "BandoCore — Il radar dei bandi per PMI, SRL e Partite IVA" },
+      { name: "twitter:description", content: "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda." },
     ],
     links: [
       {
