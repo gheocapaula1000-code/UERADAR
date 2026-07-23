@@ -6,7 +6,7 @@ import { AppShell } from "@/components/bandocore/AppShell";
 import { loadCachedFeed } from "@/lib/proxy-core.functions";
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanyProfile } from "@/lib/bandocore-types";
-import { ArrowLeft, Download, ExternalLink, Mail, Copy, Building2, FileText } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, Mail, Copy, Building2, FileText, Radar, Users, FileSearch } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/bando/$id")({
@@ -65,7 +65,19 @@ function BandoDetail() {
 
   const profile = profileQ.data;
 
-  const instanceText = buildInstanceText(bando, profile);
+  // Se il Proxy-Core ha restituito la mappatura del PDF nativo della PA,
+  // usa quella per generare un testo copiabile allineato al modulo ufficiale.
+  const instanceText = bando.pdf_field_mapping && bando.pdf_field_mapping.length > 0
+    ? buildInstanceFromPdfMapping(bando, profile)
+    : buildInstanceText(bando, profile);
+
+  const protocolloPec = bando.ufficio_protocollo_pec ?? bando.pec;
+  const competition = Math.min(5, Math.max(1, bando.competition_index ?? 3));
+  const competitionLabel =
+    competition <= 1 ? "Molto Bassa" :
+    competition === 2 ? "Bassa" :
+    competition === 3 ? "Media" :
+    competition === 4 ? "Alta" : "Molto Alta";
 
   const copyInstance = async () => {
     await navigator.clipboard.writeText(instanceText);
@@ -82,9 +94,9 @@ function BandoDetail() {
     URL.revokeObjectURL(url);
   };
 
-  const copyPec = async () => {
-    if (!bando.pec) return;
-    await navigator.clipboard.writeText(bando.pec);
+  const copyPec = async (value: string | undefined) => {
+    if (!value) return;
+    await navigator.clipboard.writeText(value);
     toast.success("PEC copiata");
   };
 
@@ -97,11 +109,31 @@ function BandoDetail() {
 
         <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
           <div className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-elevated">
-            <span className="inline-block rounded-full bg-primary/15 border border-primary/30 text-primary px-2.5 py-0.5 text-xs font-medium">
-              {bando.categoria.replace(/_/g, " ")}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-block rounded-full bg-primary/15 border border-primary/30 text-primary px-2.5 py-0.5 text-xs font-medium">
+                {bando.categoria.replace(/_/g, " ")}
+              </span>
+              {bando.is_hidden && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-accent/50 bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-accent">
+                  <Radar className="h-3 w-3" /> Fonte Sommersa
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background/40 px-2.5 py-0.5 text-xs">
+                <Users className="h-3 w-3" /> Concorrenza: <strong className="ml-0.5">{competitionLabel}</strong>
+              </span>
+            </div>
             <h1 className="mt-3 text-2xl md:text-3xl font-bold">{bando.titolo}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{bando.ente}</p>
+
+            {bando.fonte_extratestuale && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-accent/30 bg-accent/5 p-3 text-sm">
+                <FileSearch className="h-4 w-4 mt-0.5 shrink-0 text-accent" />
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-accent/80">Fonte originaria extratestuale</div>
+                  <div className="mt-0.5">{bando.fonte_extratestuale}</div>
+                </div>
+              </div>
+            )}
 
             <div className="mt-6 rounded-xl bg-surface-elevated p-4 text-sm leading-relaxed">
               {bando.descrizione}
@@ -122,8 +154,16 @@ function BandoDetail() {
             <div className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <FileText className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold">Anteprima Istanza — Autofill attivo</h3>
+                <h3 className="font-semibold">
+                  Anteprima Istanza — Autofill{bando.pdf_field_mapping?.length ? " da PDF nativo PA" : " attivo"}
+                </h3>
               </div>
+              {bando.pdf_field_mapping?.length ? (
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Mappatura estratta dal modulo ufficiale della PA ({bando.pdf_field_mapping.length} campi).
+                  Copia e incolla riga per riga nel PDF cartaceo.
+                </p>
+              ) : null}
               {profile ? (
                 <pre className="whitespace-pre-wrap text-xs bg-background/50 rounded-lg p-4 max-h-80 overflow-y-auto font-mono">
                   {instanceText}
@@ -147,15 +187,28 @@ function BandoDetail() {
           <aside className="space-y-4">
             <div className="rounded-2xl border border-accent/30 bg-accent/5 p-5">
               <h3 className="text-sm font-semibold flex items-center gap-2">
-                <Mail className="h-4 w-4 text-accent" /> Canale di Invio
+                <Mail className="h-4 w-4 text-accent" /> Ufficio Protocollo
               </h3>
-              {bando.pec ? (
+              {protocolloPec ? (
                 <div className="mt-3">
-                  <div className="text-xs text-muted-foreground">PEC ente erogatore</div>
-                  <div className="mt-1 flex items-center gap-2 rounded-lg bg-background/60 border border-border p-2">
-                    <code className="text-xs break-all flex-1">{bando.pec}</code>
-                    <button onClick={copyPec} className="text-muted-foreground hover:text-primary p-1"><Copy className="h-3.5 w-3.5" /></button>
+                  <div className="text-xs text-muted-foreground">
+                    {bando.ufficio_protocollo_pec
+                      ? "PEC ufficio di protocollo (specifica per questo bando)"
+                      : "PEC ente erogatore"}
                   </div>
+                  <div className="mt-1 flex items-center gap-2 rounded-lg bg-background/60 border border-border p-2">
+                    <code className="text-xs break-all flex-1">{protocolloPec}</code>
+                    <button onClick={() => copyPec(protocolloPec)} className="text-muted-foreground hover:text-primary p-1"><Copy className="h-3.5 w-3.5" /></button>
+                  </div>
+                  {bando.ufficio_protocollo_pec && bando.pec && bando.pec !== bando.ufficio_protocollo_pec && (
+                    <div className="mt-3">
+                      <div className="text-xs text-muted-foreground">PEC generale ente</div>
+                      <div className="mt-1 flex items-center gap-2 rounded-lg bg-background/60 border border-border p-2">
+                        <code className="text-xs break-all flex-1">{bando.pec}</code>
+                        <button onClick={() => copyPec(bando.pec)} className="text-muted-foreground hover:text-primary p-1"><Copy className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="mt-3 text-xs text-muted-foreground">PEC non disponibile per questo bando.</p>
@@ -244,12 +297,51 @@ Telefono: ${profile.telefono ?? "—"}
 PEC azienda: ${profile.pec ?? "—"}
 
 CANALE DI INVIO
-PEC ente: ${bando.pec ?? "—"}
+PEC ufficio protocollo: ${bando.ufficio_protocollo_pec ?? bando.pec ?? "—"}
 
 Il sottoscritto, in qualità di legale rappresentante, chiede di partecipare al bando in oggetto,
 dichiarando ai sensi del DPR 445/2000 la veridicità dei dati sopra riportati.
 
 Data: ${new Date().toLocaleDateString("it-IT")}
 Firma: __________________________
+`;
+}
+
+/**
+ * Autofill dai campi del PDF nativo della PA: genera un blocco allineato
+ * "Etichetta PDF: valore" pronto per essere copiato riga per riga.
+ */
+function buildInstanceFromPdfMapping(
+  bando: Bando,
+  profile: CompanyProfile | null | undefined,
+): string {
+  if (!profile) return "Completa prima il profilo aziendale.";
+  const mapping = bando.pdf_field_mapping ?? [];
+  const today = new Date().toLocaleDateString("it-IT");
+
+  const lines = mapping.map((m) => {
+    let value: string | number | boolean | null | undefined;
+    if (m.static_value !== undefined) value = m.static_value;
+    else if (m.profile_field === "data_odierna") value = today;
+    else if (m.profile_field === "firma") value = "__________________________";
+    else value = profile[m.profile_field as keyof CompanyProfile] as string | number | boolean | null | undefined;
+
+    const formatted =
+      typeof value === "boolean" ? (value ? "Sì" : "No")
+      : typeof value === "number" ? new Intl.NumberFormat("it-IT").format(value)
+      : (value ?? "—");
+    return `${m.pdf_label}: ${formatted}`;
+  });
+
+  return `MODULO UFFICIALE — ${bando.titolo}
+Ente: ${bando.ente}
+${bando.ufficio_protocollo_pec ? `PEC ufficio protocollo: ${bando.ufficio_protocollo_pec}` : ""}
+${bando.fonte_extratestuale ? `Fonte: ${bando.fonte_extratestuale}` : ""}
+
+── Autofill campi PDF nativi (${mapping.length}) ──
+${lines.join("\n")}
+
+Data: ${today}
+Firma legale rappresentante: __________________________
 `;
 }
