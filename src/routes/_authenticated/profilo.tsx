@@ -48,6 +48,7 @@ const emptyProfile: CompanyProfile = {
   email_referente: "",
   telefono: "",
   pec: "",
+  codice_istat: "",
 };
 
 function Profilo() {
@@ -150,6 +151,15 @@ function Profilo() {
             </Field>
             <Field label="Comune" required>
               <input required value={profile.comune} onChange={(e) => update("comune", e.target.value)} className={inputCls} />
+            </Field>
+            <Field label="Codice ISTAT Comune">
+              <input
+                value={profile.codice_istat ?? ""}
+                onChange={(e) => update("codice_istat", e.target.value)}
+                className={inputCls}
+                placeholder="es. 015146 (Milano)"
+                maxLength={6}
+              />
             </Field>
           </Section>
 

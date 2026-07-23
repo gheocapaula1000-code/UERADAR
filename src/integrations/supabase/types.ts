@@ -14,10 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      cached_hidden_bandi: {
+        Row: {
+          bando_id: string
+          codice_istat: string | null
+          competition_index: number | null
+          comune: string | null
+          discovered_at: string
+          fonte_extratestuale: string | null
+          id: string
+          payload: Json
+          provincia: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bando_id: string
+          codice_istat?: string | null
+          competition_index?: number | null
+          comune?: string | null
+          discovered_at?: string
+          fonte_extratestuale?: string | null
+          id?: string
+          payload: Json
+          provincia?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bando_id?: string
+          codice_istat?: string | null
+          competition_index?: number | null
+          comune?: string | null
+          discovered_at?: string
+          fonte_extratestuale?: string | null
+          id?: string
+          payload?: Json
+          provincia?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       company_profiles: {
         Row: {
           anno_costituzione: number
           codice_ateco: string
+          codice_istat: string | null
           comune: string
           created_at: string
           email_referente: string | null
@@ -39,6 +82,7 @@ export type Database = {
         Insert: {
           anno_costituzione: number
           codice_ateco: string
+          codice_istat?: string | null
           comune: string
           created_at?: string
           email_referente?: string | null
@@ -60,6 +104,7 @@ export type Database = {
         Update: {
           anno_costituzione?: number
           codice_ateco?: string
+          codice_istat?: string | null
           comune?: string
           created_at?: string
           email_referente?: string | null
