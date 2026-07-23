@@ -4,10 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/bandocore/AppShell";
 import { BandoCard, BandoCardSkeleton } from "@/components/bandocore/BandoCard";
+import { DeepSearchShimmer } from "@/components/bandocore/DeepSearchShimmer";
 import { fetchFeedFromProxyCore } from "@/lib/proxy-core.functions";
 import { supabase } from "@/integrations/supabase/client";
-import type { Bando, BandoCategory, BandoScope } from "@/lib/bandocore-types";
-import { RefreshCw, Zap, WifiOff, Filter } from "lucide-react";
+import type { Bando, BandoCategory, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
+import { RefreshCw, Zap, WifiOff, Filter, Radar, MapPinned } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -43,24 +44,28 @@ function Dashboard() {
   const [profileMissing, setProfileMissing] = useState(false);
   const [cat, setCat] = useState<(typeof CATEGORIES)[number]["key"]>("TUTTI");
   const [scope, setScope] = useState<(typeof SCOPES)[number]["key"]>("ALL");
+  const [hyperlocalOnly, setHyperlocalOnly] = useState(false);
+  const [hiddenOnly, setHiddenOnly] = useState(false);
+  const [profile, setProfile] = useState<CompanyProfile | null>(null);
 
-  // Redirect to profile setup if company_profiles is empty
   useEffect(() => {
     supabase
       .from("company_profiles")
-      .select("id")
+      .select("*")
       .maybeSingle()
       .then(({ data }) => {
         if (!data) {
           setProfileMissing(true);
           navigate({ to: "/profilo" });
+        } else {
+          setProfile(data as unknown as CompanyProfile);
         }
       });
   }, [navigate]);
 
   const query = useQuery({
     queryKey: ["bandi-feed"],
-    queryFn: () => fetchFeed({ data: {} }),
+    queryFn: () => fetchFeed({ data: { deep_search: true } }),
     enabled: !profileMissing,
     retry: false,
   });
@@ -76,26 +81,52 @@ function Dashboard() {
   const bandi = query.data?.bandi ?? [];
   const isOffline = query.data?.source === "cache";
 
+  // Priorità assoluta ai micro-finanziamenti iper-locali (Comune / Camera di Commercio locale)
   const flashBandi = useMemo(() => {
     const now = Date.now();
-    return bandi
-      .filter((b) => b.flash || b.click_day || (b.scadenza && (new Date(b.scadenza).getTime() - now) / 86400000 <= 10))
-      .slice(0, 6);
-  }, [bandi]);
+    const isLocalMicro = (b: Bando) =>
+      (b.scope === "COMUNALE" || b.scope === "CAMERALE") &&
+      (b.comune === profile?.comune ||
+        b.provincia === profile?.provincia ||
+        (profile?.codice_istat != null && b.codice_istat === profile.codice_istat));
+    const soonestFirst = (a: Bando, bb: Bando) =>
+      (a.scadenza ? new Date(a.scadenza).getTime() : Infinity) -
+      (bb.scadenza ? new Date(bb.scadenza).getTime() : Infinity);
+    const local = bandi.filter(isLocalMicro).sort(soonestFirst);
+    const rest = bandi
+      .filter((b) => !isLocalMicro(b))
+      .filter(
+        (b) =>
+          b.flash ||
+          b.click_day ||
+          (b.scadenza && (new Date(b.scadenza).getTime() - now) / 86400000 <= 10),
+      )
+      .sort(soonestFirst);
+    return [...local, ...rest].slice(0, 6);
+  }, [bandi, profile]);
 
   const filtered = useMemo(() => {
     return bandi.filter((b) => {
       if (cat !== "TUTTI" && b.categoria !== cat) return false;
       if (scope !== "ALL" && b.scope !== scope) return false;
+      if (hiddenOnly && !b.is_hidden) return false;
+      if (hyperlocalOnly) {
+        const matchIstat =
+          profile?.codice_istat != null && b.codice_istat === profile.codice_istat;
+        const matchComune = profile?.comune && b.comune === profile.comune;
+        const matchProvincia = profile?.provincia && b.provincia === profile.provincia;
+        if (!matchIstat && !matchComune && !matchProvincia) return false;
+      }
       return true;
     });
-  }, [bandi, cat, scope]);
+  }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile]);
 
   const stats = useMemo(() => {
-    const s = { totale: bandi.length, femm: 0, flash: 0, importo: 0 };
+    const s = { totale: bandi.length, femm: 0, flash: 0, hidden: 0, importo: 0 };
     for (const b of bandi) {
       if (b.categoria === "IMPRENDITORIA_FEMMINILE") s.femm++;
       if (b.flash || b.click_day) s.flash++;
+      if (b.is_hidden) s.hidden++;
       if (b.importo_max) s.importo += b.importo_max;
     }
     return s;
@@ -107,9 +138,12 @@ function Dashboard() {
         {/* HEADER */}
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold">Radar Bandi</h1>
+            <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-2">
+              <Radar className="h-7 w-7 text-accent" /> Radar Bandi Sommersi
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Opportunità filtrate al 100% sul tuo profilo aziendale.
+              Bandi rari da Albi Pretori, BUR, decreti ministeriali e fondi camerali locali —
+              filtrati sul tuo profilo aziendale.
               {query.data?.fetched_at && (
                 <span className="ml-2 text-xs">
                   · Aggiornato {new Date(query.data.fetched_at).toLocaleString("it-IT")}
@@ -129,15 +163,19 @@ function Dashboard() {
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110 disabled:opacity-60"
             >
               <RefreshCw className={`h-4 w-4 ${query.isFetching ? "animate-spin" : ""}`} />
-              Aggiorna radar
+              Deep Search
             </button>
           </div>
         </header>
 
+        {/* Deep Search shimmer con messaggi dinamici */}
+        {query.isFetching && <DeepSearchShimmer />}
+
         {/* STATS */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
             { l: "Bandi attivi", v: query.isLoading ? "—" : stats.totale, c: "text-primary" },
+            { l: "Fonti Sommerse", v: query.isLoading ? "—" : stats.hidden, c: "text-accent" },
             { l: "Fondi Flash", v: query.isLoading ? "—" : stats.flash, c: "text-warning" },
             { l: "Imprenditoria Femm.", v: query.isLoading ? "—" : stats.femm, c: "text-femminile" },
             { l: "Plafond totale", v: query.isLoading ? "—" : `${new Intl.NumberFormat("it-IT", { notation: "compact" }).format(stats.importo)} €`, c: "text-accent" },
@@ -157,8 +195,10 @@ function Dashboard() {
                 <Zap className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">Fondi Flash &amp; Click Day</h2>
-                <p className="text-xs text-muted-foreground">Bandi camerali e regionali con scadenza entro 10 giorni o click-day imminente.</p>
+                <h2 className="text-lg font-semibold">Click Day Fantasma &amp; Micro-Finanziamenti Locali</h2>
+                <p className="text-xs text-muted-foreground">
+                  Priorità ai bandi comunali e camerali della tua zona con budget limitato o scadenza a giorni.
+                </p>
               </div>
             </div>
           </div>
@@ -176,6 +216,41 @@ function Dashboard() {
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-lg font-semibold">Tutti i bandi</h2>
+          </div>
+
+          {/* Filtri speciali: iper-locale + solo sommersi */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setHyperlocalOnly((v) => !v)}
+              disabled={!profile}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs border transition ${
+                hyperlocalOnly
+                  ? "bg-accent text-accent-foreground border-accent shadow-glow"
+                  : "bg-card border-border text-muted-foreground hover:text-foreground"
+              } disabled:opacity-40`}
+              title={
+                profile
+                  ? `Solo bandi del Comune di ${profile.comune} (${profile.provincia})${
+                      profile.codice_istat ? ` · ISTAT ${profile.codice_istat}` : ""
+                    }`
+                  : "Compila prima il profilo"
+              }
+            >
+              <MapPinned className="h-3.5 w-3.5" />
+              Iper-locale
+              {profile?.comune ? ` · ${profile.comune}` : ""}
+            </button>
+            <button
+              onClick={() => setHiddenOnly((v) => !v)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs border transition ${
+                hiddenOnly
+                  ? "bg-accent text-accent-foreground border-accent shadow-glow"
+                  : "bg-card border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Radar className="h-3.5 w-3.5" />
+              Solo Fonti Sommerse
+            </button>
           </div>
 
           <div className="flex flex-wrap gap-2">
