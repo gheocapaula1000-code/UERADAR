@@ -1,24 +1,170 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Radar, Target, Sparkles, Building2, Euro, Rocket, ShieldCheck, ArrowRight } from "lucide-react";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "BandoCore — Il radar dei bandi per PMI, SRL e Partite IVA" },
+      { name: "description", content: "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda." },
+      { property: "og:title", content: "BandoCore — Il radar dei bandi per la tua impresa" },
+      { property: "og:description", content: "Bandi compatibili al 100% con il tuo ATECO e la tua sede legale." },
+    ],
+  }),
+  component: Landing,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Landing() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background text-foreground">
+      {/* NAV */}
+      <header className="border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-40">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="grid h-9 w-9 place-items-center rounded-lg gradient-primary shadow-glow">
+              <Radar className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <span className="text-lg font-semibold tracking-tight">BandoCore</span>
+          </Link>
+          <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
+            <a href="#come-funziona" className="hover:text-foreground transition">Come funziona</a>
+            <a href="#per-chi" className="hover:text-foreground transition">Per chi</a>
+            <a href="#sicurezza" className="hover:text-foreground transition">Sicurezza</a>
+          </nav>
+          <Link
+            to="/auth"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
+          >
+            Accedi <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </header>
+
+      {/* HERO */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 gradient-hero opacity-90" />
+        <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
+        <div className="relative mx-auto max-w-7xl px-6 py-24 md:py-32">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Radar bandi in tempo reale — Firecrawl · Apify · Perplexity
+            </div>
+            <h1 className="mt-6 text-5xl font-bold leading-tight md:text-6xl">
+              Il radar dei <span className="bg-gradient-to-r from-primary via-warning to-accent bg-clip-text text-transparent">bandi</span> per la tua impresa.
+            </h1>
+            <p className="mt-6 text-lg text-muted-foreground md:text-xl">
+              Bonus, fondo perduto, credito d'imposta e finanziamenti agevolati per Partite IVA,
+              Ditte Individuali, SRL, SRLS e PMI — filtrati al 100% sul tuo codice ATECO e sulla tua sede legale.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                to="/auth"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
+              >
+                Attiva il radar gratis <ArrowRight className="h-4 w-4" />
+              </Link>
+              <a
+                href="#come-funziona"
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/50 px-6 py-3 text-base font-medium text-foreground transition hover:bg-card"
+              >
+                Come funziona
+              </a>
+            </div>
+            <div className="mt-10 grid grid-cols-3 gap-6 max-w-xl">
+              {[
+                { k: "1.200+", v: "Bandi indicizzati" },
+                { k: "20", v: "Regioni monitorate" },
+                { k: "24/7", v: "Scraping continuo" },
+              ].map((s) => (
+                <div key={s.v}>
+                  <div className="text-2xl font-bold text-primary md:text-3xl">{s.k}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{s.v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section id="come-funziona" className="mx-auto max-w-7xl px-6 py-20">
+        <div className="mb-12 max-w-2xl">
+          <div className="text-xs uppercase tracking-widest text-primary font-semibold">Come funziona</div>
+          <h2 className="mt-2 text-3xl font-bold md:text-4xl">Tre step, zero rumore.</h2>
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          {[
+            { icon: Building2, t: "1. Profilo azienda", d: "Inserisci P.IVA, ATECO, sede legale, dipendenti, fatturato e il flag Imprenditoria Femminile." },
+            { icon: Radar, t: "2. Radar Proxy-Core", d: "Il nostro motore interroga fonti camerali, POR FESR, Invitalia, MIMIT e PNRR in tempo reale." },
+            { icon: Target, t: "3. Match 100%", d: "Ricevi solo bandi compatibili, con PEC dell'ente e modulistica in autofill." },
+          ].map((f) => (
+            <div key={f.t} className="rounded-2xl border border-border bg-card p-6 shadow-elevated transition hover:border-primary/50">
+              <div className="grid h-11 w-11 place-items-center rounded-lg bg-primary/10 text-primary">
+                <f.icon className="h-5 w-5" />
+              </div>
+              <h3 className="mt-4 text-lg font-semibold">{f.t}</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{f.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* PER CHI */}
+      <section id="per-chi" className="border-y border-border bg-surface-elevated/50">
+        <div className="mx-auto max-w-7xl px-6 py-20">
+          <div className="grid gap-10 md:grid-cols-2">
+            <div>
+              <div className="text-xs uppercase tracking-widest text-accent font-semibold">Per chi</div>
+              <h2 className="mt-2 text-3xl font-bold md:text-4xl">Solo Partite IVA e imprese.</h2>
+              <p className="mt-4 text-muted-foreground">
+                BandoCore è un servizio B2B: niente incentivi per privati, solo strumenti verticali
+                per chi ha una posizione fiscale attiva.
+              </p>
+              <ul className="mt-6 space-y-3 text-sm">
+                {["Partite IVA & Ditte Individuali", "SRL, SRLS, SPA, SAS, SNC", "PMI innovative e startup", "Imprese femminili (corsia preferenziale)"].map((i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" /> {i}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { icon: Euro, l: "Fondo Perduto", c: "text-primary" },
+                { icon: Rocket, l: "Tasso Zero", c: "text-info" },
+                { icon: ShieldCheck, l: "Credito d'Imposta", c: "text-accent" },
+                { icon: Sparkles, l: "Imprenditoria Femminile", c: "text-femminile" },
+              ].map((c) => (
+                <div key={c.l} className="rounded-xl border border-border bg-card p-5">
+                  <c.icon className={`h-6 w-6 ${c.c}`} />
+                  <div className="mt-3 text-sm font-semibold">{c.l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section id="sicurezza" className="mx-auto max-w-7xl px-6 py-24 text-center">
+        <h2 className="mx-auto max-w-2xl text-3xl font-bold md:text-4xl">
+          Ogni giorno di ritardo è un bando in meno.
+        </h2>
+        <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
+          Configura il profilo aziendale in 2 minuti e ricevi il tuo primo feed personalizzato.
+        </p>
+        <Link
+          to="/auth"
+          className="mt-8 inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
+        >
+          Attiva BandoCore <ArrowRight className="h-4 w-4" />
+        </Link>
+      </section>
+
+      <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground">
+        © {new Date().getFullYear()} BandoCore · Servizio B2B riservato a Partite IVA
+      </footer>
     </div>
   );
 }
