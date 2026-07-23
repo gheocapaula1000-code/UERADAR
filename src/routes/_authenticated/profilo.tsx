@@ -48,6 +48,7 @@ const emptyProfile: CompanyProfile = {
   email_referente: "",
   telefono: "",
   pec: "",
+  codice_istat: "",
 };
 
 function Profilo() {
