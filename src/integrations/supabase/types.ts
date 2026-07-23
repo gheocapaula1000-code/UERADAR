@@ -14,7 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      company_profiles: {
+        Row: {
+          anno_costituzione: number
+          codice_ateco: string
+          comune: string
+          created_at: string
+          email_referente: string | null
+          fatturato_annuo: number
+          forma_giuridica: Database["public"]["Enums"]["legal_form"]
+          id: string
+          imprenditoria_femminile: boolean
+          legale_rappresentante: string | null
+          numero_dipendenti: number
+          partita_iva: string
+          pec: string | null
+          provincia: string
+          ragione_sociale: string
+          regione: string
+          telefono: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          anno_costituzione: number
+          codice_ateco: string
+          comune: string
+          created_at?: string
+          email_referente?: string | null
+          fatturato_annuo?: number
+          forma_giuridica: Database["public"]["Enums"]["legal_form"]
+          id?: string
+          imprenditoria_femminile?: boolean
+          legale_rappresentante?: string | null
+          numero_dipendenti?: number
+          partita_iva: string
+          pec?: string | null
+          provincia: string
+          ragione_sociale: string
+          regione: string
+          telefono?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          anno_costituzione?: number
+          codice_ateco?: string
+          comune?: string
+          created_at?: string
+          email_referente?: string | null
+          fatturato_annuo?: number
+          forma_giuridica?: Database["public"]["Enums"]["legal_form"]
+          id?: string
+          imprenditoria_femminile?: boolean
+          legale_rappresentante?: string | null
+          numero_dipendenti?: number
+          partita_iva?: string
+          pec?: string | null
+          provincia?: string
+          ragione_sociale?: string
+          regione?: string
+          telefono?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      feed_cache: {
+        Row: {
+          fetched_at: string
+          id: string
+          payload: Json
+          user_id: string
+        }
+        Insert: {
+          fetched_at?: string
+          id?: string
+          payload: Json
+          user_id: string
+        }
+        Update: {
+          fetched_at?: string
+          id?: string
+          payload?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +109,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      legal_form:
+        | "DITTA_INDIVIDUALE"
+        | "SRL"
+        | "SRLS"
+        | "SPA"
+        | "SAS"
+        | "SNC"
+        | "ALTRO"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +243,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      legal_form: [
+        "DITTA_INDIVIDUALE",
+        "SRL",
+        "SRLS",
+        "SPA",
+        "SAS",
+        "SNC",
+        "ALTRO",
+      ],
+    },
   },
 } as const
