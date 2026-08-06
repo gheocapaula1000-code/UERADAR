@@ -158,6 +158,45 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          emailed_at: string | null
+          id: string
+          notification_type: string
+          opportunity_id: string
+          payload: Json
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          emailed_at?: string | null
+          id?: string
+          notification_type: string
+          opportunity_id: string
+          payload?: Json
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          emailed_at?: string | null
+          id?: string
+          notification_type?: string
+          opportunity_id?: string
+          payload?: Json
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       feed_cache: {
         Row: {
           fetched_at: string
@@ -175,6 +214,36 @@ export type Database = {
           fetched_at?: string
           id?: string
           payload?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          email_enabled: boolean
+          in_app_enabled: boolean
+          morning_digest_enabled: boolean
+          timezone: string
+          updated_at: string
+          urgent_enabled: boolean
+          user_id: string
+        }
+        Insert: {
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          morning_digest_enabled?: boolean
+          timezone?: string
+          updated_at?: string
+          urgent_enabled?: boolean
+          user_id: string
+        }
+        Update: {
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          morning_digest_enabled?: boolean
+          timezone?: string
+          updated_at?: string
+          urgent_enabled?: boolean
           user_id?: string
         }
         Relationships: []
