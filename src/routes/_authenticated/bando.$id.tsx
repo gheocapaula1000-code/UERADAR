@@ -480,7 +480,8 @@ function buildInstanceFromPdfMapping(
     let value: string | number | boolean | null | undefined;
     if (m.static_value !== undefined) value = m.static_value;
     else if (m.profile_field === "data_odierna") value = today;
-    else if (m.profile_field === "firma") value = "__________________________";
+    else if (m.profile_field === "firma")
+      value = "[da compilare esclusivamente sul modulo ufficiale dopo verifica]";
     else
       value = profile[m.profile_field as keyof CompanyProfile] as
         string | number | boolean | null | undefined;
@@ -496,7 +497,7 @@ function buildInstanceFromPdfMapping(
     return `${m.pdf_label}: ${formatted}`;
   });
 
-  return `MODULO UFFICIALE — ${bando.titolo}
+  return `BOZZA DATI PER MODULO UFFICIALE — ${bando.titolo}
 ${DRAFT_DISCLAIMER}
 
 Ente: ${bando.ente}
