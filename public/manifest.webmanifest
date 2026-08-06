@@ -4,9 +4,10 @@
   "description": "Bandi, fondo perduto e incentivi per imprese italiane.",
   "start_url": "/",
   "display": "standalone",
+  "scope": "/",
+  "orientation": "any",
+  "lang": "it-IT",
   "background_color": "#1c2536",
   "theme_color": "#1c2536",
-  "icons": [
-    { "src": "/favicon.ico", "sizes": "64x64", "type": "image/x-icon" }
-  ]
+  "icons": [{ "src": "/favicon.ico", "sizes": "64x64", "type": "image/x-icon" }]
 }

@@ -23,7 +23,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background text-foreground flex">
       {/* Sidebar desktop */}
       <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-sidebar">
-        <Link to="/dashboard" className="flex items-center gap-2 px-6 py-6 border-b border-sidebar-border">
+        <Link
+          to="/dashboard"
+          className="flex items-center gap-2 px-6 py-6 border-b border-sidebar-border"
+        >
           <div className="grid h-9 w-9 place-items-center rounded-lg gradient-primary shadow-glow">
             <Radar className="h-5 w-5 text-primary-foreground" />
           </div>
@@ -78,7 +81,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={item.to}
                   to={item.to}
                   className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs whitespace-nowrap ${
-                    active ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground bg-card"
+                    active
+                      ? "bg-primary text-primary-foreground font-medium"
+                      : "text-muted-foreground bg-card"
                   }`}
                 >
                   <item.icon className="h-3.5 w-3.5" />

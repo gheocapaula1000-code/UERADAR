@@ -10,8 +10,7 @@ const STAGES: { icon: typeof Radar; label: string }[] = [
 ];
 
 /**
- * Shimmer avanzato per la modalità Deep Search: cicla messaggi di stato dinamici
- * mentre il Proxy-Core esegue lo scraping dei PDF e degli albi pretori.
+ * Stato di caricamento del catalogo già preparato dai cron automatici.
  */
 export function DeepSearchShimmer() {
   const [i, setI] = useState(0);
@@ -29,7 +28,9 @@ export function DeepSearchShimmer() {
           <span className="absolute inset-0 rounded-lg ring-2 ring-accent/40 animate-ping" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs uppercase tracking-wide text-accent/80">Deep Search Proxy-Core</div>
+          <div className="text-xs uppercase tracking-wide text-accent/80">
+            Aggiornamento catalogo
+          </div>
           <div className="mt-0.5 text-sm font-medium truncate">{Stage.label}</div>
         </div>
       </div>

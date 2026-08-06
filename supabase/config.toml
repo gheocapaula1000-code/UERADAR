@@ -1,1 +1,3 @@
 project_id = "fbqjrmhvxxujpzztgvsc"
+[functions.trovabandi-digest]
+verify_jwt = false
