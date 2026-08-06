@@ -29,7 +29,25 @@ export function parseRequestBody(
   return { ok: true, action: action as Action };
 }
 
-/** Valida in modo prudente la risposta feed del Central Core. */
+const REQUIRED_BANDO_FIELDS = [
+  "id",
+  "title",
+  "authority_name",
+  "authority_level",
+  "category",
+  "summary",
+  "official_url",
+] as const;
+
+export function bandoRowIsValid(item: unknown): item is Row {
+  if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
+  const row = item as Row;
+  return REQUIRED_BANDO_FIELDS.every(
+    (key) => typeof row[key] === "string" && (row[key] as string).trim().length > 0,
+  );
+}
+
+/** Validazione STRICT: una sola riga malformata invalida l'intero payload. */
 export function sanitizeFeedResponse(
   payload: unknown,
   status: number,
@@ -40,12 +58,9 @@ export function sanitizeFeedResponse(
   const body = payload as Row;
   if (body.ok !== true) return { ok: false, code: "UPSTREAM_NOT_OK" };
   if (!Array.isArray(body.bandi)) return { ok: false, code: "UPSTREAM_NO_BANDI" };
-  const bandi = (body.bandi as unknown[]).filter((item): item is Row => {
-    if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
-    const row = item as Row;
-    return typeof row.id === "string" && row.id.length > 0 && typeof row.title === "string";
-  });
-  return { ok: true, bandi };
+  const rows = body.bandi as unknown[];
+  if (!rows.every(bandoRowIsValid)) return { ok: false, code: "UPSTREAM_INVALID_ROW" };
+  return { ok: true, bandi: rows as Row[] };
 }
 
 /** request_refresh accetta solo 202 + ok=true + queued=true. */
@@ -68,7 +83,7 @@ export function coreEndpoint(base: string) {
 /** Fail-closed: profilo minimo necessario per interrogare il Core. */
 export function profileIsComplete(profile: Row | null): boolean {
   if (!profile) return false;
-  const required = ["ragione_sociale", "forma_giuridica", "regione"];
+  const required = ["ragione_sociale", "forma_giuridica", "regione", "codice_ateco"];
   return required.every((key) => typeof profile[key] === "string" && (profile[key] as string).trim());
 }
 
@@ -130,12 +145,13 @@ serve(async (req) => {
   const parsed = parseRequestBody(raw);
   if (!parsed.ok) return out(400, { ok: false, code: parsed.code });
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("company_profiles")
     .select("*")
     .eq("user_id", user.id)
     .maybeSingle();
 
+  if (profileError) return out(503, { ok: false, code: "PROFILE_LOOKUP_FAILED" });
   if (!profile) return out(409, { ok: false, code: "PROFILE_MISSING" });
   if (!profileIsComplete(profile as Row)) return out(409, { ok: false, code: "PROFILE_INCOMPLETE" });
 

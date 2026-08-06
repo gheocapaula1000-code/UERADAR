@@ -28,9 +28,15 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
 
     try {
       if (data.force_refresh) {
-        await supabase.functions
-          .invoke("trovabandi-feed", { body: { action: "request_refresh" } })
-          .catch(() => undefined);
+        // La coda deve confermare {ok:true, queued:true}: nessun refresh "finto".
+        const { data: refreshPayload, error: refreshError } = await supabase.functions.invoke(
+          "trovabandi-feed",
+          { body: { action: "request_refresh" } },
+        );
+        if (refreshError) throw new Error("REFRESH_QUEUE_FAILED");
+        const refresh = refreshPayload as { ok?: unknown; queued?: unknown } | null;
+        if (!refresh || refresh.ok !== true || refresh.queued !== true)
+          throw new Error("REFRESH_QUEUE_FAILED");
       }
 
       const { data: payload, error } = await supabase.functions.invoke("trovabandi-feed", {
