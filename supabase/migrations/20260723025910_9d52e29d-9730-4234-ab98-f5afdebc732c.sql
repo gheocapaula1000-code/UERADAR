@@ -1,5 +1,5 @@
-
-CREATE TABLE public.cached_hidden_bandi (
+-- replay-safe: idempotent (no duplicate_object on fresh replay or already-migrated DB)
+CREATE TABLE IF NOT EXISTS public.cached_hidden_bandi (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   bando_id text NOT NULL,
@@ -19,13 +19,19 @@ GRANT ALL ON public.cached_hidden_bandi TO service_role;
 
 ALTER TABLE public.cached_hidden_bandi ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users manage own hidden bandi cache"
-  ON public.cached_hidden_bandi
-  FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'cached_hidden_bandi' AND policyname = 'Users manage own hidden bandi cache'
+  ) THEN
+    CREATE POLICY "Users manage own hidden bandi cache" ON public.cached_hidden_bandi
+    FOR ALL
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
-CREATE TRIGGER trg_cached_hidden_bandi_updated_at
+CREATE OR REPLACE TRIGGER trg_cached_hidden_bandi_updated_at
   BEFORE UPDATE ON public.cached_hidden_bandi
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
