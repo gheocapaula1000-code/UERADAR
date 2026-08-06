@@ -35,11 +35,19 @@ const FORBIDDEN: RegExp[] = [
   /Click Day Fantasma/i,
 ];
 
+/** Ignora import e path di modulo: il test verifica il copy, non i nomi tecnici interni. */
+function copyOnly(src: string): string {
+  return src
+    .split("\n")
+    .filter((l) => !/^\s*import\s/.test(l) && !/^\s*\/\//.test(l) && !/^\s*\*/.test(l))
+    .join("\n");
+}
+
 describe("copy pubblico e autenticato", () => {
   it("non contiene claim non dimostrabili né riferimenti al fornitore tecnico", () => {
     const hits: string[] = [];
     for (const f of UI_FILES) {
-      const src = readFileSync(f, "utf8");
+      const src = copyOnly(readFileSync(f, "utf8"));
       for (const re of FORBIDDEN) {
         if (re.test(src)) hits.push(`${f} :: ${re}`);
       }
@@ -57,6 +65,6 @@ describe("copy pubblico e autenticato", () => {
     const src = readFileSync("src/routes/_authenticated/dashboard.tsx", "utf8");
     const statLines = src.split("\n").filter((l) => l.includes("query.isLoading ?"));
     expect(statLines.length).toBeGreaterThanOrEqual(6);
-    for (const l of statLines) expect(l).toContain('"—"');
+    for (const l of statLines) expect(l).toMatch(/"—"|`—`/);
   });
 });
