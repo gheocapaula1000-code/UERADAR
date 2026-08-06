@@ -78,15 +78,33 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "BandoCore — Il radar dei bandi per PMI, SRL e Partite IVA" },
-      { name: "description", content: "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda." },
+      {
+        name: "description",
+        content:
+          "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda.",
+      },
       { name: "author", content: "BandoCore" },
       { name: "theme-color", content: "#1c2536" },
-      { property: "og:title", content: "BandoCore — Il radar dei bandi per PMI, SRL e Partite IVA" },
-      { property: "og:description", content: "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda." },
+      {
+        property: "og:title",
+        content: "BandoCore — Il radar dei bandi per PMI, SRL e Partite IVA",
+      },
+      {
+        property: "og:description",
+        content:
+          "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "BandoCore — Il radar dei bandi per PMI, SRL e Partite IVA" },
-      { name: "twitter:description", content: "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda." },
+      {
+        name: "twitter:title",
+        content: "BandoCore — Il radar dei bandi per PMI, SRL e Partite IVA",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda.",
+      },
     ],
     links: [
       {
@@ -97,7 +115,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -108,7 +129,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="it">
       <head>
         <HeadContent />
       </head>
@@ -122,6 +143,40 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+
+    const host = window.location.hostname;
+    const blocked =
+      !import.meta.env.PROD ||
+      window.self !== window.top ||
+      host.startsWith("id-preview--") ||
+      host.startsWith("preview--") ||
+      host === "lovableproject.com" ||
+      host.endsWith(".lovableproject.com") ||
+      host === "lovableproject-dev.com" ||
+      host.endsWith(".lovableproject-dev.com") ||
+      host === "beta.lovable.dev" ||
+      host.endsWith(".beta.lovable.dev") ||
+      new URLSearchParams(window.location.search).get("sw") === "off";
+
+    if (blocked) {
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((regs) =>
+          Promise.all(
+            regs
+              .filter((r) => (r.active?.scriptURL ?? "").endsWith("/sw.js"))
+              .map((r) => r.unregister()),
+          ),
+        )
+        .catch(() => undefined);
+      return;
+    }
+
+    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

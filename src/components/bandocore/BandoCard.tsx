@@ -1,12 +1,66 @@
 import { Link } from "@tanstack/react-router";
-import { Calendar, MapPin, Zap, Euro, ArrowRight, Sparkles, Radar, Users, FileSearch } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Zap,
+  Euro,
+  ArrowRight,
+  Sparkles,
+  Radar,
+  CheckCircle2,
+  AlertTriangle,
+  FileSearch,
+} from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
 
 const categoryStyles: Record<Bando["categoria"], { label: string; class: string }> = {
   FONDO_PERDUTO: { label: "Fondo Perduto", class: "bg-primary/15 text-primary border-primary/30" },
+  FINANZIAMENTO_AGEVOLATO: {
+    label: "Finanziamento agevolato",
+    class: "bg-info/15 text-info border-info/30",
+  },
   TASSO_ZERO: { label: "Tasso Zero", class: "bg-info/15 text-info border-info/30" },
-  CREDITO_IMPOSTA: { label: "Credito d'Imposta", class: "bg-accent/15 text-accent border-accent/30" },
-  IMPRENDITORIA_FEMMINILE: { label: "Imprenditoria Femminile", class: "bg-femminile/15 text-femminile border-femminile/30" },
+  CREDITO_IMPOSTA: {
+    label: "Credito d'Imposta",
+    class: "bg-accent/15 text-accent border-accent/30",
+  },
+  IMPRENDITORIA_FEMMINILE: {
+    label: "Imprenditoria Femminile",
+    class: "bg-femminile/15 text-femminile border-femminile/30",
+  },
+  IMPRENDITORIA_GIOVANILE: {
+    label: "Imprenditoria Giovanile",
+    class: "bg-femminile/15 text-femminile border-femminile/30",
+  },
+  DIGITALIZZAZIONE: { label: "Digitale", class: "bg-accent/15 text-accent border-accent/30" },
+  TRANSIZIONE_ENERGETICA: { label: "Energia", class: "bg-accent/15 text-accent border-accent/30" },
+  RICERCA_SVILUPPO: { label: "Ricerca e sviluppo", class: "bg-info/15 text-info border-info/30" },
+  INTERNAZIONALIZZAZIONE: {
+    label: "Internazionalizzazione",
+    class: "bg-info/15 text-info border-info/30",
+  },
+  STARTUP_INNOVAZIONE: {
+    label: "Startup & innovazione",
+    class: "bg-info/15 text-info border-info/30",
+  },
+  FORMAZIONE_OCCUPAZIONE: {
+    label: "Formazione & lavoro",
+    class: "bg-primary/15 text-primary border-primary/30",
+  },
+  AGRICOLTURA_RURALE: {
+    label: "Agricoltura & rurale",
+    class: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  },
+  TURISMO_CULTURA: {
+    label: "Turismo & cultura",
+    class: "bg-femminile/15 text-femminile border-femminile/30",
+  },
+  ECONOMIA_CIRCOLARE: {
+    label: "Economia circolare",
+    class: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  },
+  GARANZIA: { label: "Garanzia", class: "bg-muted text-foreground border-border" },
+  VOUCHER: { label: "Voucher", class: "bg-primary/15 text-primary border-primary/30" },
   ALTRO: { label: "Altro", class: "bg-muted text-muted-foreground border-border" },
 };
 
@@ -24,15 +78,7 @@ export function BandoCard({ bando }: { bando: Bando }) {
     ? Math.ceil((new Date(bando.scadenza).getTime() - Date.now()) / 86400000)
     : null;
   const urgent = daysLeft !== null && daysLeft <= 10 && daysLeft >= 0;
-  const competition = Math.min(5, Math.max(1, bando.competition_index ?? 3));
-  const competitionLabel =
-    competition <= 1 ? "Molto Bassa"
-    : competition === 2 ? "Bassa"
-    : competition === 3 ? "Media"
-    : competition === 4 ? "Alta"
-    : "Molto Alta";
-  const competitionTone =
-    competition <= 2 ? "text-emerald-400" : competition === 3 ? "text-warning" : "text-destructive";
+  const match = bando.match;
 
   return (
     <div
@@ -42,7 +88,9 @@ export function BandoCard({ bando }: { bando: Bando }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${cat.class}`}>
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${cat.class}`}
+          >
             {cat.label}
           </span>
           {bando.is_hidden && (
@@ -51,6 +99,14 @@ export function BandoCard({ bando }: { bando: Bando }) {
               title="Estratto da Albo Pretorio / BUR / decreto non pubblicizzato"
             >
               <Radar className="h-3 w-3" /> Fonte Sommersa
+            </span>
+          )}
+          {(bando.rarity_score ?? 0) >= 4 && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-accent/50 bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent"
+              title={`Fonte profonda: ${bando.source_kind ?? "documento ufficiale"}`}
+            >
+              <FileSearch className="h-3 w-3" /> Difficile da reperire
             </span>
           )}
         </div>
@@ -64,6 +120,27 @@ export function BandoCard({ bando }: { bando: Bando }) {
       <h3 className="mt-3 font-semibold leading-tight line-clamp-2">{bando.titolo}</h3>
       <p className="mt-1 text-xs text-muted-foreground">{bando.ente}</p>
 
+      {(bando.pnrr_mission || bando.programme_name || bando.programme_code) && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {bando.pnrr_mission && (
+            <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">
+              PNRR {bando.pnrr_mission}
+              {bando.pnrr_component ? ` · ${bando.pnrr_component}` : ""}
+            </span>
+          )}
+          {(bando.programme_name || bando.programme_code) && (
+            <span className="rounded-md border border-info/30 bg-info/10 px-2 py-1 text-[11px] font-semibold text-info">
+              🇪🇺 {bando.programme_name || bando.programme_code}
+            </span>
+          )}
+          {bando.consortium_required && (
+            <span className="rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-[11px] font-semibold text-warning">
+              Consorzio UE{bando.min_partners ? ` · min ${bando.min_partners}` : ""}
+            </span>
+          )}
+        </div>
+      )}
+
       {bando.fonte_extratestuale && (
         <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-accent/25 bg-accent/5 px-2 py-1.5 text-[11px] text-accent/90">
           <FileSearch className="h-3.5 w-3.5 shrink-0 mt-0.5" />
@@ -73,24 +150,28 @@ export function BandoCard({ bando }: { bando: Bando }) {
 
       <p className="mt-3 text-sm text-muted-foreground line-clamp-3 flex-1">{bando.descrizione}</p>
 
-      {/* Indice di Concorrenza */}
-      <div className="mt-4 rounded-lg border border-border bg-background/40 p-2.5">
-        <div className="flex items-center justify-between text-[11px]">
-          <span className="text-muted-foreground">Indice di Concorrenza</span>
-          <span className={`font-semibold ${competitionTone}`}>{competitionLabel}</span>
+      {match && (
+        <div
+          className={`mt-4 rounded-lg border p-2.5 ${match.status === "COMPATIBILE" ? "border-emerald-500/30 bg-emerald-500/5" : "border-warning/30 bg-warning/5"}`}
+        >
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="flex items-center gap-1.5 font-medium">
+              {match.status === "COMPATIBILE" ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 text-warning" />
+              )}
+              {match.status === "COMPATIBILE" ? "Compatibile" : "Da verificare"}
+            </span>
+            <span className="font-semibold">{match.score}%</span>
+          </div>
+          <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">
+            {match.confirmed[0] ??
+              match.missing[0] ??
+              "Controlla i requisiti nella fonte ufficiale"}
+          </p>
         </div>
-        <div className="mt-1.5 flex items-center gap-1">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Users
-              key={i}
-              className={`h-3.5 w-3.5 ${
-                i < competition ? competitionTone : "text-muted-foreground/25"
-              }`}
-              fill={i < competition ? "currentColor" : "none"}
-            />
-          ))}
-        </div>
-      </div>
+      )}
 
       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
         <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -105,9 +186,13 @@ export function BandoCard({ bando }: { bando: Bando }) {
           </div>
         ) : null}
         {bando.scadenza ? (
-          <div className={`flex items-center gap-1.5 ${urgent ? "text-warning font-medium" : "text-muted-foreground"}`}>
+          <div
+            className={`flex items-center gap-1.5 ${urgent ? "text-warning font-medium" : "text-muted-foreground"}`}
+          >
             <Calendar className="h-3.5 w-3.5" />
-            {urgent ? `${daysLeft}g alla scadenza` : new Date(bando.scadenza).toLocaleDateString("it-IT")}
+            {urgent
+              ? `${daysLeft}g alla scadenza`
+              : new Date(bando.scadenza).toLocaleDateString("it-IT")}
           </div>
         ) : null}
         {bando.click_day ? (

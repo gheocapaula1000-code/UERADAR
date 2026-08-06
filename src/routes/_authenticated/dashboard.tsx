@@ -8,7 +8,16 @@ import { DeepSearchShimmer } from "@/components/bandocore/DeepSearchShimmer";
 import { fetchFeedFromProxyCore } from "@/lib/proxy-core.functions";
 import { supabase } from "@/integrations/supabase/client";
 import type { Bando, BandoCategory, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
-import { RefreshCw, Zap, WifiOff, Filter, Radar, MapPinned } from "lucide-react";
+import {
+  RefreshCw,
+  Zap,
+  WifiOff,
+  Filter,
+  Radar,
+  MapPinned,
+  Bell,
+  CheckCircle2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -27,6 +36,16 @@ const CATEGORIES: { key: BandoCategory | "TUTTI"; label: string }[] = [
   { key: "TASSO_ZERO", label: "Tasso Zero" },
   { key: "CREDITO_IMPOSTA", label: "Credito d'Imposta" },
   { key: "IMPRENDITORIA_FEMMINILE", label: "Imprenditoria Femminile" },
+  { key: "IMPRENDITORIA_GIOVANILE", label: "Imprenditoria Giovanile" },
+  { key: "DIGITALIZZAZIONE", label: "Digitale" },
+  { key: "TRANSIZIONE_ENERGETICA", label: "Energia" },
+  { key: "RICERCA_SVILUPPO", label: "Ricerca e sviluppo" },
+  { key: "INTERNAZIONALIZZAZIONE", label: "Estero" },
+  { key: "STARTUP_INNOVAZIONE", label: "Startup" },
+  { key: "FORMAZIONE_OCCUPAZIONE", label: "Formazione" },
+  { key: "AGRICOLTURA_RURALE", label: "Agricoltura" },
+  { key: "TURISMO_CULTURA", label: "Turismo & Cultura" },
+  { key: "ECONOMIA_CIRCOLARE", label: "Economia circolare" },
 ];
 
 const SCOPES: { key: BandoScope | "ALL"; label: string }[] = [
@@ -35,7 +54,7 @@ const SCOPES: { key: BandoScope | "ALL"; label: string }[] = [
   { key: "CAMERALE", label: "Camerale" },
   { key: "REGIONALE", label: "Regionale (POR FESR)" },
   { key: "NAZIONALE", label: "Nazionale (Invitalia/MIMIT)" },
-  { key: "EUROPEO", label: "Europeo (PNRR)" },
+  { key: "EUROPEO", label: "Europeo (UE diretti)" },
 ];
 
 function Dashboard() {
@@ -65,9 +84,23 @@ function Dashboard() {
 
   const query = useQuery({
     queryKey: ["bandi-feed"],
-    queryFn: () => fetchFeed({ data: { deep_search: true } }),
+    // Ogni apertura accoda una ricerca minimizzata sul profilo; la chiave deduplica profili uguali.
+    queryFn: () => fetchFeed({ data: { deep_search: true, force_refresh: true } }),
     enabled: !profileMissing,
     retry: false,
+  });
+
+  const notificationsQ = useQuery({
+    queryKey: ["daily-notifications"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("daily_notifications")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data;
+    },
   });
 
   useEffect(() => {
@@ -78,7 +111,7 @@ function Dashboard() {
     }
   }, [query.error, navigate]);
 
-  const bandi = query.data?.bandi ?? [];
+  const bandi = useMemo(() => query.data?.bandi ?? [], [query.data?.bandi]);
   const isOffline = query.data?.source === "cache";
 
   // Priorità assoluta ai micro-finanziamenti iper-locali (Comune / Camera di Commercio locale)
@@ -111,8 +144,7 @@ function Dashboard() {
       if (scope !== "ALL" && b.scope !== scope) return false;
       if (hiddenOnly && !b.is_hidden) return false;
       if (hyperlocalOnly) {
-        const matchIstat =
-          profile?.codice_istat != null && b.codice_istat === profile.codice_istat;
+        const matchIstat = profile?.codice_istat != null && b.codice_istat === profile.codice_istat;
         const matchComune = profile?.comune && b.comune === profile.comune;
         const matchProvincia = profile?.provincia && b.provincia === profile.provincia;
         if (!matchIstat && !matchComune && !matchProvincia) return false;
@@ -122,11 +154,12 @@ function Dashboard() {
   }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile]);
 
   const stats = useMemo(() => {
-    const s = { totale: bandi.length, femm: 0, flash: 0, hidden: 0, importo: 0 };
+    const s = { totale: bandi.length, femm: 0, flash: 0, hidden: 0, euPnrr: 0, importo: 0 };
     for (const b of bandi) {
       if (b.categoria === "IMPRENDITORIA_FEMMINILE") s.femm++;
       if (b.flash || b.click_day) s.flash++;
       if (b.is_hidden) s.hidden++;
+      if (b.scope === "EUROPEO" || b.pnrr_mission) s.euPnrr++;
       if (b.importo_max) s.importo += b.importo_max;
     }
     return s;
@@ -142,8 +175,8 @@ function Dashboard() {
               <Radar className="h-7 w-7 text-accent" /> Radar Bandi Sommersi
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Bandi rari da Albi Pretori, BUR, decreti ministeriali e fondi camerali locali —
-              filtrati sul tuo profilo aziendale.
+              Bandi rari da Albi Pretori, BUR, PNRR, programmi UE e fondi camerali locali — con
+              prove ufficiali e compatibilità spiegata sul tuo profilo.
               {query.data?.fetched_at && (
                 <span className="ml-2 text-xs">
                   · Aggiornato {new Date(query.data.fetched_at).toLocaleString("it-IT")}
@@ -163,7 +196,7 @@ function Dashboard() {
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110 disabled:opacity-60"
             >
               <RefreshCw className={`h-4 w-4 ${query.isFetching ? "animate-spin" : ""}`} />
-              Deep Search
+              Aggiorna risultati
             </button>
           </div>
         </header>
@@ -171,14 +204,69 @@ function Dashboard() {
         {/* Deep Search shimmer con messaggi dinamici */}
         {query.isFetching && <DeepSearchShimmer />}
 
+        {(notificationsQ.data?.length ?? 0) > 0 && (
+          <section className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="flex items-center gap-2 text-lg font-semibold">
+                  <Bell className="h-5 w-5 text-primary" /> Novità di oggi
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Preparate automaticamente dai cron Replit mentre eri offline.
+                </p>
+              </div>
+              <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
+                {notificationsQ.data?.filter((item) => !item.read_at).length ?? 0} nuove
+              </span>
+            </div>
+            <div className="grid gap-2 md:grid-cols-2">
+              {notificationsQ.data?.slice(0, 6).map((item) => (
+                <button
+                  key={item.id}
+                  onClick={async () => {
+                    await supabase
+                      .from("daily_notifications")
+                      .update({ read_at: new Date().toISOString() })
+                      .eq("id", item.id);
+                    await notificationsQ.refetch();
+                    navigate({ to: "/bando/$id", params: { id: item.opportunity_id } });
+                  }}
+                  className="rounded-xl border border-border bg-card p-3 text-left transition hover:border-primary/50"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-sm font-medium line-clamp-1">{item.title}</span>
+                    {item.read_at ? (
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    ) : (
+                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{item.body}</p>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* STATS */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
           {[
             { l: "Bandi attivi", v: query.isLoading ? "—" : stats.totale, c: "text-primary" },
             { l: "Fonti Sommerse", v: query.isLoading ? "—" : stats.hidden, c: "text-accent" },
             { l: "Fondi Flash", v: query.isLoading ? "—" : stats.flash, c: "text-warning" },
-            { l: "Imprenditoria Femm.", v: query.isLoading ? "—" : stats.femm, c: "text-femminile" },
-            { l: "Plafond totale", v: query.isLoading ? "—" : `${new Intl.NumberFormat("it-IT", { notation: "compact" }).format(stats.importo)} €`, c: "text-accent" },
+            { l: "UE + PNRR", v: query.isLoading ? "—" : stats.euPnrr, c: "text-info" },
+            {
+              l: "Imprenditoria Femm.",
+              v: query.isLoading ? "—" : stats.femm,
+              c: "text-femminile",
+            },
+            {
+              l: "Potenziale max",
+              v: query.isLoading
+                ? "—"
+                : `${new Intl.NumberFormat("it-IT", { notation: "compact" }).format(stats.importo)} €`,
+              c: "text-accent",
+            },
           ].map((s) => (
             <div key={s.l} className="rounded-xl border border-border bg-card p-4">
               <div className="text-xs text-muted-foreground">{s.l}</div>
@@ -195,19 +283,26 @@ function Dashboard() {
                 <Zap className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">Click Day Fantasma &amp; Micro-Finanziamenti Locali</h2>
+                <h2 className="text-lg font-semibold">
+                  Click Day Fantasma &amp; Micro-Finanziamenti Locali
+                </h2>
                 <p className="text-xs text-muted-foreground">
-                  Priorità ai bandi comunali e camerali della tua zona con budget limitato o scadenza a giorni.
+                  Priorità ai bandi comunali e camerali della tua zona con budget limitato o
+                  scadenza a giorni.
                 </p>
               </div>
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {query.isLoading
-              ? Array.from({ length: 3 }).map((_, i) => <BandoCardSkeleton key={i} />)
-              : flashBandi.length === 0
-                ? <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">Nessun bando flash in scadenza. Il radar ricontrollerà automaticamente.</div>
-                : flashBandi.map((b) => <BandoCard key={b.id} bando={b} />)}
+            {query.isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => <BandoCardSkeleton key={i} />)
+            ) : flashBandi.length === 0 ? (
+              <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                Nessun bando flash in scadenza. Il radar ricontrollerà automaticamente.
+              </div>
+            ) : (
+              flashBandi.map((b) => <BandoCard key={b.id} bando={b} />)
+            )}
           </div>
         </section>
 
@@ -286,11 +381,15 @@ function Dashboard() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {query.isLoading
-              ? Array.from({ length: 6 }).map((_, i) => <BandoCardSkeleton key={i} />)
-              : filtered.length === 0
-                ? <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">Nessun bando corrisponde ai filtri.</div>
-                : filtered.map((b: Bando) => <BandoCard key={b.id} bando={b} />)}
+            {query.isLoading ? (
+              Array.from({ length: 6 }).map((_, i) => <BandoCardSkeleton key={i} />)
+            ) : filtered.length === 0 ? (
+              <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                Nessun bando corrisponde ai filtri.
+              </div>
+            ) : (
+              filtered.map((b: Bando) => <BandoCard key={b.id} bando={b} />)
+            )}
           </div>
         </section>
       </div>
