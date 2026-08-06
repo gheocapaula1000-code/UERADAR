@@ -191,11 +191,11 @@ function Dashboard() {
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-2">
-              <Radar className="h-7 w-7 text-accent" /> Radar Bandi Sommersi
+              <Radar className="h-7 w-7 text-accent" /> Radar Bandi
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Bandi rari da Albi Pretori, BUR, PNRR, programmi UE e fondi camerali locali — con
-              prove ufficiali e compatibilità spiegata sul tuo profilo.
+              Opportunità da fonti ufficiali nazionali, territoriali e UE configurate — con
+              riferimenti ufficiali e compatibilità motivata sul tuo profilo.
               {query.data?.fetched_at && (
                 <span className="ml-2 text-xs">
                   · Aggiornato {new Date(query.data.fetched_at).toLocaleString("it-IT")}
@@ -233,7 +233,7 @@ function Dashboard() {
                   <Bell className="h-5 w-5 text-primary" /> Novità di oggi
                 </h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Preparate automaticamente dai cron Replit mentre eri offline.
+                  Preparate dagli aggiornamenti programmati del servizio.
                 </p>
               </div>
               <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
@@ -273,8 +273,12 @@ function Dashboard() {
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
           {[
             { l: "Bandi attivi", v: query.isLoading ? "—" : stats.totale, c: "text-primary" },
-            { l: "Fonti Sommerse", v: query.isLoading ? "—" : stats.hidden, c: "text-accent" },
-            { l: "Fondi Flash", v: query.isLoading ? "—" : stats.flash, c: "text-warning" },
+            {
+              l: "Fonti locali/specialistiche",
+              v: query.isLoading ? "—" : stats.hidden,
+              c: "text-accent",
+            },
+            { l: "Scadenze ravvicinate", v: query.isLoading ? "—" : stats.flash, c: "text-warning" },
             { l: "UE + PNRR", v: query.isLoading ? "—" : stats.euPnrr, c: "text-info" },
             {
               l: "Imprenditoria Femm.",
@@ -305,11 +309,10 @@ function Dashboard() {
               </div>
               <div>
                 <h2 className="text-lg font-semibold">
-                  Click Day Fantasma &amp; Micro-Finanziamenti Locali
+                  Opportunità locali e scadenze ravvicinate
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Priorità ai bandi comunali e camerali della tua zona con budget limitato o
-                  scadenza a giorni.
+                  Priorità ai bandi comunali e camerali della tua zona e alle scadenze più vicine.
                 </p>
               </div>
             </div>
@@ -319,7 +322,7 @@ function Dashboard() {
               Array.from({ length: 3 }).map((_, i) => <BandoCardSkeleton key={i} />)
             ) : flashBandi.length === 0 ? (
               <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Nessun bando flash in scadenza. Il radar ricontrollerà automaticamente.
+                Nessuna scadenza ravvicinata al momento. Il radar aggiorna in automatico.
               </div>
             ) : (
               flashBandi.map((b) => <BandoCard key={b.id} bando={b} />)
@@ -365,7 +368,7 @@ function Dashboard() {
               }`}
             >
               <Radar className="h-3.5 w-3.5" />
-              Solo Fonti Sommerse
+              Solo fonti locali e specialistiche
             </button>
           </div>
 
