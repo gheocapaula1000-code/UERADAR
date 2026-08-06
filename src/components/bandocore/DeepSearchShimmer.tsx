@@ -2,16 +2,14 @@ import { useEffect, useState } from "react";
 import { Radar, FileSearch, Landmark, ScrollText, Building2 } from "lucide-react";
 
 const STAGES: { icon: typeof Radar; label: string }[] = [
-  { icon: Radar, label: "Scansione Albi Pretori regionali in corso…" },
-  { icon: ScrollText, label: "Parsing Bollettini Ufficiali Regionali (BUR)…" },
-  { icon: FileSearch, label: "Estrazione dati da allegati PDF nativi PA…" },
-  { icon: Landmark, label: "Interrogazione decreti ministeriali non pubblicizzati…" },
-  { icon: Building2, label: "Verifica micro-finanziamenti Camere di Commercio locali…" },
+  { icon: Radar, label: "Consultazione fonti ufficiali territoriali…" },
+  { icon: ScrollText, label: "Lettura bollettini e avvisi ufficiali…" },
+  { icon: FileSearch, label: "Analisi degli allegati ufficiali…" },
+  { icon: Landmark, label: "Verifica provvedimenti ministeriali pubblicati…" },
+  { icon: Building2, label: "Verifica fonti locali e specialistiche…" },
 ];
 
-/**
- * Stato di caricamento del catalogo già preparato dai cron automatici.
- */
+/** Stato di caricamento del catalogo aggiornato dal servizio. */
 export function DeepSearchShimmer() {
   const [i, setI] = useState(0);
   useEffect(() => {

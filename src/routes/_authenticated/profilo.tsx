@@ -443,10 +443,10 @@ function Profilo() {
 
           <Section
             title="Avvisi automatici"
-            desc="Le novità vengono preparate dai cron Replit anche a PC spento"
+            desc="Le novità vengono preparate dagli aggiornamenti programmati del servizio"
           >
             <ToggleField
-              label="Digest email del mattino"
+              label="Digest email periodico"
               description="Ricevi i nuovi bandi compatibili, click day e scadenze urgenti all'email referente."
               checked={emailAlerts}
               onChange={setEmailAlerts}
