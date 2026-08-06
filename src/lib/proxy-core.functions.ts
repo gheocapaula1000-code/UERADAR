@@ -95,7 +95,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
     return { bandi: bandi ?? [], fetched_at, source, deep_search: deepSearch };
   });
 
-export const loadCachedFeed = createServerFn({ method: "GET" })
+export const requestFeedRefresh = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ queued: true }> => {
     // Accoda una singola richiesta di refresh, senza leggere il feed.
@@ -109,7 +109,7 @@ export const loadCachedFeed = createServerFn({ method: "GET" })
     return { queued: true };
   });
 
-export const loadCachedFeedPlaceholder = createServerFn({ method: "GET" })
+export const loadCachedFeed = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<FeedResponse | null> => {
     const { data } = await context.supabase
