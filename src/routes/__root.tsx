@@ -145,9 +145,37 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    if (!("serviceWorker" in navigator)) return;
+
+    const host = window.location.hostname;
+    const blocked =
+      !import.meta.env.PROD ||
+      window.self !== window.top ||
+      host.startsWith("id-preview--") ||
+      host.startsWith("preview--") ||
+      host === "lovableproject.com" ||
+      host.endsWith(".lovableproject.com") ||
+      host === "lovableproject-dev.com" ||
+      host.endsWith(".lovableproject-dev.com") ||
+      host === "beta.lovable.dev" ||
+      host.endsWith(".beta.lovable.dev") ||
+      new URLSearchParams(window.location.search).get("sw") === "off";
+
+    if (blocked) {
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((regs) =>
+          Promise.all(
+            regs
+              .filter((r) => (r.active?.scriptURL ?? "").endsWith("/sw.js"))
+              .map((r) => r.unregister()),
+          ),
+        )
+        .catch(() => undefined);
+      return;
     }
+
+    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
   }, []);
 
   return (
