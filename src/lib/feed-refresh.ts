@@ -2,20 +2,30 @@ import type { FeedResponse } from "./bandocore-types";
 
 /**
  * Marker di freschezza del feed.
- * Se il Core fornisce `generated_at` lo usiamo come marker autorevole; altrimenti
- * applichiamo un contratto locale fail-closed: impronta deterministica del
- * contenuto (sorgente + timestamp di fetch + id/verifiche dei bandi). Se il
- * contenuto non cambia, il marker non cambia e il refresh NON viene dichiarato
- * riuscito.
+ * Se il Core fornisce realmente `generated_at` lo usiamo come marker autorevole
+ * (mai simulato). Altrimenti calcoliamo una fingerprint deterministica del solo
+ * contenuto stabile del feed: MAI `fetched_at` né `source`, che cambiano ad ogni
+ * lettura e produrrebbero falsi "aggiornato".
  */
 export function feedMarker(feed: FeedResponse | null | undefined): string {
   if (!feed) return "";
   if (feed.generated_at) return `g:${feed.generated_at}`;
-  const ids = (feed.bandi ?? [])
-    .map((b) => `${b.id}:${b.last_verified_at ?? ""}:${b.scadenza ?? ""}`)
+  const rows = (feed.bandi ?? [])
+    .map((b) =>
+      [
+        b.id,
+        b.last_verified_at ?? "",
+        b.scadenza ?? "",
+        b.apertura ?? "",
+        b.verification_status ?? "",
+        b.match?.status ?? "",
+        b.titolo ?? "",
+        b.importo_max ?? "",
+      ].join("~"),
+    )
     .sort()
     .join("|");
-  return `c:${feed.source}:${feed.fetched_at}:${feed.bandi?.length ?? 0}:${fnv1a(ids)}`;
+  return `c:${feed.bandi?.length ?? 0}:${fnv1a(rows)}`;
 }
 
 function fnv1a(input: string): string {
