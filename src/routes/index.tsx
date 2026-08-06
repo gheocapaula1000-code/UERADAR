@@ -74,7 +74,7 @@ function Landing() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
-              Radar bandi automatico — aggiornato di notte e durante il giorno
+              Radar bandi su fonti ufficiali — aggiornamenti programmati
             </div>
             <h1 className="mt-6 text-5xl font-bold leading-tight md:text-6xl">
               Il radar dei{" "}
@@ -105,11 +105,11 @@ function Landing() {
             <div className="mt-10 grid grid-cols-3 gap-6 max-w-xl">
               {[
                 { k: "Italia + UE", v: "Copertura separata" },
-                { k: "20", v: "Regioni monitorate" },
-                { k: "Ogni mattina", v: "Novità personalizzate" },
+                { k: "Fonti ufficiali", v: "Nazionali, territoriali e UE" },
+                { k: "Risultati motivati", v: "Ordinati sul tuo profilo" },
               ].map((s) => (
                 <div key={s.v}>
-                  <div className="text-2xl font-bold text-primary md:text-3xl">{s.k}</div>
+                  <div className="text-xl font-bold text-primary md:text-2xl">{s.k}</div>
                   <div className="text-xs text-muted-foreground mt-1">{s.v}</div>
                 </div>
               ))}
@@ -124,7 +124,7 @@ function Landing() {
           <div className="text-xs uppercase tracking-widest text-primary font-semibold">
             Come funziona
           </div>
-          <h2 className="mt-2 text-3xl font-bold md:text-4xl">Tre step, zero rumore.</h2>
+          <h2 className="mt-2 text-3xl font-bold md:text-4xl">Tre step essenziali.</h2>
         </div>
         <div className="grid gap-6 md:grid-cols-3">
           {[
@@ -136,7 +136,7 @@ function Landing() {
             {
               icon: Radar,
               t: "2. Ricerca automatica",
-              d: "I cron Replit cercano su Albi, BUR, PNRR e portali UE ufficiali anche a PC spento, usando i segnali del tuo profilo.",
+              d: "La raccolta automatica consulta le fonti ufficiali nazionali, territoriali e UE configurate, usando i segnali del tuo profilo.",
             },
             {
               icon: Target,
@@ -205,10 +205,10 @@ function Landing() {
       {/* CTA */}
       <section id="sicurezza" className="mx-auto max-w-7xl px-6 py-24 text-center">
         <h2 className="mx-auto max-w-2xl text-3xl font-bold md:text-4xl">
-          Ogni giorno di ritardo è un bando in meno.
+          Tieni sotto controllo le opportunità aperte.
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-          Configura il profilo aziendale in 2 minuti e ricevi il tuo primo feed personalizzato.
+          Configura il profilo aziendale e consulta il feed filtrato sulla tua impresa.
         </p>
         <Link
           to="/auth"

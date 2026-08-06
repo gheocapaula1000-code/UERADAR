@@ -99,17 +99,17 @@ export function BandoCard({ bando }: { bando: Bando }) {
           {bando.is_hidden && (
             <span
               className="inline-flex items-center gap-1 rounded-full border border-accent/50 bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent"
-              title="Estratto da Albo Pretorio / BUR / decreto non pubblicizzato"
+              title="Individuato tra fonti locali e specialistiche configurate"
             >
-              <Radar className="h-3 w-3" /> Fonte Sommersa
+              <Radar className="h-3 w-3" /> Fonte locale/specialistica
             </span>
           )}
           {(bando.rarity_score ?? 0) >= 4 && (
             <span
               className="inline-flex items-center gap-1 rounded-full border border-accent/50 bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent"
-              title={`Fonte profonda: ${bando.source_kind ?? "documento ufficiale"}`}
+              title={`Fonte specialistica: ${bando.source_kind ?? "documento ufficiale"}`}
             >
-              <FileSearch className="h-3 w-3" /> Difficile da reperire
+              <FileSearch className="h-3 w-3" /> Poco diffuso
             </span>
           )}
         </div>
