@@ -1,13 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/bandocore/AppShell";
 import { BandoCard, BandoCardSkeleton } from "@/components/bandocore/BandoCard";
 import { DeepSearchShimmer } from "@/components/bandocore/DeepSearchShimmer";
-import { fetchFeedFromProxyCore } from "@/lib/proxy-core.functions";
+import { fetchFeedFromProxyCore, requestFeedRefresh } from "@/lib/proxy-core.functions";
 import { supabase } from "@/integrations/supabase/client";
-import type { Bando, BandoCategory, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
+import type { Bando, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
+import { CATEGORY_FILTERS, type CategoryFilterKey } from "@/lib/bando-categories";
+import { feedMarker, runBoundedRefresh } from "@/lib/feed-refresh";
 import { isActive, isExpired, isFlash } from "@/lib/bando-status";
 import {
   RefreshCw,
@@ -31,24 +33,6 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
 });
 
-const CATEGORIES: { key: BandoCategory | "TUTTI"; label: string }[] = [
-  { key: "TUTTI", label: "Tutti" },
-  { key: "FONDO_PERDUTO", label: "Fondo Perduto" },
-  { key: "TASSO_ZERO", label: "Tasso Zero" },
-  { key: "CREDITO_IMPOSTA", label: "Credito d'Imposta" },
-  { key: "IMPRENDITORIA_FEMMINILE", label: "Imprenditoria Femminile" },
-  { key: "IMPRENDITORIA_GIOVANILE", label: "Imprenditoria Giovanile" },
-  { key: "DIGITALIZZAZIONE", label: "Digitale" },
-  { key: "TRANSIZIONE_ENERGETICA", label: "Energia" },
-  { key: "RICERCA_SVILUPPO", label: "Ricerca e sviluppo" },
-  { key: "INTERNAZIONALIZZAZIONE", label: "Estero" },
-  { key: "STARTUP_INNOVAZIONE", label: "Startup" },
-  { key: "FORMAZIONE_OCCUPAZIONE", label: "Formazione" },
-  { key: "AGRICOLTURA_RURALE", label: "Agricoltura" },
-  { key: "TURISMO_CULTURA", label: "Turismo & Cultura" },
-  { key: "ECONOMIA_CIRCOLARE", label: "Economia circolare" },
-];
-
 const SCOPES: { key: BandoScope | "ALL"; label: string }[] = [
   { key: "ALL", label: "Tutti" },
   { key: "COMUNALE", label: "Comunale" },
@@ -61,8 +45,12 @@ const SCOPES: { key: BandoScope | "ALL"; label: string }[] = [
 function Dashboard() {
   const navigate = useNavigate();
   const fetchFeed = useServerFn(fetchFeedFromProxyCore);
+  const enqueueRefresh = useServerFn(requestFeedRefresh);
+  const queryClient = useQueryClient();
+  const refreshAbort = useRef<AbortController | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [profileMissing, setProfileMissing] = useState(false);
-  const [cat, setCat] = useState<(typeof CATEGORIES)[number]["key"]>("TUTTI");
+  const [cat, setCat] = useState<CategoryFilterKey>("TUTTI");
   const [scope, setScope] = useState<(typeof SCOPES)[number]["key"]>("ALL");
   const [hyperlocalOnly, setHyperlocalOnly] = useState(false);
   const [hiddenOnly, setHiddenOnly] = useState(false);
@@ -85,11 +73,41 @@ function Dashboard() {
 
   const query = useQuery({
     queryKey: ["bandi-feed"],
-    // Ogni apertura accoda una ricerca minimizzata sul profilo; la chiave deduplica profili uguali.
-    queryFn: () => fetchFeed({ data: { deep_search: true, force_refresh: true } }),
+    // Caricamento normale: sola lettura del feed, nessun refresh accodato.
+    queryFn: () => fetchFeed({ data: { deep_search: true } }),
     enabled: !profileMissing,
     retry: false,
   });
+
+  // Refresh manuale: 1 solo enqueue, poi polling bounded del solo feed.
+  useEffect(() => () => refreshAbort.current?.abort(), []);
+
+  const handleManualRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    refreshAbort.current?.abort();
+    const controller = new AbortController();
+    refreshAbort.current = controller;
+    setIsRefreshing(true);
+    try {
+      const result = await runBoundedRefresh({
+        enqueue: () => enqueueRefresh(),
+        fetchFeed: () => fetchFeed({ data: { deep_search: true } }),
+        baselineMarker: feedMarker(queryClient.getQueryData(["bandi-feed"])),
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
+      if (result.status === "updated" && result.feed) {
+        queryClient.setQueryData(["bandi-feed"], result.feed);
+        toast.success("Risultati aggiornati");
+      } else if (result.status === "queued") {
+        toast.info("Aggiornamento accodato: riprova tra qualche minuto.");
+      } else if (result.status === "failed") {
+        toast.error("Aggiornamento non riuscito. Restano validi i dati precedenti.");
+      }
+    } finally {
+      if (!controller.signal.aborted) setIsRefreshing(false);
+    }
+  }, [enqueueRefresh, fetchFeed, isRefreshing, queryClient]);
 
   const notificationsQ = useQuery({
     queryKey: ["daily-notifications"],
@@ -187,18 +205,20 @@ function Dashboard() {
               </span>
             )}
             <button
-              onClick={() => query.refetch()}
-              disabled={query.isFetching}
+              onClick={handleManualRefresh}
+              disabled={query.isFetching || isRefreshing}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110 disabled:opacity-60"
             >
-              <RefreshCw className={`h-4 w-4 ${query.isFetching ? "animate-spin" : ""}`} />
-              Aggiorna risultati
+              <RefreshCw
+                className={`h-4 w-4 ${query.isFetching || isRefreshing ? "animate-spin" : ""}`}
+              />
+              {isRefreshing ? "Aggiornamento in corso…" : "Aggiorna risultati"}
             </button>
           </div>
         </header>
 
         {/* Deep Search shimmer con messaggi dinamici */}
-        {query.isFetching && <DeepSearchShimmer />}
+        {(query.isFetching || isRefreshing) && <DeepSearchShimmer />}
 
         {(notificationsQ.data?.length ?? 0) > 0 && (
           <section className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
@@ -345,7 +365,7 @@ function Dashboard() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((c) => (
+            {CATEGORY_FILTERS.map((c) => (
               <button
                 key={c.key}
                 onClick={() => setCat(c.key)}
