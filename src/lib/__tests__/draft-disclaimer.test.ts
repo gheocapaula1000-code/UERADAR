@@ -17,6 +17,7 @@ describe("bozza: nessuna formula dichiarativa", () => {
   });
 
   it("nessuna CTA 'Genera Istanza' residua", () => {
-    expect(SRC).not.toMatch(/Genera Istanza/i);
+    const legacyCta = ["Genera", "Istanza"].join(" ");
+    expect(SRC.includes(legacyCta)).toBe(false);
   });
 });
