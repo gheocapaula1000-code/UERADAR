@@ -18,8 +18,11 @@ import {
   FileSearch,
   CheckCircle2,
   AlertTriangle,
+  XCircle,
+  CalendarX,
 } from "lucide-react";
 import { toast } from "sonner";
+import { isExpired, matchStatusMeta } from "@/lib/bando-status";
 
 export const Route = createFileRoute("/_authenticated/bando/$id")({
   head: () => ({
@@ -135,15 +138,22 @@ function BandoDetail() {
               )}
               {bando.match && (
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs ${bando.match.status === "COMPATIBILE" ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400" : "border-warning/40 bg-warning/10 text-warning"}`}
+                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs ${matchStatusMeta(bando.match.status).badgeClass}`}
                 >
-                  {bando.match.status === "COMPATIBILE" ? (
+                  {matchStatusMeta(bando.match.status).tone === "positive" ? (
                     <CheckCircle2 className="h-3 w-3" />
+                  ) : matchStatusMeta(bando.match.status).tone === "negative" ? (
+                    <XCircle className="h-3 w-3" />
                   ) : (
                     <AlertTriangle className="h-3 w-3" />
                   )}
-                  {bando.match.status === "COMPATIBILE" ? "Compatibile" : "Da verificare"} ·{" "}
+                  {matchStatusMeta(bando.match.status).label} ·{" "}
                   {bando.match.score}%
+                </span>
+              )}
+              {isExpired(bando) && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+                  <CalendarX className="h-3 w-3" /> Scaduto
                 </span>
               )}
             </div>
@@ -168,6 +178,21 @@ function BandoDetail() {
 
             {bando.match && (
               <div className="mt-6 grid gap-3 md:grid-cols-2">
+                {matchStatusMeta(bando.match.status).tone === "negative" && (
+                  <div className="md:col-span-2 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-destructive">
+                      <XCircle className="h-4 w-4" /> Non compatibile con il tuo profilo
+                    </h3>
+                    <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                      {(bando.match.blockers ?? []).map((item) => (
+                        <li key={item}>• {item}</li>
+                      ))}
+                      {(bando.match.blockers ?? []).length === 0 && (
+                        <li>Requisiti di ammissibilità non soddisfatti secondo la fonte ufficiale.</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
                 <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4">
                   <h3 className="flex items-center gap-2 text-sm font-semibold">
                     <CheckCircle2 className="h-4 w-4 text-emerald-400" /> Requisiti confermati

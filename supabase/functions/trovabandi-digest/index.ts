@@ -37,6 +37,50 @@ function coreUrl() {
     : `${base}/functions/v1/trovabandi-engine`;
 }
 
+/**
+ * Release gate: prima di elaborare qualunque digest il Central Core deve
+ * autorizzare esplicitamente l'attivazione. Qualunque esito diverso da
+ * HTTP 200 con ok/gate_passed/cron_activation_allowed = true blocca
+ * l'esecuzione (fail-closed): nessuna notifica creata, nessuna email inviata.
+ */
+export async function evaluateReleaseGate(payload: unknown, status: number) {
+  if (status !== 200) return { allowed: false, reason: `GATE_HTTP_${status}` };
+  const body = (payload ?? {}) as Row;
+  if (body.ok !== true) return { allowed: false, reason: "GATE_NOT_OK" };
+  if (body.gate_passed !== true) return { allowed: false, reason: "GATE_NOT_PASSED" };
+  if (body.cron_activation_allowed !== true)
+    return { allowed: false, reason: "CRON_ACTIVATION_NOT_ALLOWED" };
+  return { allowed: true, reason: "GATE_PASSED" };
+}
+
+async function checkReleaseGate() {
+  const secret = env("CENTRAL_CORE_API_KEY");
+  const base = env("CENTRAL_CORE_API_URL");
+  if (!base || !secret) return { allowed: false, reason: "CORE_NOT_CONFIGURED" };
+  try {
+    const res = await fetch(coreUrl(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${secret}`,
+        "x-internal-secret": secret,
+        "x-source-app": "trovabandi-digest",
+      },
+      body: JSON.stringify({ action: "release_gate", client: "trovabandi-digest" }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    let payload: unknown = null;
+    try {
+      payload = await res.json();
+    } catch {
+      payload = null;
+    }
+    return await evaluateReleaseGate(payload, res.status);
+  } catch {
+    return { allowed: false, reason: "GATE_UNREACHABLE" };
+  }
+}
+
 async function coreFeed(profile: Row) {
   const secret = env("CENTRAL_CORE_API_KEY");
   const res = await fetch(coreUrl(), {
@@ -118,6 +162,8 @@ async function processProfile(sb: ReturnType<typeof createClient>, profile: Row)
     const match = (item.match ?? {}) as Row;
     const firstSeen = Date.parse(text(item.first_seen_at));
     const deadline = Date.parse(text(item.deadline_at));
+    // Mai notificare opportunità già scadute.
+    if (Number.isFinite(deadline) && deadline + 86_400_000 - 1 < Date.now()) return false;
     const urgent =
       Number.isFinite(deadline) &&
       deadline >= Date.now() &&
@@ -181,6 +227,9 @@ serve(async (req) => {
   if (!cronSecret) return out(503, { ok: false, code: "AUTH_NOT_CONFIGURED" });
   if (!(await safeSecretEqual(cronSecret, req.headers.get("x-cron-secret") ?? "")))
     return out(401, { ok: false, code: "UNAUTHORIZED" });
+  const gate = await checkReleaseGate();
+  if (!gate.allowed)
+    return out(423, { ok: false, code: "RELEASE_GATE_BLOCKED", reason: gate.reason });
   let body: Row = {};
   try {
     body = await req.json();
