@@ -9,9 +9,12 @@ import {
   Radar,
   CheckCircle2,
   AlertTriangle,
+  XCircle,
+  CalendarX,
   FileSearch,
 } from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
+import { daysLeft as daysLeftOf, isExpired, matchStatusMeta } from "@/lib/bando-status";
 
 const categoryStyles: Record<Bando["categoria"], { label: string; class: string }> = {
   FONDO_PERDUTO: { label: "Fondo Perduto", class: "bg-primary/15 text-primary border-primary/30" },
@@ -74,11 +77,11 @@ const scopeLabels: Record<Bando["scope"], string> = {
 
 export function BandoCard({ bando }: { bando: Bando }) {
   const cat = categoryStyles[bando.categoria] ?? categoryStyles.ALTRO;
-  const daysLeft = bando.scadenza
-    ? Math.ceil((new Date(bando.scadenza).getTime() - Date.now()) / 86400000)
-    : null;
-  const urgent = daysLeft !== null && daysLeft <= 10 && daysLeft >= 0;
+  const daysLeft = daysLeftOf(bando);
+  const expired = isExpired(bando);
+  const urgent = !expired && daysLeft !== null && daysLeft <= 10 && daysLeft >= 0;
   const match = bando.match;
+  const matchMeta = match ? matchStatusMeta(match.status) : null;
 
   return (
     <div
@@ -110,7 +113,12 @@ export function BandoCard({ bando }: { bando: Bando }) {
             </span>
           )}
         </div>
-        {bando.flash && (
+        {expired && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+            <CalendarX className="h-3 w-3" /> Scaduto
+          </span>
+        )}
+        {!expired && bando.flash && (
           <span className="inline-flex items-center gap-1 rounded-full bg-warning/20 text-warning px-2 py-0.5 text-xs font-semibold">
             <Zap className="h-3 w-3" /> Flash
           </span>
@@ -150,23 +158,26 @@ export function BandoCard({ bando }: { bando: Bando }) {
 
       <p className="mt-3 text-sm text-muted-foreground line-clamp-3 flex-1">{bando.descrizione}</p>
 
-      {match && (
+      {match && matchMeta && (
         <div
-          className={`mt-4 rounded-lg border p-2.5 ${match.status === "COMPATIBILE" ? "border-emerald-500/30 bg-emerald-500/5" : "border-warning/30 bg-warning/5"}`}
+          className={`mt-4 rounded-lg border p-2.5 ${matchMeta.boxClass}`}
         >
           <div className="flex items-center justify-between gap-2 text-xs">
             <span className="flex items-center gap-1.5 font-medium">
-              {match.status === "COMPATIBILE" ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              {matchMeta.tone === "positive" ? (
+                <CheckCircle2 className={`h-4 w-4 ${matchMeta.textClass}`} />
+              ) : matchMeta.tone === "negative" ? (
+                <XCircle className={`h-4 w-4 ${matchMeta.textClass}`} />
               ) : (
-                <AlertTriangle className="h-4 w-4 text-warning" />
+                <AlertTriangle className={`h-4 w-4 ${matchMeta.textClass}`} />
               )}
-              {match.status === "COMPATIBILE" ? "Compatibile" : "Da verificare"}
+              {matchMeta.label}
             </span>
             <span className="font-semibold">{match.score}%</span>
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">
-            {match.confirmed[0] ??
+            {(matchMeta.tone === "negative" ? match.blockers?.[0] : undefined) ??
+              match.confirmed[0] ??
               match.missing[0] ??
               "Controlla i requisiti nella fonte ufficiale"}
           </p>
@@ -190,12 +201,14 @@ export function BandoCard({ bando }: { bando: Bando }) {
             className={`flex items-center gap-1.5 ${urgent ? "text-warning font-medium" : "text-muted-foreground"}`}
           >
             <Calendar className="h-3.5 w-3.5" />
-            {urgent
-              ? `${daysLeft}g alla scadenza`
-              : new Date(bando.scadenza).toLocaleDateString("it-IT")}
+            {expired
+              ? `Scaduto il ${new Date(bando.scadenza).toLocaleDateString("it-IT")}`
+              : urgent
+                ? `${daysLeft}g alla scadenza`
+                : new Date(bando.scadenza).toLocaleDateString("it-IT")}
           </div>
         ) : null}
-        {bando.click_day ? (
+        {!expired && bando.click_day ? (
           <div className="flex items-center gap-1.5 text-warning">
             <Sparkles className="h-3.5 w-3.5" /> Click Day
           </div>
