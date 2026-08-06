@@ -17,8 +17,8 @@ const InputSchema = z.object({
 // - Persiste il feed completo in feed_cache (offline) e i bandi "sommersi"
 //   in cached_hidden_bandi, sempre sotto RLS dell'utente.
 export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
-  .validator((input: unknown) => InputSchema.parse(input ?? {}))
   .middleware([requireSupabaseAuth])
+  .validator((input: unknown) => InputSchema.parse(input ?? {}))
   .handler(async ({ data, context }): Promise<FeedResponse> => {
     const { supabase, userId } = context;
     const deepSearch = data.deep_search ?? true;
