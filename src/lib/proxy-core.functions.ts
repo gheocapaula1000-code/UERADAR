@@ -97,6 +97,20 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
 
 export const loadCachedFeed = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ queued: true }> => {
+    // Accoda una singola richiesta di refresh, senza leggere il feed.
+    const { data, error } = await context.supabase.functions.invoke("trovabandi-feed", {
+      body: { action: "request_refresh" },
+    });
+    if (error) throw new Error("REFRESH_QUEUE_FAILED");
+    const refresh = data as { ok?: unknown; queued?: unknown } | null;
+    if (!refresh || refresh.ok !== true || refresh.queued !== true)
+      throw new Error("REFRESH_QUEUE_FAILED");
+    return { queued: true };
+  });
+
+export const loadCachedFeedPlaceholder = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<FeedResponse | null> => {
     const { data } = await context.supabase
       .from("feed_cache")
