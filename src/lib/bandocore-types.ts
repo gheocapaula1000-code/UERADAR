@@ -32,25 +32,29 @@ export interface CompanyProfile {
   pec?: string | null;
 }
 
-export type BandoCategory =
-  | "FONDO_PERDUTO"
-  | "FINANZIAMENTO_AGEVOLATO"
-  | "TASSO_ZERO"
-  | "CREDITO_IMPOSTA"
-  | "IMPRENDITORIA_FEMMINILE"
-  | "IMPRENDITORIA_GIOVANILE"
-  | "DIGITALIZZAZIONE"
-  | "TRANSIZIONE_ENERGETICA"
-  | "RICERCA_SVILUPPO"
-  | "INTERNAZIONALIZZAZIONE"
-  | "STARTUP_INNOVAZIONE"
-  | "FORMAZIONE_OCCUPAZIONE"
-  | "AGRICOLTURA_RURALE"
-  | "TURISMO_CULTURA"
-  | "ECONOMIA_CIRCOLARE"
-  | "GARANZIA"
-  | "VOUCHER"
-  | "ALTRO";
+/** Unica fonte di verità per le categorie bando: filtri e UI derivano da qui. */
+export const BANDO_CATEGORIES = [
+  "FONDO_PERDUTO",
+  "FINANZIAMENTO_AGEVOLATO",
+  "TASSO_ZERO",
+  "CREDITO_IMPOSTA",
+  "IMPRENDITORIA_FEMMINILE",
+  "IMPRENDITORIA_GIOVANILE",
+  "DIGITALIZZAZIONE",
+  "TRANSIZIONE_ENERGETICA",
+  "RICERCA_SVILUPPO",
+  "INTERNAZIONALIZZAZIONE",
+  "STARTUP_INNOVAZIONE",
+  "FORMAZIONE_OCCUPAZIONE",
+  "AGRICOLTURA_RURALE",
+  "TURISMO_CULTURA",
+  "ECONOMIA_CIRCOLARE",
+  "GARANZIA",
+  "VOUCHER",
+  "ALTRO",
+] as const;
+
+export type BandoCategory = (typeof BANDO_CATEGORIES)[number];
 
 export type BandoScope = "COMUNALE" | "CAMERALE" | "REGIONALE" | "NAZIONALE" | "EUROPEO";
 
@@ -137,4 +141,6 @@ export interface FeedResponse {
   fetched_at: string;
   source: "central-core" | "cache";
   deep_search?: boolean;
+  /** Marker di freschezza restituito dal Core quando disponibile. */
+  generated_at?: string;
 }
