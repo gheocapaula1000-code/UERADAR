@@ -17,11 +17,27 @@
         "SUPABASE_URL",
         "SUPABASE_SERVICE_ROLE_KEY"
       ],
-      "optional_secrets": ["RESEND_API_KEY", "TROVABANDI_EMAIL_FROM"]
+      "optional_secrets": [
+        "RESEND_API_KEY",
+        "TROVABANDI_EMAIL_FROM"
+      ]
+    },
+    {
+      "name": "trovabandi-feed",
+      "verify_jwt": false,
+      "auth_mode": "manual_user_jwt_verification",
+      "required_secrets": [
+        "CENTRAL_CORE_API_URL",
+        "CENTRAL_CORE_API_KEY",
+        "SUPABASE_URL",
+        "SUPABASE_ANON_KEY"
+      ],
+      "optional_secrets": []
     }
   ],
   "notes": [
     "Email digest is opt-in. In-app notifications work without Resend.",
-    "Do not expose server secrets through VITE_* variables."
+    "Do not expose server secrets through VITE_* variables.",
+    "trovabandi-feed uses verify_jwt=false only to verify the user JWT manually via supabase.auth.getUser(token); it is fail-closed without an authenticated user."
   ]
 }
