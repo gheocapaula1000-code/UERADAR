@@ -17,6 +17,24 @@ function parseRequestBody(payload: unknown) {
   return { ok: true as const, action };
 }
 
+const REQUIRED_BANDO_FIELDS = [
+  "id",
+  "title",
+  "authority_name",
+  "authority_level",
+  "category",
+  "summary",
+  "official_url",
+] as const;
+
+function bandoRowIsValid(item: unknown) {
+  if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
+  const row = item as Record<string, unknown>;
+  return REQUIRED_BANDO_FIELDS.every(
+    (key) => typeof row[key] === "string" && (row[key] as string).trim().length > 0,
+  );
+}
+
 function sanitizeFeedResponse(payload: unknown, status: number) {
   if (status !== 200) return { ok: false as const, code: "UPSTREAM_STATUS" };
   if (payload === null || typeof payload !== "object" || Array.isArray(payload))
@@ -24,12 +42,17 @@ function sanitizeFeedResponse(payload: unknown, status: number) {
   const body = payload as Record<string, unknown>;
   if (body.ok !== true) return { ok: false as const, code: "UPSTREAM_NOT_OK" };
   if (!Array.isArray(body.bandi)) return { ok: false as const, code: "UPSTREAM_NO_BANDI" };
-  const bandi = (body.bandi as unknown[]).filter((item) => {
-    if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
-    const row = item as Record<string, unknown>;
-    return typeof row.id === "string" && row.id.length > 0 && typeof row.title === "string";
-  });
-  return { ok: true as const, bandi };
+  const rows = body.bandi as unknown[];
+  if (!rows.every(bandoRowIsValid)) return { ok: false as const, code: "UPSTREAM_INVALID_ROW" };
+  return { ok: true as const, bandi: rows };
+}
+
+function profileIsComplete(profile: Record<string, unknown> | null): boolean {
+  if (!profile) return false;
+  const required = ["ragione_sociale", "forma_giuridica", "regione", "codice_ateco"];
+  return required.every(
+    (key) => typeof profile[key] === "string" && (profile[key] as string).trim(),
+  );
 }
 
 function evaluateRefreshResponse(payload: unknown, status: number) {
@@ -72,7 +95,16 @@ describe("trovabandi-feed allowlist", () => {
 });
 
 describe("trovabandi-feed output upstream", () => {
-  const good = { ok: true, bandi: [{ id: "a", title: "Bando A" }] };
+  const row = {
+    id: "a",
+    title: "Bando A",
+    authority_name: "MIMIT",
+    authority_level: "NAZIONALE",
+    category: "FONDO_PERDUTO",
+    summary: "Sintesi",
+    official_url: "https://example.gov.it/a",
+  };
+  const good = { ok: true, bandi: [row] };
 
   it("accetta solo 200 + ok + bandi array", () => {
     const res = sanitizeFeedResponse(good, 200);
@@ -87,9 +119,22 @@ describe("trovabandi-feed output upstream", () => {
     expect(sanitizeFeedResponse(null, 200).code).toBe("UPSTREAM_SHAPE");
   });
 
-  it("scarta righe malformate", () => {
-    const res = sanitizeFeedResponse({ ok: true, bandi: [{ id: "" }, null, { id: "b", title: "B" }] }, 200);
-    expect(res.ok && res.bandi.length).toBe(1);
+  it("fallisce (no filtro silenzioso) se anche una sola riga è malformata", () => {
+    expect(sanitizeFeedResponse({ ok: true, bandi: [row, null] }, 200).code).toBe(
+      "UPSTREAM_INVALID_ROW",
+    );
+    expect(sanitizeFeedResponse({ ok: true, bandi: [row, { ...row, id: "" }] }, 200).code).toBe(
+      "UPSTREAM_INVALID_ROW",
+    );
+  });
+
+  it("richiede tutti i campi minimi non vuoti", () => {
+    for (const key of REQUIRED_BANDO_FIELDS) {
+      const bad = { ...row, [key]: "   " };
+      expect(sanitizeFeedResponse({ ok: true, bandi: [bad] }, 200).code).toBe(
+        "UPSTREAM_INVALID_ROW",
+      );
+    }
   });
 
   it("request_refresh accetta solo 202 + ok + queued", () => {
@@ -108,6 +153,26 @@ describe("trovabandi-feed output upstream", () => {
   });
 });
 
+describe("profileIsComplete", () => {
+  const base = {
+    ragione_sociale: "ACME Srl",
+    forma_giuridica: "SRL",
+    regione: "Lazio",
+    codice_ateco: "62.01",
+  };
+
+  it("accetta un profilo con regione e codice_ateco", () => {
+    expect(profileIsComplete(base)).toBe(true);
+  });
+
+  it("rifiuta profili senza regione o codice_ateco", () => {
+    expect(profileIsComplete({ ...base, regione: "" })).toBe(false);
+    expect(profileIsComplete({ ...base, codice_ateco: "  " })).toBe(false);
+    expect(profileIsComplete({ ...base, codice_ateco: undefined })).toBe(false);
+    expect(profileIsComplete(null)).toBe(false);
+  });
+});
+
 describe("server function senza secret del Core", () => {
   it("il modulo TanStack non referenzia i secret del Central Core", () => {
     const sources = [
@@ -120,8 +185,31 @@ describe("server function senza secret del Core", () => {
   });
 
   it("valida il payload del gateway prima del mapping", () => {
+    const row = {
+      id: "a",
+      title: "A",
+      authority_name: "MIMIT",
+      authority_level: "NAZIONALE",
+      category: "FONDO_PERDUTO",
+      summary: "Sintesi",
+      official_url: "https://example.gov.it/a",
+    };
     expect(parseGatewayFeed({ ok: false, bandi: [] })).toBeNull();
     expect(parseGatewayFeed({ ok: true })).toBeNull();
-    expect(parseGatewayFeed({ ok: true, bandi: [{ id: "a", title: "A" }] })).toHaveLength(1);
+    expect(parseGatewayFeed({ ok: true, bandi: [row] })).toHaveLength(1);
+  });
+
+  it("ritorna null per l'intero payload se una riga è invalida (no mapping parziale)", () => {
+    const row = {
+      id: "a",
+      title: "A",
+      authority_name: "MIMIT",
+      authority_level: "NAZIONALE",
+      category: "FONDO_PERDUTO",
+      summary: "Sintesi",
+      official_url: "https://example.gov.it/a",
+    };
+    expect(parseGatewayFeed({ ok: true, bandi: [row, { id: "b", title: "B" }] })).toBeNull();
+    expect(parseGatewayFeed({ ok: true, bandi: [row, null] })).toBeNull();
   });
 });
