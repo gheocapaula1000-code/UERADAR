@@ -20,4 +20,14 @@ describe("bozza: nessuna formula dichiarativa", () => {
     const legacyCta = ["Genera", "Istanza"].join(" ");
     expect(SRC.includes(legacyCta)).toBe(false);
   });
+
+  it("nessuna intestazione standalone 'MODULO UFFICIALE —'", () => {
+    expect(SRC).not.toMatch(/(^|[^A-Z])`MODULO UFFICIALE —/);
+    expect(SRC).toMatch(/BOZZA DATI PER MODULO UFFICIALE —/);
+  });
+
+  it("il campo firma non produce una riga firmabile", () => {
+    expect(SRC).not.toMatch(/_{6,}/);
+    expect(SRC).toMatch(/da compilare esclusivamente sul modulo ufficiale dopo verifica/);
+  });
 });
