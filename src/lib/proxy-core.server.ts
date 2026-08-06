@@ -42,15 +42,32 @@ export type CoreOpportunity = Record<string, unknown> & {
  * Valida la risposta della Edge Function trovabandi-feed prima del mapping.
  * Nessun URL, profilo o secret proveniente dal browser viene mai accettato.
  */
+const REQUIRED_BANDO_FIELDS = [
+  "id",
+  "title",
+  "authority_name",
+  "authority_level",
+  "category",
+  "summary",
+  "official_url",
+] as const;
+
+export function gatewayRowIsValid(item: unknown): item is CoreOpportunity {
+  if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
+  const row = item as Record<string, unknown>;
+  return REQUIRED_BANDO_FIELDS.every(
+    (key) => typeof row[key] === "string" && (row[key] as string).trim().length > 0,
+  );
+}
+
 export function parseGatewayFeed(payload: unknown): CoreOpportunity[] | null {
   if (payload === null || typeof payload !== "object" || Array.isArray(payload)) return null;
   const body = payload as Record<string, unknown>;
   if (body.ok !== true || !Array.isArray(body.bandi)) return null;
-  return (body.bandi as unknown[]).filter((item): item is CoreOpportunity => {
-    if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
-    const row = item as Record<string, unknown>;
-    return typeof row.id === "string" && row.id.length > 0 && typeof row.title === "string";
-  });
+  const rows = body.bandi as unknown[];
+  // Strict: nessun mapping parziale, una riga invalida scarta l'intero payload.
+  if (!rows.every(gatewayRowIsValid)) return null;
+  return rows as CoreOpportunity[];
 }
 
 export function mapCoreOpportunity(item: CoreOpportunity): Bando {
