@@ -8,6 +8,7 @@ import { DeepSearchShimmer } from "@/components/bandocore/DeepSearchShimmer";
 import { fetchFeedFromProxyCore } from "@/lib/proxy-core.functions";
 import { supabase } from "@/integrations/supabase/client";
 import type { Bando, BandoCategory, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
+import { isActive, isExpired, isFlash } from "@/lib/bando-status";
 import {
   RefreshCw,
   Zap,
@@ -112,11 +113,11 @@ function Dashboard() {
   }, [query.error, navigate]);
 
   const bandi = useMemo(() => query.data?.bandi ?? [], [query.data?.bandi]);
+  const bandiAttivi = useMemo(() => bandi.filter((b) => isActive(b)), [bandi]);
   const isOffline = query.data?.source === "cache";
 
   // Priorità assoluta ai micro-finanziamenti iper-locali (Comune / Camera di Commercio locale)
   const flashBandi = useMemo(() => {
-    const now = Date.now();
     const isLocalMicro = (b: Bando) =>
       (b.scope === "COMUNALE" || b.scope === "CAMERALE") &&
       (b.comune === profile?.comune ||
@@ -125,18 +126,13 @@ function Dashboard() {
     const soonestFirst = (a: Bando, bb: Bando) =>
       (a.scadenza ? new Date(a.scadenza).getTime() : Infinity) -
       (bb.scadenza ? new Date(bb.scadenza).getTime() : Infinity);
-    const local = bandi.filter(isLocalMicro).sort(soonestFirst);
-    const rest = bandi
+    const local = bandiAttivi.filter(isLocalMicro).sort(soonestFirst);
+    const rest = bandiAttivi
       .filter((b) => !isLocalMicro(b))
-      .filter(
-        (b) =>
-          b.flash ||
-          b.click_day ||
-          (b.scadenza && (new Date(b.scadenza).getTime() - now) / 86400000 <= 10),
-      )
+      .filter((b) => isFlash(b))
       .sort(soonestFirst);
     return [...local, ...rest].slice(0, 6);
-  }, [bandi, profile]);
+  }, [bandiAttivi, profile]);
 
   const filtered = useMemo(() => {
     return bandi.filter((b) => {
@@ -154,16 +150,16 @@ function Dashboard() {
   }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile]);
 
   const stats = useMemo(() => {
-    const s = { totale: bandi.length, femm: 0, flash: 0, hidden: 0, euPnrr: 0, importo: 0 };
-    for (const b of bandi) {
+    const s = { totale: bandiAttivi.length, femm: 0, flash: 0, hidden: 0, euPnrr: 0, importo: 0 };
+    for (const b of bandiAttivi) {
       if (b.categoria === "IMPRENDITORIA_FEMMINILE") s.femm++;
-      if (b.flash || b.click_day) s.flash++;
+      if (isFlash(b)) s.flash++;
       if (b.is_hidden) s.hidden++;
       if (b.scope === "EUROPEO" || b.pnrr_mission) s.euPnrr++;
       if (b.importo_max) s.importo += b.importo_max;
     }
     return s;
-  }, [bandi]);
+  }, [bandiAttivi]);
 
   return (
     <AppShell>
