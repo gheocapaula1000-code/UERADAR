@@ -63,8 +63,12 @@ describe("copy pubblico e autenticato", () => {
 
   it("le statistiche autenticate derivano dal feed e mostrano — durante il caricamento", () => {
     const src = readFileSync("src/routes/_authenticated/dashboard.tsx", "utf8");
-    const statLines = src.split("\n").filter((l) => l.includes("query.isLoading ?"));
+    const statLines = src
+      .split("\n")
+      .filter((l) => /\bv:\s*query\.isLoading \?/.test(l.trim()) || /^v: query\.isLoading/.test(l.trim()));
     expect(statLines.length).toBeGreaterThanOrEqual(6);
-    for (const l of statLines) expect(l).toMatch(/"—"|`—`/);
+    for (const l of statLines) expect(l).toMatch(/"—"/);
+    // nessun valore numerico d'esempio hard-coded nelle card statistiche
+    expect(src).not.toMatch(/v:\s*\d+\s*,/);
   });
 });
