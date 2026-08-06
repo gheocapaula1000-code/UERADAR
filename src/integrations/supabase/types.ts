@@ -59,66 +59,99 @@ export type Database = {
       company_profiles: {
         Row: {
           anno_costituzione: number
+          ateco_secondari: string[]
           codice_ateco: string
           codice_istat: string | null
           comune: string
           created_at: string
+          de_minimis_ultimi_3_anni: number | null
+          dimensione_impresa: string | null
+          disponibile_consorzio_europeo: boolean
           email_referente: string | null
           fatturato_annuo: number
           forma_giuridica: Database["public"]["Enums"]["legal_form"]
           id: string
           imprenditoria_femminile: boolean
+          impresa_giovanile: boolean
+          impresa_in_difficolta: boolean
+          investimenti_previsti: string[]
           legale_rappresentante: string | null
           numero_dipendenti: number
+          paese_sede: string
           partita_iva: string
           pec: string | null
+          pmi_innovativa: boolean
           provincia: string
           ragione_sociale: string
           regione: string
+          spesa_prevista: number | null
+          startup_innovativa: boolean
           telefono: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           anno_costituzione: number
+          ateco_secondari?: string[]
           codice_ateco: string
           codice_istat?: string | null
           comune: string
           created_at?: string
+          de_minimis_ultimi_3_anni?: number | null
+          dimensione_impresa?: string | null
+          disponibile_consorzio_europeo?: boolean
           email_referente?: string | null
           fatturato_annuo?: number
           forma_giuridica: Database["public"]["Enums"]["legal_form"]
           id?: string
           imprenditoria_femminile?: boolean
+          impresa_giovanile?: boolean
+          impresa_in_difficolta?: boolean
+          investimenti_previsti?: string[]
           legale_rappresentante?: string | null
           numero_dipendenti?: number
+          paese_sede?: string
           partita_iva: string
           pec?: string | null
+          pmi_innovativa?: boolean
           provincia: string
           ragione_sociale: string
           regione: string
+          spesa_prevista?: number | null
+          startup_innovativa?: boolean
           telefono?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           anno_costituzione?: number
+          ateco_secondari?: string[]
           codice_ateco?: string
           codice_istat?: string | null
           comune?: string
           created_at?: string
+          de_minimis_ultimi_3_anni?: number | null
+          dimensione_impresa?: string | null
+          disponibile_consorzio_europeo?: boolean
           email_referente?: string | null
           fatturato_annuo?: number
           forma_giuridica?: Database["public"]["Enums"]["legal_form"]
           id?: string
           imprenditoria_femminile?: boolean
+          impresa_giovanile?: boolean
+          impresa_in_difficolta?: boolean
+          investimenti_previsti?: string[]
           legale_rappresentante?: string | null
           numero_dipendenti?: number
+          paese_sede?: string
           partita_iva?: string
           pec?: string | null
+          pmi_innovativa?: boolean
           provincia?: string
           ragione_sociale?: string
           regione?: string
+          spesa_prevista?: number | null
+          startup_innovativa?: boolean
           telefono?: string | null
           updated_at?: string
           user_id?: string
