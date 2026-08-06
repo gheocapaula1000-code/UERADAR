@@ -162,6 +162,8 @@ async function processProfile(sb: ReturnType<typeof createClient>, profile: Row)
     const match = (item.match ?? {}) as Row;
     const firstSeen = Date.parse(text(item.first_seen_at));
     const deadline = Date.parse(text(item.deadline_at));
+    // Mai notificare opportunità già scadute.
+    if (Number.isFinite(deadline) && deadline + 86_400_000 - 1 < Date.now()) return false;
     const urgent =
       Number.isFinite(deadline) &&
       deadline >= Date.now() &&
