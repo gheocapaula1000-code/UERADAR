@@ -48,6 +48,9 @@ function Dashboard() {
   const enqueueRefresh = useServerFn(requestFeedRefresh);
   const queryClient = useQueryClient();
   const refreshAbort = useRef<AbortController | null>(null);
+  // Guardia sincrona: `isRefreshing` è state asincrono e due click nello stesso
+  // tick potrebbero accodare due refresh. Il ref blocca prima dell'enqueue.
+  const refreshInFlight = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [profileMissing, setProfileMissing] = useState(false);
   const [cat, setCat] = useState<CategoryFilterKey>("TUTTI");
@@ -83,7 +86,8 @@ function Dashboard() {
   useEffect(() => () => refreshAbort.current?.abort(), []);
 
   const handleManualRefresh = useCallback(async () => {
-    if (isRefreshing) return;
+    if (refreshInFlight.current) return;
+    refreshInFlight.current = true;
     refreshAbort.current?.abort();
     const controller = new AbortController();
     refreshAbort.current = controller;
@@ -105,9 +109,10 @@ function Dashboard() {
         toast.error("Aggiornamento non riuscito. Restano validi i dati precedenti.");
       }
     } finally {
+      refreshInFlight.current = false;
       if (!controller.signal.aborted) setIsRefreshing(false);
     }
-  }, [enqueueRefresh, fetchFeed, isRefreshing, queryClient]);
+  }, [enqueueRefresh, fetchFeed, queryClient]);
 
   const notificationsQ = useQuery({
     queryKey: ["daily-notifications"],

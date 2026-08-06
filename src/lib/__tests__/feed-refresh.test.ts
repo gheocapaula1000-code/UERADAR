@@ -21,9 +21,21 @@ describe("feedMarker", () => {
   it("usa generated_at quando disponibile", () => {
     expect(feedMarker(feed({ generated_at: "x" }))).toBe("g:x");
   });
-  it("è stabile su contenuto identico e cambia su contenuto diverso", () => {
-    expect(feedMarker(feed())).toBe(feedMarker(feed()));
-    expect(feedMarker(feed())).not.toBe(feedMarker(feed({ fetched_at: "2026-08-06T11:00:00Z" })));
+  it("ignora fetched_at e source (nessun falso positivo)", () => {
+    expect(feedMarker(feed())).toBe(feedMarker(feed({ fetched_at: "2026-08-06T11:00:00Z" })));
+    expect(feedMarker(feed())).toBe(
+      feedMarker(feed({ source: "cache", fetched_at: "2026-08-07T00:00:00Z" })),
+    );
+  });
+  it("cambia se cambia il contenuto stabile", () => {
+    expect(feedMarker(feed())).not.toBe(
+      feedMarker(feed({ bandi: [{ id: "b" }] as FeedResponse["bandi"] })),
+    );
+    expect(feedMarker(feed())).not.toBe(
+      feedMarker(feed({
+        bandi: [{ id: "a", last_verified_at: "2026-08-06T12:00:00Z" }] as FeedResponse["bandi"],
+      })),
+    );
   });
   it("feed assente → marker vuoto (fail-closed)", () => {
     expect(feedMarker(null)).toBe("");
@@ -33,7 +45,7 @@ describe("feedMarker", () => {
 describe("runBoundedRefresh", () => {
   it("accoda una sola volta e si ferma al primo marker nuovo", async () => {
     const enqueue = vi.fn().mockResolvedValue({ queued: true });
-    const fresh = feed({ fetched_at: "2026-08-06T12:00:00.000Z" });
+    const fresh = feed({ bandi: [{ id: "z" }] as FeedResponse["bandi"] });
     const fetchFeed = vi.fn().mockResolvedValue(fresh);
     const res = await run(
       runBoundedRefresh({ enqueue, fetchFeed, baselineMarker: feedMarker(feed()) }),
@@ -46,7 +58,12 @@ describe("runBoundedRefresh", () => {
 
   it("polling bounded: marker invariato → queued, cache preservata, nessun re-enqueue", async () => {
     const enqueue = vi.fn().mockResolvedValue({ queued: true });
-    const fetchFeed = vi.fn().mockResolvedValue(feed());
+    // Tre risposte semanticamente identiche ma con fetched_at/source diversi.
+    const fetchFeed = vi
+      .fn()
+      .mockResolvedValueOnce(feed({ fetched_at: "2026-08-06T10:00:01.000Z" }))
+      .mockResolvedValueOnce(feed({ fetched_at: "2026-08-06T10:00:02.000Z", source: "cache" }))
+      .mockResolvedValueOnce(feed({ fetched_at: "2026-08-06T10:00:03.000Z" }));
     const res = await run(
       runBoundedRefresh({ enqueue, fetchFeed, baselineMarker: feedMarker(feed()) }),
     );

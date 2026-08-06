@@ -421,9 +421,17 @@ function Row({ l, v }: { l: string; v: string }) {
 
 import type { Bando } from "@/lib/bandocore-types";
 
+/** Avviso obbligatorio incluso in ogni bozza copiata o scaricata. */
+export const DRAFT_DISCLAIMER = `AVVISO — BOZZA INFORMATIVA
+Questo testo è una bozza informativa precompilata, da verificare. Non è una domanda
+inviata, non è una dichiarazione sostitutiva e non è pronta alla firma.
+Prima di qualsiasi uso verifica dati, requisiti, modulistica e scadenze sulla fonte ufficiale.`;
+
 function buildInstanceText(bando: Bando, profile: CompanyProfile | null | undefined): string {
   if (!profile) return "Completa prima il profilo aziendale.";
-  return `ISTANZA DI PARTECIPAZIONE
+  return `${DRAFT_DISCLAIMER}
+
+BOZZA DI ISTANZA DI PARTECIPAZIONE (da verificare)
 Bando: ${bando.titolo}
 Ente erogatore: ${bando.ente}
 Riferimento: ${bando.id}
@@ -449,11 +457,10 @@ PEC azienda: ${profile.pec ?? "—"}
 CANALE DI INVIO
 PEC ufficio protocollo: ${bando.ufficio_protocollo_pec ?? bando.pec ?? "—"}
 
-Il sottoscritto, in qualità di legale rappresentante, chiede di partecipare al bando in oggetto,
-dichiarando ai sensi del DPR 445/2000 la veridicità dei dati sopra riportati.
+Nota: le formule dichiarative e le firme richieste vanno prese esclusivamente dalla
+modulistica ufficiale dell'ente erogatore.
 
-Data: ${new Date().toLocaleDateString("it-IT")}
-Firma: __________________________
+Data di generazione bozza: ${new Date().toLocaleDateString("it-IT")}
 `;
 }
 
@@ -490,6 +497,8 @@ function buildInstanceFromPdfMapping(
   });
 
   return `MODULO UFFICIALE — ${bando.titolo}
+${DRAFT_DISCLAIMER}
+
 Ente: ${bando.ente}
 ${bando.ufficio_protocollo_pec ? `PEC ufficio protocollo: ${bando.ufficio_protocollo_pec}` : ""}
 ${bando.fonte_extratestuale ? `Fonte: ${bando.fonte_extratestuale}` : ""}
@@ -498,6 +507,5 @@ ${bando.fonte_extratestuale ? `Fonte: ${bando.fonte_extratestuale}` : ""}
 ${lines.join("\n")}
 
 Data: ${today}
-Firma legale rappresentante: __________________________
 `;
 }
