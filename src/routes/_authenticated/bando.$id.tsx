@@ -18,8 +18,11 @@ import {
   FileSearch,
   CheckCircle2,
   AlertTriangle,
+  XCircle,
+  CalendarX,
 } from "lucide-react";
 import { toast } from "sonner";
+import { isExpired, matchStatusMeta } from "@/lib/bando-status";
 
 export const Route = createFileRoute("/_authenticated/bando/$id")({
   head: () => ({
