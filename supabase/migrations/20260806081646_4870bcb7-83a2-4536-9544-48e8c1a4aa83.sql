@@ -1,3 +1,4 @@
+-- replay-safe: idempotent (no duplicate_object on fresh replay or already-migrated DB)
 ALTER TABLE public.company_profiles
   ADD COLUMN IF NOT EXISTS impresa_giovanile boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS startup_innovativa boolean NOT NULL DEFAULT false,

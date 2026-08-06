@@ -218,9 +218,11 @@ export function BandoCard({ bando }: { bando: Bando }) {
       <Link
         to="/bando/$id"
         params={{ id: bando.id }}
+        aria-label={`Prepara bozza precompilata per ${bando.titolo} — contenuto informativo da verificare`}
+        title="Prepara una bozza precompilata: contenuto informativo da verificare, non è una domanda inviata"
         className="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
       >
-        Genera Istanza <ArrowRight className="h-4 w-4" />
+        Prepara bozza <ArrowRight className="h-4 w-4" />
       </Link>
     </div>
   );

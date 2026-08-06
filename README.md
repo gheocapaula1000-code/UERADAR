@@ -32,7 +32,7 @@ Implementa le seguenti sezioni e logiche di business:
 
 4. AUTOFILL MODULISTICA E CONTATTI PEC:
 
-- Ogni scheda bando deve includere un pulsante "Genera Istanza". Cliccando, l'app apre un'anteprima del modulo di richiesta o della scheda tecnica di presentazione del bando.
+- Ogni scheda bando deve includere un pulsante "Prepara bozza". Cliccando, l'app apre un'anteprima del modulo di richiesta o della scheda tecnica di presentazione del bando.
 
 - Applica la logica di Autofill: inserisci automaticamente i dati di 'company_profiles' nei campi corrispondenti del bando (es. inserimento automatico di P.IVA, codice ATECO e dati del legale rappresentante).
 

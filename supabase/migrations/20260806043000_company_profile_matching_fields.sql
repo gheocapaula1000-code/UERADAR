@@ -1,3 +1,4 @@
+-- replay-safe: idempotent (no duplicate_object on fresh replay or already-migrated DB)
 -- Additive fields required for honest eligibility matching.
 ALTER TABLE public.company_profiles
   ADD COLUMN IF NOT EXISTS impresa_giovanile boolean NOT NULL DEFAULT false,

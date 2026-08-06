@@ -1,3 +1,4 @@
+-- replay-safe: idempotent (no duplicate_object on fresh replay or already-migrated DB)
 CREATE TABLE IF NOT EXISTS public.notification_preferences (
   user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   in_app_enabled boolean NOT NULL DEFAULT true,
@@ -28,15 +29,33 @@ CREATE INDEX IF NOT EXISTS daily_notifications_user_idx
 ALTER TABLE public.notification_preferences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.daily_notifications ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users manage own notification preferences"
-  ON public.notification_preferences FOR ALL
-  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users read own notifications"
-  ON public.daily_notifications FOR SELECT
-  USING (auth.uid() = user_id);
-CREATE POLICY "Users update own notifications"
-  ON public.daily_notifications FOR UPDATE
-  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'notification_preferences' AND policyname = 'Users manage own notification preferences'
+  ) THEN
+    CREATE POLICY "Users manage own notification preferences" ON public.notification_preferences FOR ALL
+    USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'daily_notifications' AND policyname = 'Users read own notifications'
+  ) THEN
+    CREATE POLICY "Users read own notifications" ON public.daily_notifications FOR SELECT
+    USING (auth.uid() = user_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'daily_notifications' AND policyname = 'Users update own notifications'
+  ) THEN
+    CREATE POLICY "Users update own notifications" ON public.daily_notifications FOR UPDATE
+    USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.notification_preferences TO authenticated;
 GRANT SELECT, UPDATE ON public.daily_notifications TO authenticated;

@@ -27,8 +27,12 @@ import { isExpired, matchStatusMeta } from "@/lib/bando-status";
 export const Route = createFileRoute("/_authenticated/bando/$id")({
   head: () => ({
     meta: [
-      { title: "Genera Istanza — BandoCore" },
-      { name: "description", content: "Anteprima istanza bando con autofill dai dati aziendali." },
+      { title: "Prepara bozza — BandoCore" },
+      {
+        name: "description",
+        content:
+          "Bozza precompilata dai dati aziendali: contenuto informativo da verificare sulla fonte ufficiale.",
+      },
     ],
   }),
   component: BandoDetail,
@@ -104,7 +108,7 @@ function BandoDetail() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `istanza-${bando.id}.txt`;
+    a.download = `bozza-${bando.id}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -267,7 +271,7 @@ function BandoDetail() {
               <div className="flex items-center gap-2 mb-3">
                 <FileText className="h-4 w-4 text-primary" />
                 <h3 className="font-semibold">
-                  Anteprima Istanza — Autofill
+                  Prepara bozza — Autofill
                   {bando.pdf_field_mapping?.length ? " da PDF nativo PA" : " attivo"}
                 </h3>
               </div>
@@ -277,12 +281,15 @@ function BandoDetail() {
                   campi). Copia e incolla riga per riga nel PDF cartaceo.
                 </p>
               ) : null}
-              {!bando.pdf_field_mapping?.length && (
-                <p className="mb-3 text-xs text-warning">
-                  Bozza di supporto: non sostituisce il modulo ufficiale né la verifica dei
-                  requisiti.
-                </p>
-              )}
+              <p
+                role="note"
+                className="mb-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning"
+              >
+                <strong>Attenzione:</strong> questa è una bozza informativa precompilata dai tuoi
+                dati, da verificare. Non è una domanda inviata né una dichiarazione sostitutiva
+                pronta alla firma. Controlla dati, requisiti, modulistica e scadenze sulla fonte
+                ufficiale del bando prima di qualsiasi utilizzo.
+              </p>
               {profile ? (
                 <pre className="whitespace-pre-wrap text-xs bg-background/50 rounded-lg p-4 max-h-80 overflow-y-auto font-mono">
                   {instanceText}
