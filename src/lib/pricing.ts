@@ -2,6 +2,7 @@
  * Piani pubblici UEradar.com.
  * Fonte unica di verità per prezzi e condizioni: usata da landing, pagina prezzi e test.
  * Billing tecnicamente disabilitato: nessun pagamento e nessun provider collegato.
+ * Nessuna quota, nessun credito, nessun limite d'uso sulle funzionalità.
  */
 export const BILLING_ENABLED = false;
 
@@ -16,6 +17,16 @@ export type PublicPlan = {
   features: string[];
 };
 
+/** Funzionalità illimitate, identiche nei due piani. */
+export const UNLIMITED_FEATURES: readonly string[] = [
+  "Dossier candidatura illimitati",
+  "Pratiche seguite illimitate",
+  "Ricerche e controlli illimitati",
+  "Matching sul profilo impresa illimitato",
+  "Compilazioni di bozze illimitate",
+  "Export TXT e PDF in locale illimitati",
+];
+
 export const PUBLIC_PLANS: readonly PublicPlan[] = [
   {
     id: "business",
@@ -28,9 +39,8 @@ export const PUBLIC_PLANS: readonly PublicPlan[] = [
     features: [
       "1 impresa verificata",
       "fino a 3 utenti nominativi",
-      "Radar e matching per una impresa",
-      "Dossier candidatura individuali",
-      "Export TXT e PDF in locale",
+      "Tutto illimitato: nessuna quota e nessun credito",
+      ...UNLIMITED_FEATURES,
     ],
   },
   {
@@ -44,9 +54,9 @@ export const PUBLIC_PLANS: readonly PublicPlan[] = [
     features: [
       "1 impresa verificata",
       "fino a 10 utenti nominativi",
-      "Stesse funzioni del piano Business",
+      "Tutto illimitato: nessuna quota e nessun credito",
       "Accesso del team ai dossier e al radar della stessa impresa",
-      "Export TXT e PDF in locale",
+      ...UNLIMITED_FEATURES,
     ],
   },
 ] as const;
@@ -66,11 +76,44 @@ export const TRIAL_TERMS: readonly string[] = [
   "Nessuna carta di credito e nessun dato bancario richiesto per iniziare.",
   "Nessun addebito automatico alla fine della prova: il servizio a pagamento parte solo con attivazione volontaria.",
   "Cancellazione online, senza disdetta scritta e senza PEC.",
-  "Costi API inclusi entro un uso corretto del servizio.",
-  "Nessun overage o costo extra automatico.",
+  "Tutto illimitato: nessuna quota, nessun credito, nessun limite su dossier, ricerche, controlli, matching, compilazioni ed export.",
+  "Costi API inclusi nel canone.",
+  "Nessun overage e nessun costo extra automatico.",
+  "Gli unici limiti sono commerciali: una impresa verificata e il numero di utenti nominativi del piano.",
+];
+
+/**
+ * Note tecniche sull'architettura del motore lato backend.
+ * Descrittive: nessun controllo è simulato lato client.
+ */
+export const ARCHITECTURE_NOTES: readonly { t: string; d: string }[] = [
+  {
+    t: "Cache del contenuto pubblico",
+    d: "Il testo ufficiale del bando e la relativa analisi sono deduplicati e riusabili dalla cache del motore finché la versione o il TTL della fonte restano validi, evitando nuove chiamate ai provider.",
+  },
+  {
+    t: "Riuso sicuro tra utenti della stessa impresa",
+    d: "La cache pubblica può essere condivisa tra gli utenti nominativi della stessa impresa e, trattandosi esclusivamente di fonti pubbliche ufficiali, riusata dal motore in sicurezza.",
+  },
+  {
+    t: "Isolamento dei dati privati",
+    d: "Profilo impresa, documenti, checklist compilate e dossier restano isolati per impresa/tenant e non sono mai condivisi cross-tenant.",
+  },
+  {
+    t: "Deduplica, idempotenza e invalidazione",
+    d: "Il motore applica deduplica, operazioni idempotenti, TTL e versione per fonte, con invalidazione quando il bando cambia.",
+  },
+  {
+    t: "Protezioni interne, non quote commerciali",
+    d: "Rate limit anti-abuso e circuit breaker sono protezioni interne di costo e affidabilità: non sono quote commerciali, non generano overage e non comportano addebiti al cliente.",
+  },
 ];
 
 export const PRICING_FAQ: readonly { q: string; a: string }[] = [
+  {
+    q: "Ci sono limiti di utilizzo o crediti da consumare?",
+    a: "No. Dossier, pratiche, ricerche, controlli, matching, compilazioni ed export sono illimitati in entrambi i piani. Gli unici limiti sono commerciali: una impresa verificata e il numero di utenti nominativi.",
+  },
   {
     q: "Serve la carta di credito per iniziare la prova?",
     a: "No. La prova gratuita dura 7 giorni e non richiede carta di credito né dati bancari.",
@@ -85,7 +128,11 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Ci sono costi extra a consumo?",
-    a: "No. I costi API sono inclusi entro un uso corretto del servizio: nessun overage e nessun costo extra automatico.",
+    a: "No. I costi API sono inclusi nel canone: nessun overage e nessun costo extra automatico.",
+  },
+  {
+    q: "Come fate a offrire tutto illimitato?",
+    a: "Il motore deduplica e riusa dalla cache il contenuto pubblico ufficiale dei bandi e la relativa analisi finché versione e TTL della fonte sono validi, riducendo le chiamate ai provider. I dati privati dell'impresa restano isolati per tenant.",
   },
   {
     q: "Posso gestire altre imprese con lo stesso piano?",
