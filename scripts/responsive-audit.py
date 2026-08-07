@@ -10,6 +10,12 @@ import asyncio, json, os, sys
 BASE = os.environ.get("QA_BASE_URL", "http://localhost:8080")
 ALL = [320, 360, 375, 390, 414, 768, 1024, 1440]
 CRITICAL = [320, 390, 768, 1440]
+# JSON-LD atteso nel DOM renderizzato, per rotta pubblica.
+EXPECTED_LD = {
+    "/": ["Organization", "SoftwareApplication"],
+    "/prezzi": ["FAQPage"],
+}
+
 ROUTES = [
     ("/", ALL),
     ("/prezzi", ALL),
@@ -41,7 +47,10 @@ PROBE = """() => {
       if (t.split(/\\s+/).length > 4) clipped.push(t.slice(0, 40));
     }
   }
+  const ld = [...document.querySelectorAll('script[type="application/ld+json"]')]
+    .flatMap((n) => { try { const j = JSON.parse(n.textContent); return [j['@type']]; } catch { return ['INVALID']; } });
   return {
+    ld,
     scrollWidth: doc.scrollWidth,
     innerWidth: window.innerWidth,
     h1: document.querySelectorAll('h1').length,
@@ -83,6 +92,11 @@ async def main():
                     probs.append(f"h1={r['h1']}")
                 if r["main"] != 1:
                     probs.append(f"main={r['main']}")
+                for t in EXPECTED_LD.get(route, []):
+                    if t not in r["ld"]:
+                        probs.append(f"JSON-LD {t} assente")
+                if "INVALID" in r["ld"]:
+                    probs.append("JSON-LD non valido")
                 if r["small"]:
                     probs.append("tap<44: " + "; ".join(r["small"][:6]))
                 if r["clipped"]:
