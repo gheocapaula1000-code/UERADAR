@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { BrandLogo } from "@/components/bandocore/BrandLogo";
+import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { seoHead } from "@/lib/seo";
 import { toast } from "sonner";
 
@@ -208,6 +209,7 @@ function AuthPage() {
           </p>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }
