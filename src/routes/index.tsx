@@ -13,7 +13,7 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Bando Navigator — Il radar dei bandi per PMI, SRL e Partite IVA" },
+      { title: "UEradar.com — Il radar dei bandi per PMI, SRL e Partite IVA" },
       {
         name: "description",
         content:
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:title",
-        content: "Bando Navigator — Il radar dei bandi per PMI, SRL e Partite IVA",
+        content: "UEradar.com — Il radar dei bandi per PMI, SRL e Partite IVA",
       },
       {
         property: "og:description",
@@ -43,7 +43,7 @@ function Landing() {
             <div className="grid h-9 w-9 place-items-center rounded-lg gradient-primary shadow-glow">
               <Radar className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-lg font-semibold tracking-tight">Bando Navigator</span>
+            <span className="text-lg font-semibold tracking-tight">UEradar.com</span>
           </Link>
           <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
             <a href="#come-funziona" className="hover:text-foreground transition">
@@ -74,7 +74,7 @@ function Landing() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
-              Radar bandi su fonti ufficiali — aggiornamenti programmati
+              Unione Europea Radar — opportunità da fonti ufficiali
             </div>
             <h1 className="mt-6 text-5xl font-bold leading-tight md:text-6xl">
               Il radar dei{" "}
@@ -168,7 +168,7 @@ function Landing() {
               </div>
               <h2 className="mt-2 text-3xl font-bold md:text-4xl">Solo Partite IVA e imprese.</h2>
               <p className="mt-4 text-muted-foreground">
-                Bando Navigator è un servizio B2B: niente incentivi per privati, solo strumenti verticali
+                UEradar.com è un servizio B2B: niente incentivi per privati, solo strumenti verticali
                 per chi ha una posizione fiscale attiva.
               </p>
               <ul className="mt-6 space-y-3 text-sm">
@@ -214,12 +214,12 @@ function Landing() {
           to="/auth"
           className="mt-8 inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
         >
-          Attiva Bando Navigator <ArrowRight className="h-4 w-4" />
+          Attiva UEradar.com <ArrowRight className="h-4 w-4" />
         </Link>
       </section>
 
       <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Bando Navigator · Servizio B2B riservato a Partite IVA
+        © {new Date().getFullYear()} UEradar.com · Servizio B2B riservato a Partite IVA
       </footer>
     </div>
   );
