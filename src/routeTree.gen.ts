@@ -10,6 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CookieRouteImport } from './routes/cookie'
+import { Route as PrezziRouteImport } from './routes/prezzi'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as TerminiRouteImport } from './routes/termini'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedProfiloRouteImport } from './routes/_authenticated/profilo'
@@ -19,6 +23,26 @@ import { Route as AuthenticatedBandoIdRouteImport } from './routes/_authenticate
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CookieRoute = CookieRouteImport.update({
+  id: '/cookie',
+  path: '/cookie',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrezziRoute = PrezziRouteImport.update({
+  id: '/prezzi',
+  path: '/prezzi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TerminiRoute = TerminiRouteImport.update({
+  id: '/termini',
+  path: '/termini',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -49,6 +73,10 @@ const AuthenticatedBandoIdRoute = AuthenticatedBandoIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/cookie': typeof CookieRoute
+  '/prezzi': typeof PrezziRoute
+  '/privacy': typeof PrivacyRoute
+  '/termini': typeof TerminiRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/profilo': typeof AuthenticatedProfiloRoute
   '/bando/$id': typeof AuthenticatedBandoIdRoute
@@ -56,6 +84,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/cookie': typeof CookieRoute
+  '/prezzi': typeof PrezziRoute
+  '/privacy': typeof PrivacyRoute
+  '/termini': typeof TerminiRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/profilo': typeof AuthenticatedProfiloRoute
   '/bando/$id': typeof AuthenticatedBandoIdRoute
@@ -65,20 +97,28 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/cookie': typeof CookieRoute
+  '/prezzi': typeof PrezziRoute
+  '/privacy': typeof PrivacyRoute
+  '/termini': typeof TerminiRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/profilo': typeof AuthenticatedProfiloRoute
   '/_authenticated/bando/$id': typeof AuthenticatedBandoIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard' | '/profilo' | '/bando/$id'
+  fullPaths: '/' | '/auth' | '/cookie' | '/prezzi' | '/privacy' | '/termini' | '/dashboard' | '/profilo' | '/bando/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard' | '/profilo' | '/bando/$id'
+  to: '/' | '/auth' | '/cookie' | '/prezzi' | '/privacy' | '/termini' | '/dashboard' | '/profilo' | '/bando/$id'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/cookie'
+    | '/prezzi'
+    | '/privacy'
+    | '/termini'
     | '/_authenticated/dashboard'
     | '/_authenticated/profilo'
     | '/_authenticated/bando/$id'
@@ -88,10 +128,42 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  CookieRoute: typeof CookieRoute
+  PrezziRoute: typeof PrezziRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TerminiRoute: typeof TerminiRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/cookie': {
+      id: '/cookie'
+      path: '/cookie'
+      fullPath: '/cookie'
+      preLoaderRoute: typeof CookieRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prezzi': {
+      id: '/prezzi'
+      path: '/prezzi'
+      fullPath: '/prezzi'
+      preLoaderRoute: typeof PrezziRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termini': {
+      id: '/termini'
+      path: '/termini'
+      fullPath: '/termini'
+      preLoaderRoute: typeof TerminiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -156,6 +228,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  CookieRoute: CookieRoute,
+  PrezziRoute: PrezziRoute,
+  PrivacyRoute: PrivacyRoute,
+  TerminiRoute: TerminiRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
