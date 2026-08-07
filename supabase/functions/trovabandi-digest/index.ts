@@ -161,7 +161,7 @@ async function sendDigest(email: string, company: string, items: Row[]) {
       from,
       to: [email],
       subject: `${items.length} nuove opportunità per ${company}`,
-      html: `<div style="font-family:Arial,sans-serif;max-width:680px;margin:auto"><h1>Le novità di oggi</h1><p>Abbiamo trovato nuove opportunità compatibili o da verificare per la tua impresa.</p><ul style="padding-left:20px">${rows}</ul><p>Accedi a Bando Navigator per vedere requisiti, prove e motivazione del match.</p></div>`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:680px;margin:auto"><h1>Le novità di oggi</h1><p>Abbiamo trovato nuove opportunità compatibili o da verificare per la tua impresa.</p><ul style="padding-left:20px">${rows}</ul><p>Accedi a UEradar.com per vedere requisiti, prove e motivazione del match.</p></div>`,
     }),
     signal: AbortSignal.timeout(12_000),
   });
