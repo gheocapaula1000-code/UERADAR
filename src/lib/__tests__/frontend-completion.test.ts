@@ -30,8 +30,10 @@ describe("completamento frontend UEradar.com", () => {
     expect(sql).toContain("interval '7 days'");
   });
 
-  it("non modifica la funzione trovabandi-feed per completare il frontend", () => {
-    const workflow = readFileSync("src/lib/__tests__/digest-contract.test.ts", "utf8");
-    expect(workflow).toContain("trovabandi-digest");
+  it("mantiene il gateway feed isolato e coperto dal contratto condiviso", () => {
+    const feed = readFileSync("supabase/functions/trovabandi-feed/index.ts", "utf8");
+    expect(feed).toContain('from "../_shared/trovabandi-contract.ts"');
+    expect(feed).toContain("matchingProfile");
+    expect(feed).toContain("sanitizeFeedResponse");
   });
 });
