@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage, LegalSection } from "@/components/bandocore/LegalPage";
+import { LEGAL, LEGAL_ADDRESS_LINE } from "@/lib/legal";
 import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/privacy")({
@@ -11,12 +12,24 @@ function Privacy() {
   return (
     <LegalPage title="Informativa privacy">
       <LegalSection title="Titolare e contatti">
-        <p>Il servizio è gestito con il marchio UEradar.com. Per richieste sui dati personali: privacy@ueradar.com.</p>
-        <p className="rounded-lg border border-dashed border-border p-3 text-foreground">
-          Dati legali del titolare da completare prima della pubblicazione: denominazione, sede
-          legale, P.IVA/CF, numero REA, eventuale responsabile della protezione dei dati e recapiti
-          ufficiali non sono ancora disponibili e non vengono inventati. Blocco interno da compilare
-          prima della messa online.
+        <p>
+          Titolare del trattamento: <strong className="text-foreground">{LEGAL.owner}</strong>, sede
+          legale in {LEGAL_ADDRESS_LINE}, P. IVA {LEGAL.vatId}. Il servizio è offerto con il marchio UEradar.com.
+        </p>
+        <p>
+          Contatti per l'esercizio dei diritti e per qualunque richiesta sui dati personali: email{" "}
+          <a href={`mailto:${LEGAL.email}`} className="underline hover:text-foreground">
+            {LEGAL.email}
+          </a>
+          , PEC{" "}
+          <a href={`mailto:${LEGAL.pec}`} className="underline hover:text-foreground">
+            {LEGAL.pec}
+          </a>
+          , telefono{" "}
+          <a href={LEGAL.phoneHref} className="underline hover:text-foreground">
+            {LEGAL.phone}
+          </a>
+          .
         </p>
       </LegalSection>
       <LegalSection title="Dati trattati e finalità">
@@ -27,7 +40,11 @@ function Privacy() {
         <p>Il trattamento si fonda sull'esecuzione del servizio, sugli obblighi di legge e, dove richiesto, sul consenso. I dati sono conservati per la durata del rapporto e per i successivi termini obbligatori. I fornitori tecnici operano come responsabili o autonomi titolari secondo il servizio prestato.</p>
       </LegalSection>
       <LegalSection title="Diritti">
-        <p>Puoi chiedere accesso, rettifica, cancellazione, limitazione, portabilità o opposizione scrivendo a privacy@ueradar.com. È sempre possibile proporre reclamo al Garante per la protezione dei dati personali.</p>
+        <p>
+          Puoi chiedere accesso, rettifica, cancellazione, limitazione, portabilità o opposizione
+          scrivendo a {LEGAL.email} oppure via PEC a {LEGAL.pec}. È sempre possibile proporre reclamo
+          al Garante per la protezione dei dati personali.
+        </p>
       </LegalSection>
       <LegalSection title="Cookie, consenso e revoca">
         <p>Gli strumenti necessari non richiedono consenso. Le categorie opzionali sono disattivate finché non esprimi una scelta e oggi non esiste alcuno strumento opzionale o di terze parti realmente attivo. La scelta è registrata con versione e data e può essere modificata o revocata in qualsiasi momento dal pulsante “Gestisci cookie” presente nel footer di ogni pagina. Dettagli nella pagina Cookie.</p>

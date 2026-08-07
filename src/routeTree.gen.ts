@@ -13,6 +13,7 @@ import { Route as TerminiRouteImport } from './routes/termini'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PrezziRouteImport } from './routes/prezzi'
 import { Route as CookieRouteImport } from './routes/cookie'
+import { Route as ContattiRouteImport } from './routes/contatti'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -38,6 +39,11 @@ const PrezziRoute = PrezziRouteImport.update({
 const CookieRoute = CookieRouteImport.update({
   id: '/cookie',
   path: '/cookie',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContattiRoute = ContattiRouteImport.update({
+  id: '/contatti',
+  path: '/contatti',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -73,6 +79,7 @@ const AuthenticatedBandoIdRoute = AuthenticatedBandoIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/contatti': typeof ContattiRoute
   '/cookie': typeof CookieRoute
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
@@ -84,6 +91,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/contatti': typeof ContattiRoute
   '/cookie': typeof CookieRoute
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/contatti': typeof ContattiRoute
   '/cookie': typeof CookieRoute
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/contatti'
     | '/cookie'
     | '/prezzi'
     | '/privacy'
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/contatti'
     | '/cookie'
     | '/prezzi'
     | '/privacy'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/contatti'
     | '/cookie'
     | '/prezzi'
     | '/privacy'
@@ -146,6 +158,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ContattiRoute: typeof ContattiRoute
   CookieRoute: typeof CookieRoute
   PrezziRoute: typeof PrezziRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -180,6 +193,13 @@ declare module '@tanstack/react-router' {
       path: '/cookie'
       fullPath: '/cookie'
       preLoaderRoute: typeof CookieRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contatti': {
+      id: '/contatti'
+      path: '/contatti'
+      fullPath: '/contatti'
+      preLoaderRoute: typeof ContattiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -246,6 +266,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ContattiRoute: ContattiRoute,
   CookieRoute: CookieRoute,
   PrezziRoute: PrezziRoute,
   PrivacyRoute: PrivacyRoute,

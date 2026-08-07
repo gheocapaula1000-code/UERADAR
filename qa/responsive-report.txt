@@ -31,6 +31,10 @@ Report responsive UEradar.com
 [ok]   /cookie @390px — scrollWidth 390 <= 390
 [ok]   /cookie @768px — scrollWidth 768 <= 768
 [ok]   /cookie @1440px — scrollWidth 1440 <= 1440
+[ok]   /contatti @320px — scrollWidth 320 <= 320
+[ok]   /contatti @390px — scrollWidth 390 <= 390
+[ok]   /contatti @768px — scrollWidth 768 <= 768
+[ok]   /contatti @1440px — scrollWidth 1440 <= 1440
 [skip] /dashboard @320px — redirect a /auth (sessione assente)
 [skip] /dashboard @390px — redirect a /auth (sessione assente)
 [skip] /dashboard @768px — redirect a /auth (sessione assente)
