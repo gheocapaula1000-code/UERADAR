@@ -2,7 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import type { FeedResponse, Bando } from "./bandocore-types";
-import { mapCoreOpportunity, parseGatewayFeed } from "./proxy-core.server";
+import { mapCoreOpportunity, parseGatewayEnvelope } from "./proxy-core.server";
+import { decideFeedCache } from "./feed-cache-policy";
 import type { Json } from "@/integrations/supabase/types";
 
 const InputSchema = z.object({
@@ -24,6 +25,8 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
     const deepSearch = data.deep_search ?? true;
 
     let bandi: Bando[] | null = null;
+    let fetchedAt = new Date().toISOString();
+    let generatedAt = fetchedAt;
     const source: FeedResponse["source"] = "central-core";
 
     try {
@@ -44,9 +47,45 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       });
       if (error) throw new Error("GATEWAY_ERROR");
 
-      const rows = parseGatewayFeed(payload);
-      if (!rows) throw new Error("GATEWAY_INVALID_PAYLOAD");
-      bandi = rows.map((item) => mapCoreOpportunity(item));
+      const envelope = parseGatewayEnvelope(payload);
+      if (!envelope) throw new Error("GATEWAY_INVALID_PAYLOAD");
+      bandi = envelope.bandi.map((item) => mapCoreOpportunity(item));
+      fetchedAt = envelope.fetched_at;
+      generatedAt = envelope.generated_at;
+
+      const { data: previousRow, error: previousError } = await supabase
+        .from("feed_cache")
+        .select("payload, fetched_at")
+        .eq("user_id", userId)
+        .order("fetched_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (previousError) throw new Error("CACHE_READ_FAILED");
+
+      const previous = previousRow?.payload
+        ? ({
+            ...(previousRow.payload as unknown as FeedResponse),
+            fetched_at: previousRow.fetched_at,
+            source: "cache",
+          } as FeedResponse)
+        : null;
+      const next: FeedResponse = {
+        bandi,
+        fetched_at: fetchedAt,
+        generated_at: generatedAt,
+        source,
+        deep_search: deepSearch,
+      };
+      const cacheDecision = decideFeedCache(previous, next);
+      if (cacheDecision === "reuse-previous" && previous) return previous;
+      if (cacheDecision === "persist") {
+        const { error: cacheWriteError } = await supabase.from("feed_cache").insert({
+          user_id: userId,
+          payload: next as unknown as Json,
+          fetched_at: fetchedAt,
+        });
+        if (cacheWriteError) throw new Error("CACHE_WRITE_FAILED");
+      }
     } catch (err) {
       console.warn("[trovabandi-feed] feed failed, falling back to cache:", err);
       const { data: cached } = await supabase
@@ -64,17 +103,15 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
           fetched_at: cached.fetched_at,
           source: "cache",
           deep_search: deepSearch,
+          generated_at:
+            typeof (cached.payload as { generated_at?: unknown }).generated_at === "string"
+              ? (cached.payload as { generated_at: string }).generated_at
+              : cached.fetched_at,
         };
       }
       throw new Error("Motore bandi non raggiungibile e nessuna cache disponibile.");
     }
 
-    const fetched_at = new Date().toISOString();
-    await supabase.from("feed_cache").insert({
-      user_id: userId,
-      payload: { bandi } as unknown as Json,
-      fetched_at,
-    });
 
     // Persist i bandi "sommersi" in tabella dedicata (resilienza).
     const hidden = (bandi ?? []).filter((b) => b.is_hidden);
@@ -89,10 +126,19 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
         provincia: b.provincia ?? null,
         codice_istat: b.codice_istat ?? null,
       }));
-      await supabase.from("cached_hidden_bandi").upsert(rows, { onConflict: "user_id,bando_id" });
+      const { error: hiddenCacheError } = await supabase
+        .from("cached_hidden_bandi")
+        .upsert(rows, { onConflict: "user_id,bando_id" });
+      if (hiddenCacheError) throw new Error("HIDDEN_CACHE_WRITE_FAILED");
     }
 
-    return { bandi: bandi ?? [], fetched_at, source, deep_search: deepSearch };
+    return {
+      bandi: bandi ?? [],
+      fetched_at: fetchedAt,
+      generated_at: generatedAt,
+      source,
+      deep_search: deepSearch,
+    };
   });
 
 export const requestFeedRefresh = createServerFn({ method: "POST" })
