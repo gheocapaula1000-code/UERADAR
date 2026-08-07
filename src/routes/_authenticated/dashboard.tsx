@@ -11,6 +11,7 @@ import type { Bando, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
 import { CATEGORY_FILTERS, type CategoryFilterKey } from "@/lib/bando-categories";
 import { feedMarker, runBoundedRefresh } from "@/lib/feed-refresh";
 import { isActive, isExpired, isFlash } from "@/lib/bando-status";
+import { loadOfflineFeed, saveOfflineFeed } from "@/lib/offline-feed";
 import {
   RefreshCw,
   Zap,
@@ -60,24 +61,62 @@ function Dashboard() {
   const [profile, setProfile] = useState<CompanyProfile | null>(null);
 
   useEffect(() => {
+    const profileKey = "ueradar:last-profile:v1";
+    const localProfile = () => {
+      try {
+        const raw = window.localStorage.getItem(profileKey);
+        return raw ? (JSON.parse(raw) as CompanyProfile) : null;
+      } catch {
+        return null;
+      }
+    };
+
+    if (!navigator.onLine) {
+      const cached = localProfile();
+      if (cached) setProfile(cached);
+      return;
+    }
+
     supabase
       .from("company_profiles")
       .select("*")
       .maybeSingle()
-      .then(({ data }) => {
-        if (!data) {
-          setProfileMissing(true);
-          navigate({ to: "/profilo" });
-        } else {
-          setProfile(data as unknown as CompanyProfile);
+      .then(({ data, error }) => {
+        if (data) {
+          const next = data as unknown as CompanyProfile;
+          setProfile(next);
+          try {
+            window.localStorage.setItem(profileKey, JSON.stringify(next));
+          } catch {
+            // La disponibilità offline è best-effort.
+          }
+          return;
         }
+        const cached = localProfile();
+        if (error && cached) {
+          setProfile(cached);
+          return;
+        }
+        setProfileMissing(true);
+        navigate({ to: "/profilo" });
       });
   }, [navigate]);
 
   const query = useQuery({
     queryKey: ["bandi-feed"],
-    // Caricamento normale: sola lettura del feed, nessun refresh accodato.
-    queryFn: () => fetchFeed({ data: { deep_search: true } }),
+    // Caricamento normale: rete prima, snapshot locale in fallback.
+    // Nessun refresh viene accodato e il payload del feed non viene modificato.
+    queryFn: async () => {
+      try {
+        const feed = await fetchFeed({ data: { deep_search: true } });
+        saveOfflineFeed(feed);
+        return feed;
+      } catch (error) {
+        const cached = loadOfflineFeed();
+        if (cached) return cached;
+        throw error;
+      }
+    },
     enabled: !profileMissing,
     retry: false,
   });
@@ -102,6 +141,7 @@ function Dashboard() {
       if (controller.signal.aborted) return;
       if (result.status === "updated" && result.feed) {
         queryClient.setQueryData(["bandi-feed"], result.feed);
+        saveOfflineFeed(result.feed);
         toast.success("Risultati aggiornati");
       } else if (result.status === "queued") {
         toast.info("Aggiornamento accodato: riprova tra qualche minuto.");
