@@ -315,10 +315,16 @@ function BandoDetail() {
                     className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
                       dossier.readiness === "COMPLETO"
                         ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-                        : "border-warning/40 bg-warning/10 text-warning"
+                        : dossier.readiness === "SCADUTO"
+                          ? "border-destructive/40 bg-destructive/10 text-destructive"
+                          : "border-warning/40 bg-warning/10 text-warning"
                     }`}
                   >
-                    {dossier.readiness === "COMPLETO" ? "Dossier completo" : "Dossier parziale"}
+                    {dossier.readiness === "COMPLETO"
+                      ? "Dossier completo"
+                      : dossier.readiness === "SCADUTO"
+                        ? "Termine superato"
+                        : "Dossier parziale"}
                   </span>
                 </div>
                 {!dossierOpen && (
