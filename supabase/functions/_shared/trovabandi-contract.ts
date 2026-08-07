@@ -45,7 +45,7 @@ export const BANDO_CATEGORIES = [
   "ALTRO",
 ] as const;
 
-const AUTHORITY_LEVELS = ["EU", "NAZIONALE", "REGIONALE", "CAMERALE", "COMUNALE"] as const;
+const AUTHORITY_LEVELS = ["EU", "EUROPEO", "NAZIONALE", "REGIONALE", "CAMERALE", "COMUNALE"] as const;
 const VERIFICATION_STATUSES = ["VERIFICATO", "PARZIALE", "DA_VERIFICARE"] as const;
 const MATCH_STATUSES = ["COMPATIBILE", "DA_VERIFICARE", "NON_COMPATIBILE"] as const;
 
@@ -60,12 +60,13 @@ const OPTIONAL_TEXT = [
   "pnrr_mission",
   "pnrr_component",
   "implementing_body",
+  "municipality_istat_code",
 ] as const;
 const OPTIONAL_URL = ["forms_url", "application_url"] as const;
 const OPTIONAL_DATE = ["deadline_at", "opens_at", "last_verified_at", "first_seen_at"] as const;
-const OPTIONAL_NUMBER = ["max_grant_amount", "rarity_score", "min_partners"] as const;
+const OPTIONAL_NUMBER = ["max_grant_amount", "rarity_score", "min_partners", "aid_intensity_percent", "total_budget", "competition_index"] as const;
 const OPTIONAL_BOOLEAN = ["click_day", "official_source", "consortium_required"] as const;
-const OPTIONAL_STRING_ARRAY = ["requirements", "eligible_expenses", "eligible_countries"] as const;
+const OPTIONAL_STRING_ARRAY = ["requirements", "eligible_expenses", "eligible_countries", "eligible_ateco_codes"] as const;
 
 function nonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
@@ -122,6 +123,20 @@ function validMatch(value: unknown): boolean {
   );
 }
 
+function validPdfFieldMapping(value: unknown): boolean {
+  if (value == null) return true;
+  if (!Array.isArray(value)) return false;
+  return value.every((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return false;
+    const row = entry as ContractRow;
+    return (
+      nonEmptyString(row.pdf_label) &&
+      nonEmptyString(row.profile_field) &&
+      optionalString(row.static_value)
+    );
+  });
+}
+
 function validEvidence(value: unknown): boolean {
   if (value == null) return true;
   if (!Array.isArray(value)) return false;
@@ -174,13 +189,17 @@ export function opportunityIsValid(item: unknown): item is ContractRow {
         row.verification_status as (typeof VERIFICATION_STATUSES)[number],
       ))
   ) return false;
-  return validMatch(row.match) && validEvidence(row.trovabandi_evidence);
+  return (
+    validMatch(row.match) &&
+    validEvidence(row.trovabandi_evidence) &&
+    validPdfFieldMapping(row.pdf_field_mapping)
+  );
 }
 
 const OUTPUT_FIELDS = [
   "id", "title", "authority_name", "authority_level", "category", "summary", "official_url",
   ...OPTIONAL_TEXT, ...OPTIONAL_URL, ...OPTIONAL_DATE, ...OPTIONAL_NUMBER, ...OPTIONAL_BOOLEAN,
-  ...OPTIONAL_STRING_ARRAY, "verification_status", "trovabandi_evidence", "match",
+  ...OPTIONAL_STRING_ARRAY, "verification_status", "trovabandi_evidence", "pdf_field_mapping", "match",
 ] as const;
 
 function sanitizeOpportunity(row: ContractRow): ContractRow {
