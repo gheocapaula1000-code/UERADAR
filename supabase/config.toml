@@ -4,6 +4,3 @@ verify_jwt = false
 
 [functions.trovabandi-feed]
 verify_jwt = false
-
-[functions.trovabandi-engine]
-verify_jwt = false
