@@ -49,8 +49,27 @@ PROBE = """() => {
   }
   const ld = [...document.querySelectorAll('script[type="application/ld+json"]')]
     .flatMap((n) => { try { const j = JSON.parse(n.textContent); return [j['@type']]; } catch { return ['INVALID']; } });
+  const banner = document.querySelector('[data-testid="cookie-consent"]');
+  const consent = { present: !!banner, actions: 0, smallActions: [], overflow: false, storage: 0 };
+  if (banner) {
+    const acts = banner.querySelectorAll('button');
+    consent.actions = acts.length;
+    for (const b of acts) {
+      const r = b.getBoundingClientRect();
+      if (r.width && r.height && (r.width < 44 || r.height < 44)) {
+        consent.smallActions.push(((b.innerText || b.getAttribute('aria-label') || '?').trim().slice(0, 30))
+          + ` ${Math.round(r.width)}x${Math.round(r.height)}`);
+      }
+    }
+    consent.overflow = banner.scrollWidth > window.innerWidth + 1;
+    consent.dialog = banner.getAttribute('role') === 'dialog'
+      && !!banner.getAttribute('aria-labelledby') && !!banner.getAttribute('aria-describedby');
+  }
+  try {
+    consent.storage = Object.keys(localStorage).filter((k) => k !== 'ueradar.consent').length;
+  } catch { consent.storage = -1; }
   return {
-    ld,
+    ld, consent,
     scrollWidth: doc.scrollWidth,
     innerWidth: window.innerWidth,
     h1: document.querySelectorAll('h1').length,
