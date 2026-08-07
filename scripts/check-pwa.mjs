@@ -19,6 +19,92 @@ function pngSize(path) {
   return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
 }
 
+/** Dimensioni di ogni frame di un file ICO reale (mime image/x-icon). */
+function icoFrames(path) {
+  const buf = readFileSync(path);
+  if (buf.length < 6 || buf.readUInt16LE(0) !== 0 || buf.readUInt16LE(2) !== 1) return null;
+  const count = buf.readUInt16LE(4);
+  const frames = [];
+  for (let i = 0; i < count; i += 1) {
+    const off = 6 + i * 16;
+    frames.push({ width: buf[off] || 256, height: buf[off + 1] || 256 });
+  }
+  return frames;
+}
+
+/** Decoder PNG minimale: restituisce i pixel RGBA di una riga/colonna campionata. */
+function pngPixels(path) {
+  // usa il decoder nativo via ImageData non disponibile in node puro: leggiamo i chunk IDAT
+  // e li decomprimiamo con zlib, gestendo solo PNG truecolor+alpha (colorType 6, bitDepth 8).
+  const buf = readFileSync(path);
+  const bitDepth = buf[24];
+  const colorType = buf[25];
+  if (bitDepth !== 8 || colorType !== 6) return null;
+  const width = buf.readUInt32BE(16);
+  const height = buf.readUInt32BE(20);
+  let pos = 8;
+  const idat = [];
+  while (pos < buf.length) {
+    const len = buf.readUInt32BE(pos);
+    const type = buf.toString("ascii", pos + 4, pos + 8);
+    if (type === "IDAT") idat.push(buf.subarray(pos + 8, pos + 8 + len));
+    pos += len + 12;
+    if (type === "IEND") break;
+  }
+  const raw = inflateSync(Buffer.concat(idat));
+  const bpp = 4;
+  const stride = width * bpp;
+  const out = Buffer.alloc(height * stride);
+  let rp = 0;
+  for (let y = 0; y < height; y += 1) {
+    const filter = raw[rp];
+    rp += 1;
+    const line = raw.subarray(rp, rp + stride);
+    rp += stride;
+    const cur = out.subarray(y * stride, (y + 1) * stride);
+    const prev = y > 0 ? out.subarray((y - 1) * stride, y * stride) : Buffer.alloc(stride);
+    for (let x = 0; x < stride; x += 1) {
+      const a = x >= bpp ? cur[x - bpp] : 0;
+      const b = prev[x];
+      const c = x >= bpp ? prev[x - bpp] : 0;
+      let v = line[x];
+      if (filter === 1) v += a;
+      else if (filter === 2) v += b;
+      else if (filter === 3) v += (a + b) >> 1;
+      else if (filter === 4) {
+        const p = a + b - c;
+        const pa = Math.abs(p - a);
+        const pb = Math.abs(p - b);
+        const pc = Math.abs(p - c);
+        v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+      }
+      cur[x] = v & 0xff;
+    }
+  }
+  return { width, height, data: out };
+}
+
+function hexToRgb(hex) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex ?? "");
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function relativeLuminance([r, g, b]) {
+  const f = (c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+
+function contrastRatio(a, b) {
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
 // 1. manifest
 const manifestPath = "public/manifest.webmanifest";
 if (!existsSync(manifestPath)) fail("manifest.webmanifest mancante");
