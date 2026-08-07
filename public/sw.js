@@ -1,4 +1,4 @@
-const CACHE = "trovabandi-shell-v3";
+const CACHE = "ueradar-shell-v4";
 const SHELL = [
   "/",
   "/auth",
@@ -8,6 +8,10 @@ const SHELL = [
   "/cookie",
   "/manifest.webmanifest",
   "/favicon.ico",
+  "/icons/favicon-32.png",
+  "/icons/icon-192.png",
+  "/icons/apple-touch-icon-180.png",
+  "/brand/ueradar-logo-horizontal.png",
 ];
 
 self.addEventListener("install", (event) => {
