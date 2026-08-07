@@ -304,14 +304,185 @@ function BandoDetail() {
               </div>
             ) : null}
 
-            {/* ANTEPRIMA ISTANZA CON AUTOFILL */}
+            {/* DOSSIER CANDIDATURA */}
+            <div className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <ListChecks className="h-4 w-4 text-primary" />
+                  <h2 className="font-semibold">Dossier candidatura</h2>
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                      dossier.readiness === "COMPLETO"
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+                        : "border-warning/40 bg-warning/10 text-warning"
+                    }`}
+                  >
+                    {dossier.readiness === "COMPLETO" ? "Dossier completo" : "Dossier parziale"}
+                  </span>
+                </div>
+                {!dossierOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setDossierOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                  >
+                    <FileText className="h-4 w-4" /> Genera dossier candidatura
+                  </button>
+                )}
+              </div>
+
+              <p
+                role="note"
+                className="mt-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning"
+              >
+                <strong>Attenzione:</strong> bozza informativa precompilata, non inviata e non pronta
+                alla firma. Nessuna domanda, email o PEC viene trasmessa da UEradar.com. Verifica dati,
+                requisiti, modulistica e scadenze sulla fonte ufficiale prima di qualsiasi utilizzo.
+              </p>
+
+              {dossierOpen && (
+                <div className="mt-4 space-y-4">
+                  <DossierBlock icon={<FileSearch className="h-4 w-4" />} title="Copertina">
+                    <FieldGrid fields={dossier.cover} />
+                  </DossierBlock>
+
+                  <DossierBlock icon={<Euro className="h-4 w-4" />} title="Sintesi economica">
+                    <FieldGrid fields={dossier.economics} />
+                  </DossierBlock>
+
+                  <DossierBlock
+                    icon={<CheckCircle2 className="h-4 w-4" />}
+                    title={`Compatibilità profilo — ${dossier.compatibility.label}${
+                      dossier.compatibility.score !== null ? ` · ${dossier.compatibility.score}%` : ""
+                    }`}
+                  >
+                    <ListSection label="Requisiti confermati" items={dossier.compatibility.confirmed} />
+                    <ListSection label="Blocker" items={dossier.compatibility.blockers} />
+                    <ListSection label="Campi da verificare" items={dossier.compatibility.to_check} />
+                  </DossierBlock>
+
+                  <DossierBlock icon={<ListChecks className="h-4 w-4" />} title="Checklist requisiti">
+                    {dossier.requirements.length ? (
+                      <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+                        {dossier.requirements.map((r, i) => (
+                          <li key={i}>{r}</li>
+                        ))}
+                      </ol>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Requisiti non disponibili: verificali sulla fonte ufficiale.
+                      </p>
+                    )}
+                  </DossierBlock>
+
+                  <DossierBlock
+                    icon={<ListChecks className="h-4 w-4" />}
+                    title="Checklist documenti (suggerita / da verificare)"
+                  >
+                    <p className="mb-2 text-[11px] text-muted-foreground">
+                      Elenco suggerito sulla base dei dati disponibili: non sostituisce l'elenco
+                      ufficiale del bando.
+                    </p>
+                    <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+                      {dossier.documents.map((doc) => (
+                        <li key={doc.label}>
+                          <span className="text-foreground">{doc.label}</span> — {doc.reason}
+                        </li>
+                      ))}
+                    </ol>
+                  </DossierBlock>
+
+                  <DossierBlock icon={<CalendarClock className="h-4 w-4" />} title="Timeline operativa">
+                    <ul className="space-y-1 text-xs text-muted-foreground">
+                      {dossier.timeline.map((s, i) => (
+                        <li key={i}>
+                          {s.date ? <span className="text-foreground">{s.date} — </span> : null}
+                          <span className="text-foreground">{s.label}</span>: {s.note}
+                        </li>
+                      ))}
+                    </ul>
+                  </DossierBlock>
+
+                  <DossierBlock icon={<Mail className="h-4 w-4" />} title="Canale ufficiale">
+                    <FieldGrid fields={dossier.channel} />
+                  </DossierBlock>
+
+                  {dossier.rarity.poco_diffusa && (
+                    <DossierBlock icon={<Radar className="h-4 w-4" />} title="Fonte poco diffusa">
+                      <p className="text-xs text-muted-foreground">
+                        Tipo fonte: {dossier.rarity.source_kind ?? "documento ufficiale"}
+                        {dossier.rarity.rarity_score
+                          ? ` · indice diffusione ${dossier.rarity.rarity_score}/5`
+                          : ""}
+                        {dossier.rarity.note ? ` · ${dossier.rarity.note}` : ""}
+                      </p>
+                    </DossierBlock>
+                  )}
+
+                  <DossierBlock
+                    icon={<FileText className="h-4 w-4" />}
+                    title="Testo istanza / lettera di accompagnamento"
+                  >
+                    <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-lg bg-background/50 p-3 font-mono text-xs">
+                      {dossier.cover_letter}
+                    </pre>
+                  </DossierBlock>
+
+                  <DossierBlock
+                    icon={<AlertTriangle className="h-4 w-4" />}
+                    title="Dati mancanti prima dell'uso"
+                  >
+                    {dossier.missing_before_use.length ? (
+                      <ul className="space-y-1 text-xs text-muted-foreground">
+                        {dossier.missing_before_use.map((m) => (
+                          <li key={m}>• {m}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Nessun dato mancante rilevato automaticamente.
+                      </p>
+                    )}
+                  </DossierBlock>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={copyDossier}
+                      className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                    >
+                      <Copy className="h-4 w-4" /> Copia dossier
+                    </button>
+                    <button
+                      type="button"
+                      onClick={downloadDossierTxt}
+                      className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium"
+                    >
+                      <Download className="h-4 w-4" /> Scarica .txt
+                    </button>
+                    <button
+                      type="button"
+                      onClick={downloadPdf}
+                      disabled={pdfBusy}
+                      className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium disabled:opacity-50"
+                    >
+                      <FileDown className="h-4 w-4" /> {pdfBusy ? "Generazione…" : "Scarica PDF"}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Il PDF viene generato interamente nel tuo browser: nessun dato del profilo viene
+                    inviato a servizi esterni.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* AUTOFILL CAMPI MODULO UFFICIALE (solo se il feed espone la mappatura) */}
+            {bando.pdf_field_mapping?.length ? (
             <div className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <FileText className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold">
-                  Prepara bozza — Autofill
-                  {bando.pdf_field_mapping?.length ? " da PDF nativo PA" : " attivo"}
-                </h3>
+                <h3 className="font-semibold">Autofill campi modulo ufficiale</h3>
               </div>
               {bando.pdf_field_mapping?.length ? (
                 <p className="mb-3 text-xs text-muted-foreground">
@@ -355,6 +526,7 @@ function BandoDetail() {
                 </button>
               </div>
             </div>
+            ) : null}
           </div>
 
           {/* SIDEBAR — Canale di invio */}
