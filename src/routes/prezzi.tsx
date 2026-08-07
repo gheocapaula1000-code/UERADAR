@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, ShieldCheck, Users } from "lucide-react";
 import { BrandLogo } from "@/components/bandocore/BrandLogo";
+import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { PRICING_FAQ_JSONLD, seoHead } from "@/lib/seo";
 import {
   ARCHITECTURE_NOTES,
@@ -150,27 +151,7 @@ function Pricing() {
 
       </main>
 
-      <footer className="safe-x safe-bottom border-t border-border px-4 py-8 text-center text-xs text-muted-foreground">
-        <nav aria-label="Link legali">
-          <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-            <li>
-              <Link to="/termini" className="tap inline-flex items-center hover:text-foreground">
-                Termini
-              </Link>
-            </li>
-            <li>
-              <Link to="/privacy" className="tap inline-flex items-center hover:text-foreground">
-                Privacy
-              </Link>
-            </li>
-            <li>
-              <Link to="/cookie" className="tap inline-flex items-center hover:text-foreground">
-                Cookie
-              </Link>
-            </li>
-          </ul>
-        </nav>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
