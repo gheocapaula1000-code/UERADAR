@@ -49,7 +49,7 @@ PROBE = """() => {
   }
   const ld = [...document.querySelectorAll('script[type="application/ld+json"]')]
     .flatMap((n) => { try { const j = JSON.parse(n.textContent); return [j['@type']]; } catch { return ['INVALID']; } });
-  const banner = document.querySelector('[data-testid="cookie-consent"]');
+  const banner = document.querySelector('[data-testid="cookie-banner"]');
   const consent = { present: !!banner, actions: 0, smallActions: [], overflow: false, storage: 0 };
   if (banner) {
     const acts = banner.querySelectorAll('button');
@@ -66,7 +66,7 @@ PROBE = """() => {
       && !!banner.getAttribute('aria-labelledby') && !!banner.getAttribute('aria-describedby');
   }
   try {
-    consent.storage = Object.keys(localStorage).filter((k) => k !== 'ueradar.consent').length;
+    consent.storage = Object.keys(localStorage).filter((k) => k !== "ueradar.cookie-consent").length;
   } catch { consent.storage = -1; }
   return {
     ld, consent,
