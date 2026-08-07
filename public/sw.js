@@ -1,4 +1,4 @@
-const CACHE = "trovabandi-shell-v1";
+const CACHE = "trovabandi-shell-v2";
 const SHELL = ["/", "/manifest.webmanifest", "/favicon.ico"];
 
 self.addEventListener("install", (event) => {
