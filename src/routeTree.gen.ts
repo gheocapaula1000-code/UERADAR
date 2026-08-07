@@ -9,30 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as CookieRouteImport } from './routes/cookie'
-import { Route as PrezziRouteImport } from './routes/prezzi'
-import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TerminiRouteImport } from './routes/termini'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PrezziRouteImport } from './routes/prezzi'
+import { Route as CookieRouteImport } from './routes/cookie'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedProfiloRouteImport } from './routes/_authenticated/profilo'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedBandoIdRouteImport } from './routes/_authenticated/bando.$id'
 
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CookieRoute = CookieRouteImport.update({
-  id: '/cookie',
-  path: '/cookie',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrezziRoute = PrezziRouteImport.update({
-  id: '/prezzi',
-  path: '/prezzi',
+const TerminiRoute = TerminiRouteImport.update({
+  id: '/termini',
+  path: '/termini',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -40,9 +30,19 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TerminiRoute = TerminiRouteImport.update({
-  id: '/termini',
-  path: '/termini',
+const PrezziRoute = PrezziRouteImport.update({
+  id: '/prezzi',
+  path: '/prezzi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CookieRoute = CookieRouteImport.update({
+  id: '/cookie',
+  path: '/cookie',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -107,9 +107,27 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/cookie' | '/prezzi' | '/privacy' | '/termini' | '/dashboard' | '/profilo' | '/bando/$id'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/cookie'
+    | '/prezzi'
+    | '/privacy'
+    | '/termini'
+    | '/dashboard'
+    | '/profilo'
+    | '/bando/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/cookie' | '/prezzi' | '/privacy' | '/termini' | '/dashboard' | '/profilo' | '/bando/$id'
+  to:
+    | '/'
+    | '/auth'
+    | '/cookie'
+    | '/prezzi'
+    | '/privacy'
+    | '/termini'
+    | '/dashboard'
+    | '/profilo'
+    | '/bando/$id'
   id:
     | '__root__'
     | '/'
@@ -136,18 +154,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/cookie': {
-      id: '/cookie'
-      path: '/cookie'
-      fullPath: '/cookie'
-      preLoaderRoute: typeof CookieRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/prezzi': {
-      id: '/prezzi'
-      path: '/prezzi'
-      fullPath: '/prezzi'
-      preLoaderRoute: typeof PrezziRouteImport
+    '/termini': {
+      id: '/termini'
+      path: '/termini'
+      fullPath: '/termini'
+      preLoaderRoute: typeof TerminiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -157,11 +168,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/termini': {
-      id: '/termini'
-      path: '/termini'
-      fullPath: '/termini'
-      preLoaderRoute: typeof TerminiRouteImport
+    '/prezzi': {
+      id: '/prezzi'
+      path: '/prezzi'
+      fullPath: '/prezzi'
+      preLoaderRoute: typeof PrezziRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cookie': {
+      id: '/cookie'
+      path: '/cookie'
+      fullPath: '/cookie'
+      preLoaderRoute: typeof CookieRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
