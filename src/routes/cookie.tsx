@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage, LegalSection } from "@/components/bandocore/LegalPage";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/cookie")({
-  head: () => ({ meta: [{ title: "Cookie — UEradar.com" }] }),
+  head: () => seoHead("/cookie"),
   component: Cookie,
 });
 

@@ -23,14 +23,10 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({
-    meta: [
-      { title: "Radar Bandi — UEradar.com" },
-      { name: "description", content: "Dashboard bandi personalizzata sul profilo aziendale." },
-    ],
-  }),
+  head: () => seoHead("/dashboard"),
   component: Dashboard,
 });
 

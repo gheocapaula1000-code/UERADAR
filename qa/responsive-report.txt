@@ -1,0 +1,41 @@
+Report responsive UEradar.com
+[ok]   / @320px — scrollWidth 320 <= 320
+[ok]   / @360px — scrollWidth 360 <= 360
+[ok]   / @375px — scrollWidth 375 <= 375
+[ok]   / @390px — scrollWidth 390 <= 390
+[ok]   / @414px — scrollWidth 414 <= 414
+[ok]   / @768px — scrollWidth 768 <= 768
+[ok]   / @1024px — scrollWidth 1024 <= 1024
+[ok]   / @1440px — scrollWidth 1440 <= 1440
+[ok]   /prezzi @320px — scrollWidth 320 <= 320
+[ok]   /prezzi @360px — scrollWidth 360 <= 360
+[ok]   /prezzi @375px — scrollWidth 375 <= 375
+[ok]   /prezzi @390px — scrollWidth 390 <= 390
+[ok]   /prezzi @414px — scrollWidth 414 <= 414
+[ok]   /prezzi @768px — scrollWidth 768 <= 768
+[ok]   /prezzi @1024px — scrollWidth 1024 <= 1024
+[ok]   /prezzi @1440px — scrollWidth 1440 <= 1440
+[ok]   /auth @320px — scrollWidth 320 <= 320
+[ok]   /auth @390px — scrollWidth 390 <= 390
+[ok]   /auth @768px — scrollWidth 768 <= 768
+[ok]   /auth @1440px — scrollWidth 1440 <= 1440
+[ok]   /privacy @320px — scrollWidth 320 <= 320
+[ok]   /privacy @390px — scrollWidth 390 <= 390
+[ok]   /privacy @768px — scrollWidth 768 <= 768
+[ok]   /privacy @1440px — scrollWidth 1440 <= 1440
+[ok]   /termini @320px — scrollWidth 320 <= 320
+[ok]   /termini @390px — scrollWidth 390 <= 390
+[ok]   /termini @768px — scrollWidth 768 <= 768
+[ok]   /termini @1440px — scrollWidth 1440 <= 1440
+[ok]   /cookie @320px — scrollWidth 320 <= 320
+[ok]   /cookie @390px — scrollWidth 390 <= 390
+[ok]   /cookie @768px — scrollWidth 768 <= 768
+[ok]   /cookie @1440px — scrollWidth 1440 <= 1440
+[skip] /dashboard @320px — redirect a /auth (sessione assente)
+[skip] /dashboard @390px — redirect a /auth (sessione assente)
+[skip] /dashboard @768px — redirect a /auth (sessione assente)
+[skip] /dashboard @1440px — redirect a /auth (sessione assente)
+[skip] /bando/qa-fixture @320px — redirect a /auth (sessione assente)
+[skip] /bando/qa-fixture @390px — redirect a /auth (sessione assente)
+[skip] /bando/qa-fixture @768px — redirect a /auth (sessione assente)
+[skip] /bando/qa-fixture @1440px — redirect a /auth (sessione assente)

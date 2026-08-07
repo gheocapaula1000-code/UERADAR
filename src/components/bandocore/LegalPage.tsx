@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Radar } from "lucide-react";
+import { BrandLogo } from "@/components/bandocore/BrandLogo";
 import type { ReactNode } from "react";
 
 export function LegalPage({
@@ -13,27 +13,49 @@ export function LegalPage({
 }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-5">
-          <Link to="/" className="flex items-center gap-2 font-semibold">
-            <Radar className="h-5 w-5 text-primary" /> UEradar.com
+      <header className="safe-x safe-top border-b border-border">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-5">
+          <Link to="/" className="flex min-w-0 items-center" aria-label="UEradar.com, home">
+            <BrandLogo size="sm" />
           </Link>
-          <Link to="/auth" className="text-sm text-primary hover:underline">
-            Accedi
-          </Link>
+          <nav aria-label="Accesso area riservata">
+            <Link
+              to="/auth"
+              className="tap inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-primary hover:underline"
+            >
+              Accedi
+            </Link>
+          </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-4xl px-6 py-12">
-        <h1 className="text-3xl font-bold">{title}</h1>
+      <main
+        id="contenuto-principale"
+        className="safe-x mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-12"
+      >
+        <h1 className="text-2xl font-bold sm:text-3xl">{title}</h1>
         <p className="mt-2 text-xs text-muted-foreground">Ultimo aggiornamento: {updated}</p>
         <article className="mt-8 space-y-7 text-sm leading-7 text-muted-foreground">{children}</article>
       </main>
-      <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground">
-        <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
-        {" · "}
-        <Link to="/termini" className="hover:text-foreground">Termini</Link>
-        {" · "}
-        <Link to="/cookie" className="hover:text-foreground">Cookie</Link>
+      <footer className="safe-x safe-bottom border-t border-border px-4 py-8 text-center text-xs text-muted-foreground">
+        <nav aria-label="Link legali">
+          <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <li>
+              <Link to="/privacy" className="tap inline-flex items-center hover:text-foreground">
+                Privacy
+              </Link>
+            </li>
+            <li>
+              <Link to="/termini" className="tap inline-flex items-center hover:text-foreground">
+                Termini
+              </Link>
+            </li>
+            <li>
+              <Link to="/cookie" className="tap inline-flex items-center hover:text-foreground">
+                Cookie
+              </Link>
+            </li>
+          </ul>
+        </nav>
       </footer>
     </div>
   );

@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, Radar, ShieldCheck, Users } from "lucide-react";
+import { Check, ShieldCheck, Users } from "lucide-react";
+import { BrandLogo } from "@/components/bandocore/BrandLogo";
+import { PRICING_FAQ_JSONLD, seoHead } from "@/lib/seo";
 import {
   ARCHITECTURE_NOTES,
   CUSTOM_PLAN,
@@ -10,22 +12,8 @@ import {
 
 export const Route = createFileRoute("/prezzi")({
   head: () => ({
-    meta: [
-      { title: "Prezzi — UEradar.com" },
-      {
-        name: "description",
-        content:
-          "Due piani per imprese con tutto illimitato: Business e Team, IVA esclusa. 7 giorni di prova senza carta di credito e senza addebito automatico.",
-      },
-      { property: "og:title", content: "Prezzi — UEradar.com" },
-      {
-        property: "og:description",
-        content:
-          "Business e Team, IVA esclusa. Prova gratuita 7 giorni senza carta e senza addebito automatico.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
+    ...seoHead("/prezzi"),
+    scripts: [{ type: "application/ld+json", children: JSON.stringify(PRICING_FAQ_JSONLD) }],
   }),
   component: Pricing,
 });
@@ -36,21 +24,28 @@ function Pricing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <Link to="/" className="flex items-center gap-2 font-semibold">
-          <Radar className="h-5 w-5 text-primary" /> UEradar.com
-        </Link>
-        <Link to="/auth" className="text-sm text-primary hover:underline">
-          Accedi
-        </Link>
+      <header className="safe-x safe-top border-b border-border/60">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-6">
+          <Link to="/" className="flex min-w-0 items-center" aria-label="UEradar.com, home">
+            <BrandLogo size="sm" />
+          </Link>
+          <nav aria-label="Accesso area riservata">
+            <Link
+              to="/auth"
+              className="tap inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-primary hover:underline"
+            >
+              Accedi
+            </Link>
+          </nav>
+        </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-14">
+      <main id="contenuto-principale" className="safe-x mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
         <div className="text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">
             Piani per imprese
           </p>
-          <h1 className="mt-3 text-4xl font-bold md:text-5xl">
+          <h1 className="mt-3 text-3xl font-bold sm:text-4xl md:text-5xl">
             Provalo per 7 giorni, senza carta.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
@@ -64,29 +59,29 @@ function Pricing() {
           {PUBLIC_PLANS.map((plan) => (
             <div
               key={plan.id}
-              className="rounded-2xl border border-border bg-card p-8 shadow-elevated"
+              className="rounded-2xl border border-border bg-card p-6 shadow-elevated sm:p-8"
             >
               <div className="flex items-start justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                   <h2 className="text-2xl font-semibold">{plan.name}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">{plan.audience}</p>
                 </div>
-                <ShieldCheck className="h-8 w-8 text-primary" />
+                <ShieldCheck aria-hidden="true" className="h-8 w-8 shrink-0 text-primary" />
               </div>
               <div className="mt-6">
-                <span className="text-4xl font-bold">{plan.price}</span>
+                <span className="text-3xl font-bold sm:text-4xl">{plan.price}</span>
                 <span className="text-muted-foreground"> {plan.vatNote}</span>
               </div>
               <ul className="mt-6 space-y-3 text-sm">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {f}
+                    <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {f}
                   </li>
                 ))}
               </ul>
               <Link
                 to="/auth"
-                className="mt-8 block rounded-lg bg-primary px-5 py-3 text-center font-semibold text-primary-foreground shadow-glow"
+                className="tap mt-8 flex items-center justify-center rounded-lg bg-primary px-5 py-3 text-center font-semibold text-primary-foreground shadow-glow"
               >
                 Inizia la prova gratuita
               </Link>
@@ -99,27 +94,27 @@ function Pricing() {
           ))}
         </section>
 
-        <section className="mt-6 rounded-2xl border border-dashed border-border bg-card/60 p-8">
+        <section className="mt-6 rounded-2xl border border-dashed border-border bg-card/60 p-6 sm:p-8">
           <div className="flex items-start gap-4">
-            <Users className="mt-1 h-7 w-7 shrink-0 text-accent" />
-            <div>
+            <Users aria-hidden="true" className="mt-1 hidden h-7 w-7 shrink-0 text-accent sm:block" />
+            <div className="min-w-0">
               <h2 className="text-xl font-semibold">
                 {CUSTOM_PLAN.name} — {CUSTOM_PLAN.headline}
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">{CUSTOM_PLAN.description}</p>
               <p className="mt-3 text-sm">
-                {CUSTOM_PLAN.cta}: <span className="font-medium">{CUSTOM_PLAN.contact}</span>
+                {CUSTOM_PLAN.cta}: <span className="wrap-anywhere font-medium">{CUSTOM_PLAN.contact}</span>
               </p>
             </div>
           </div>
         </section>
 
-        <section className="mt-12 rounded-2xl border border-primary/30 bg-card p-8">
+        <section className="mt-12 rounded-2xl border border-primary/30 bg-card p-6 sm:p-8">
           <h2 className="text-lg font-semibold">Condizioni identiche per entrambi i piani</h2>
           <ul className="mt-4 grid gap-3 text-sm text-muted-foreground md:grid-cols-2">
             {TRIAL_TERMS.map((t) => (
               <li key={t} className="flex items-start gap-2">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {t}
+                <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {t}
               </li>
             ))}
           </ul>
@@ -153,16 +148,29 @@ function Pricing() {
           </div>
         </section>
 
-        <p className="mt-10 text-center text-xs text-muted-foreground">
-          <Link to="/termini" className="hover:text-foreground">
-            Termini
-          </Link>
-          {" · "}
-          <Link to="/privacy" className="hover:text-foreground">
-            Privacy
-          </Link>
-        </p>
       </main>
+
+      <footer className="safe-x safe-bottom border-t border-border px-4 py-8 text-center text-xs text-muted-foreground">
+        <nav aria-label="Link legali">
+          <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <li>
+              <Link to="/termini" className="tap inline-flex items-center hover:text-foreground">
+                Termini
+              </Link>
+            </li>
+            <li>
+              <Link to="/privacy" className="tap inline-flex items-center hover:text-foreground">
+                Privacy
+              </Link>
+            </li>
+            <li>
+              <Link to="/cookie" className="tap inline-flex items-center hover:text-foreground">
+                Cookie
+              </Link>
+            </li>
+          </ul>
+        </nav>
+      </footer>
     </div>
   );
 }
