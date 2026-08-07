@@ -1,5 +1,14 @@
-const CACHE = "trovabandi-shell-v2";
-const SHELL = ["/", "/manifest.webmanifest", "/favicon.ico"];
+const CACHE = "trovabandi-shell-v3";
+const SHELL = [
+  "/",
+  "/auth",
+  "/prezzi",
+  "/privacy",
+  "/termini",
+  "/cookie",
+  "/manifest.webmanifest",
+  "/favicon.ico",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
