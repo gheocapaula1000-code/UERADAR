@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  matchingProfile,
+  sanitizeFeedResponse,
+  type ContractRow,
+} from "../_shared/trovabandi-contract.ts";
 
 type Row = Record<string, unknown>;
 
@@ -14,53 +19,19 @@ function out(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers });
 }
 
-/** Allowlist stretta: solo { action } con action ∈ ALLOWED_ACTIONS, nessun campo extra. */
+/** Allowlist stretta: solo { action }, nessun profilo o URL dal browser. */
 export function parseRequestBody(
   payload: unknown,
 ): { ok: true; action: Action } | { ok: false; code: string } {
   if (payload === null || typeof payload !== "object" || Array.isArray(payload))
     return { ok: false, code: "INVALID_BODY" };
   const body = payload as Row;
-  const keys = Object.keys(body);
-  if (keys.some((key) => key !== "action")) return { ok: false, code: "UNEXPECTED_FIELDS" };
+  if (Object.keys(body).some((key) => key !== "action"))
+    return { ok: false, code: "UNEXPECTED_FIELDS" };
   const action = body.action;
   if (typeof action !== "string" || !ALLOWED_ACTIONS.includes(action as Action))
     return { ok: false, code: "INVALID_ACTION" };
   return { ok: true, action: action as Action };
-}
-
-const REQUIRED_BANDO_FIELDS = [
-  "id",
-  "title",
-  "authority_name",
-  "authority_level",
-  "category",
-  "summary",
-  "official_url",
-] as const;
-
-export function bandoRowIsValid(item: unknown): item is Row {
-  if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
-  const row = item as Row;
-  return REQUIRED_BANDO_FIELDS.every(
-    (key) => typeof row[key] === "string" && (row[key] as string).trim().length > 0,
-  );
-}
-
-/** Validazione STRICT: una sola riga malformata invalida l'intero payload. */
-export function sanitizeFeedResponse(
-  payload: unknown,
-  status: number,
-): { ok: true; bandi: Row[] } | { ok: false; code: string } {
-  if (status !== 200) return { ok: false, code: "UPSTREAM_STATUS" };
-  if (payload === null || typeof payload !== "object" || Array.isArray(payload))
-    return { ok: false, code: "UPSTREAM_SHAPE" };
-  const body = payload as Row;
-  if (body.ok !== true) return { ok: false, code: "UPSTREAM_NOT_OK" };
-  if (!Array.isArray(body.bandi)) return { ok: false, code: "UPSTREAM_NO_BANDI" };
-  const rows = body.bandi as unknown[];
-  if (!rows.every(bandoRowIsValid)) return { ok: false, code: "UPSTREAM_INVALID_ROW" };
-  return { ok: true, bandi: rows as Row[] };
 }
 
 /** request_refresh accetta solo 202 + ok=true + queued=true. */
@@ -69,7 +40,8 @@ export function evaluateRefreshResponse(payload: unknown, status: number) {
   if (payload === null || typeof payload !== "object" || Array.isArray(payload))
     return { queued: false, code: "REFRESH_SHAPE" };
   const body = payload as Row;
-  if (body.ok !== true || body.queued !== true) return { queued: false, code: "REFRESH_NOT_QUEUED" };
+  if (body.ok !== true || body.queued !== true)
+    return { queued: false, code: "REFRESH_NOT_QUEUED" };
   return { queued: true, code: "REFRESH_QUEUED" };
 }
 
@@ -80,11 +52,14 @@ export function coreEndpoint(base: string) {
     : `${trimmed}/functions/v1/trovabandi-engine`;
 }
 
-/** Fail-closed: profilo minimo necessario per interrogare il Core. */
+/** Il Core riceve solo campi che possono cambiare il matching. */
 export function profileIsComplete(profile: Row | null): boolean {
   if (!profile) return false;
-  const required = ["ragione_sociale", "forma_giuridica", "regione", "codice_ateco"];
-  return required.every((key) => typeof profile[key] === "string" && (profile[key] as string).trim());
+  const minimized = matchingProfile(profile);
+  const required = ["forma_giuridica", "regione", "codice_ateco"];
+  return required.every(
+    (key) => typeof minimized[key] === "string" && (minimized[key] as string).trim().length > 0,
+  );
 }
 
 async function callCore(action: Action, payload: Row) {
@@ -120,7 +95,9 @@ serve(async (req) => {
   if (req.method !== "POST") return out(405, { ok: false, code: "METHOD_NOT_ALLOWED" });
 
   const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
+  const token = authHeader.toLowerCase().startsWith("bearer ")
+    ? authHeader.slice(7).trim()
+    : "";
   if (!token) return out(401, { ok: false, code: "UNAUTHORIZED" });
 
   const supabaseUrl = env("SUPABASE_URL");
@@ -153,17 +130,28 @@ serve(async (req) => {
 
   if (profileError) return out(503, { ok: false, code: "PROFILE_LOOKUP_FAILED" });
   if (!profile) return out(409, { ok: false, code: "PROFILE_MISSING" });
-  if (!profileIsComplete(profile as Row)) return out(409, { ok: false, code: "PROFILE_INCOMPLETE" });
+  if (!profileIsComplete(profile as Row))
+    return out(409, { ok: false, code: "PROFILE_INCOMPLETE" });
+
+  const minimizedProfile = matchingProfile(profile as ContractRow);
 
   if (parsed.action === "request_refresh") {
-    const res = await callCore("request_refresh", { profile });
+    const res = await callCore("request_refresh", { profile: minimizedProfile });
     const verdict = evaluateRefreshResponse(res.body, res.status);
     if (!verdict.queued) return out(502, { ok: false, code: "UPSTREAM_UNAVAILABLE" });
     return out(202, { ok: true, queued: true });
   }
 
-  const res = await callCore("feed", { profile, limit: 250 });
+  const res = await callCore("feed", { profile: minimizedProfile, limit: 250 });
   const sanitized = sanitizeFeedResponse(res.body, res.status);
-  if (!sanitized.ok) return out(502, { ok: false, code: "UPSTREAM_UNAVAILABLE" });
-  return out(200, { ok: true, bandi: sanitized.bandi });
+  if (!sanitized.ok)
+    return out(502, { ok: false, code: "UPSTREAM_UNAVAILABLE", reason: sanitized.code });
+
+  const fetched_at = new Date().toISOString();
+  return out(200, {
+    ok: true,
+    bandi: sanitized.bandi,
+    fetched_at,
+    generated_at: sanitized.generated_at ?? fetched_at,
+  });
 });

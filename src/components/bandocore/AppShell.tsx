@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Radar, LayoutDashboard, Building2, LogOut } from "lucide-react";
+import { Radar, LayoutDashboard, Building2, CreditCard, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { ReactNode } from "react";
@@ -17,6 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const nav = [
     { to: "/dashboard", label: "Radar Bandi", icon: LayoutDashboard },
     { to: "/profilo", label: "Profilo Azienda", icon: Building2 },
+    { to: "/prezzi", label: "Piano e prezzi", icon: CreditCard },
   ] as const;
 
   return (
@@ -30,7 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="grid h-9 w-9 place-items-center rounded-lg gradient-primary shadow-glow">
             <Radar className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-lg font-semibold tracking-tight">BandoCore</span>
+          <span className="text-lg font-semibold tracking-tight">UEradar.com</span>
         </Link>
         <nav className="flex-1 px-3 py-4 space-y-1">
           {nav.map((item) => {
@@ -67,7 +68,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="grid h-8 w-8 place-items-center rounded-lg gradient-primary">
                 <Radar className="h-4 w-4 text-primary-foreground" />
               </div>
-              <span className="font-semibold">BandoCore</span>
+              <span className="font-semibold">UEradar.com</span>
             </Link>
             <button onClick={signOut} className="text-muted-foreground p-2">
               <LogOut className="h-5 w-5" />

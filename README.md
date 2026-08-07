@@ -1,6 +1,6 @@
-# Bando Navigator
+# UEradar.com
 
-Crea una PWA B2B ad alto livello chiamata "BandoCore" dedicata esclusivamente a Partite IVA, Ditte Individuali, PMI, SRL e SRLS per scovare bonus, bandi locali/regionali/statali, PNRR e programmi UE diretti, finanziamenti agevolati, fondo perduto e incentivi per imprenditoria femminile e giovanile.
+Crea una PWA B2B ad alto livello chiamata "UEradar.com" dedicata esclusivamente a Partite IVA, Ditte Individuali, PMI, SRL e SRLS per scovare bonus, bandi locali/regionali/statali, PNRR e programmi UE diretti, finanziamenti agevolati, fondo perduto e incentivi per imprenditoria femminile e giovanile.
 
 L'applicazione è un frontend sottile e reattivo, integrato con Supabase per la gestione dei profili aziendali e collegato al motore TrovaBandi isolato in Central Core. La raccolta viene eseguita automaticamente da cron Replit notturni e diurni, anche a PC spento.
 

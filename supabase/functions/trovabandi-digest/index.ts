@@ -1,5 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { matchingProfile } from "../_shared/trovabandi-contract.ts";
+import {
+  modeAllowsNotification,
+  notificationTypeFor,
+  parseDigestMode,
+  type DigestMode,
+} from "./mode.ts";
 
 type Row = Record<string, unknown>;
 
@@ -91,12 +98,13 @@ async function coreFeed(profile: Row) {
       "x-internal-secret": secret,
       "x-source-app": "trovabandi-digest",
     },
-    body: JSON.stringify({ action: "feed", profile, limit: 250 }),
+    body: JSON.stringify({ action: "feed", profile: matchingProfile(profile), limit: 250 }),
     signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) throw new Error(`CORE_${res.status}`);
   const payload = (await res.json()) as Row;
-  return Array.isArray(payload.bandi) ? (payload.bandi as Row[]) : [];
+  if (payload.ok !== true || !Array.isArray(payload.bandi)) throw new Error("CORE_INVALID_PAYLOAD");
+  return payload.bandi as Row[];
 }
 
 function euro(value: unknown) {
@@ -109,7 +117,7 @@ function euro(value: unknown) {
     : "importo da verificare";
 }
 
-async function sendDigest(email: string, company: string, items: Row[]) {
+async function sendDigest(email: string, company: string, items: Row[], mode: DigestMode) {
   const key = env("RESEND_API_KEY");
   const from = env("TROVABANDI_EMAIL_FROM");
   if (!key || !from || !email || items.length === 0) return false;
@@ -121,14 +129,23 @@ async function sendDigest(email: string, company: string, items: Row[]) {
       return `<li style="margin:0 0 18px"><strong>${escapeHtml(text(item.title))}</strong><br>${escapeHtml(text(item.authority_name))} · ${escapeHtml(euro(item.max_grant_amount))} · compatibilità ${Number(match.score ?? 0)}%${deadline ? `<br>Scadenza: ${new Date(deadline).toLocaleDateString("it-IT")}` : ""}<br><a href="${escapeHtml(text(item.official_url))}">Fonte ufficiale</a></li>`;
     })
     .join("");
+  const subject =
+    mode === "morning"
+      ? `${items.length} nuove opportunità per ${company}`
+      : `${items.length} avvisi urgenti per ${company}`;
+  const heading = mode === "morning" ? "Le novità di oggi" : "Avvisi urgenti";
+  const lead =
+    mode === "morning"
+      ? "Abbiamo trovato nuove opportunità compatibili o da verificare per la tua impresa."
+      : "Scadenze imminenti o finestre click day da controllare subito.";
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       from,
       to: [email],
-      subject: `${items.length} nuove opportunità per ${company}`,
-      html: `<div style="font-family:Arial,sans-serif;max-width:680px;margin:auto"><h1>Le novità di oggi</h1><p>Abbiamo trovato nuove opportunità compatibili o da verificare per la tua impresa.</p><ul style="padding-left:20px">${rows}</ul><p>Accedi a TrovaBandi per vedere requisiti, prove e motivazione del match.</p></div>`,
+      subject,
+      html: `<div style="font-family:Arial,sans-serif;max-width:680px;margin:auto"><h1>${heading}</h1><p>${lead}</p><ul style="padding-left:20px">${rows}</ul><p>Accedi a UEradar.com per vedere requisiti, prove e motivazione del match.</p></div>`,
     }),
     signal: AbortSignal.timeout(12_000),
   });
@@ -143,19 +160,22 @@ function escapeHtml(value: string) {
   );
 }
 
-async function processProfile(sb: ReturnType<typeof createClient>, profile: Row) {
+async function processProfile(
+  sb: ReturnType<typeof createClient>,
+  profile: Row,
+  mode: DigestMode,
+) {
   const userId = text(profile.user_id);
   const { data: preferences } = await sb
     .from("notification_preferences")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
-  if (
-    preferences &&
-    preferences.morning_digest_enabled === false &&
-    preferences.urgent_enabled === false
-  )
-    return { created: 0, emailed: false };
+  const morningEnabled = preferences?.morning_digest_enabled !== false;
+  const urgentEnabled = preferences?.urgent_enabled !== false;
+  const inAppEnabled = preferences?.in_app_enabled !== false;
+  const modeEnabled = mode === "morning" ? morningEnabled : urgentEnabled;
+  if (!modeEnabled) return { created: 0, emailed: false };
   const opportunities = await coreFeed(profile);
   const cutoff = Date.now() - 30 * 60 * 60 * 1000;
   const relevant = opportunities.filter((item) => {
@@ -164,22 +184,16 @@ async function processProfile(sb: ReturnType<typeof createClient>, profile: Row)
     const deadline = Date.parse(text(item.deadline_at));
     // Mai notificare opportunità già scadute.
     if (Number.isFinite(deadline) && deadline + 86_400_000 - 1 < Date.now()) return false;
-    const urgent =
-      Number.isFinite(deadline) &&
-      deadline >= Date.now() &&
-      deadline <= Date.now() + 10 * 86_400_000;
+    if (match.status === "NON_COMPATIBILE") return false;
+    const type = notificationTypeFor(item);
+    if (!modeAllowsNotification(mode, type)) return false;
     const fresh = Number.isFinite(firstSeen) && firstSeen >= cutoff;
-    return match.status !== "NON_COMPATIBILE" && (fresh || urgent || item.click_day === true);
+    return mode === "urgent" || fresh;
   });
   const created: Row[] = [];
   for (const item of relevant) {
-    const deadline = Date.parse(text(item.deadline_at));
-    const type =
-      item.click_day === true
-        ? "CLICK_DAY"
-        : Number.isFinite(deadline) && deadline <= Date.now() + 10 * 86_400_000
-          ? "URGENT_DEADLINE"
-          : "NEW_MATCH";
+    const type = notificationTypeFor(item);
+    if (!modeAllowsNotification(mode, type) || !inAppEnabled) continue;
     const match = (item.match ?? {}) as Row;
     const row = {
       user_id: userId,
@@ -206,7 +220,7 @@ async function processProfile(sb: ReturnType<typeof createClient>, profile: Row)
   const emailEnabled = preferences?.email_enabled === true;
   const emailed =
     emailEnabled && created.length > 0
-      ? await sendDigest(text(profile.email_referente), text(profile.ragione_sociale), created)
+      ? await sendDigest(text(profile.email_referente), text(profile.ragione_sociale), created, mode)
       : false;
   if (emailed) {
     await sb
@@ -227,15 +241,27 @@ serve(async (req) => {
   if (!cronSecret) return out(503, { ok: false, code: "AUTH_NOT_CONFIGURED" });
   if (!(await safeSecretEqual(cronSecret, req.headers.get("x-cron-secret") ?? "")))
     return out(401, { ok: false, code: "UNAUTHORIZED" });
-  const gate = await checkReleaseGate();
-  if (!gate.allowed)
-    return out(423, { ok: false, code: "RELEASE_GATE_BLOCKED", reason: gate.reason });
-  let body: Row = {};
+  let body: Row;
   try {
     body = await req.json();
   } catch {
-    /* defaults */
+    return out(400, { ok: false, code: "INVALID_JSON" });
   }
+  const mode = parseDigestMode(body.mode);
+  if (!mode) return out(400, { ok: false, code: "INVALID_MODE" });
+  const run_id = crypto.randomUUID();
+  const started_at = new Date().toISOString();
+  const gate = await checkReleaseGate();
+  if (!gate.allowed)
+    return out(423, {
+      ok: false,
+      status: "BLOCKED_GATE",
+      code: "RELEASE_GATE_BLOCKED",
+      reason: gate.reason,
+      run_id,
+      started_at,
+      finished_at: new Date().toISOString(),
+    });
   const offset = Math.max(0, Number(body.offset ?? 0));
   const limit = Math.max(1, Math.min(20, Number(body.limit ?? 10)));
   const sb = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), {
@@ -252,7 +278,7 @@ serve(async (req) => {
   let failed = 0;
   for (let index = 0; index < (profiles ?? []).length; index += 4) {
     const batch = (profiles ?? []).slice(index, index + 4);
-    const results = await Promise.allSettled(batch.map((profile) => processProfile(sb, profile)));
+    const results = await Promise.allSettled(batch.map((profile) => processProfile(sb, profile, mode)));
     for (const result of results) {
       if (result.status === "fulfilled") {
         created += result.value.created;
@@ -260,14 +286,29 @@ serve(async (req) => {
       } else failed++;
     }
   }
-  return out(200, {
-    ok: true,
+  const processed = profiles?.length ?? 0;
+  const status =
+    failed > 0 && failed === processed
+      ? "FAILED"
+      : failed > 0
+        ? "PARTIAL"
+        : created > 0
+          ? "SUCCESS_DATA"
+          : "SUCCESS_EMPTY";
+  const httpStatus = status === "FAILED" ? 502 : status === "PARTIAL" ? 207 : 200;
+  return out(httpStatus, {
+    ok: status === "SUCCESS_DATA" || status === "SUCCESS_EMPTY",
+    status,
+    run_id,
+    started_at,
+    finished_at: new Date().toISOString(),
+    mode,
     offset,
-    processed: profiles?.length ?? 0,
+    processed,
     created,
     emailed,
     failed,
-    has_more: (profiles?.length ?? 0) === limit,
-    next_offset: offset + (profiles?.length ?? 0),
+    has_more: processed === limit,
+    next_offset: offset + processed,
   });
 });

@@ -1,180 +1,146 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { parseGatewayFeed } from "../proxy-core.server";
+import {
+  matchingProfile,
+  opportunityIsValid,
+  sanitizeFeedResponse,
+} from "../../../supabase/functions/_shared/trovabandi-contract.ts";
+import {
+  mapCoreOpportunity,
+  parseGatewayEnvelope,
+  parseGatewayFeed,
+} from "../proxy-core.server";
 
-/** Copie delle funzioni pure di supabase/functions/trovabandi-feed/index.ts */
-const ALLOWED_ACTIONS = ["feed", "request_refresh"] as const;
+const row = {
+  id: "a",
+  title: "Bando A",
+  authority_name: "MIMIT",
+  authority_level: "NAZIONALE",
+  category: "FONDO_PERDUTO",
+  summary: "Sintesi",
+  official_url: "https://example.gov.it/a",
+  application_url: "https://example.gov.it/a/domanda",
+  requirements: ["PMI"],
+  eligible_expenses: ["Macchinari"],
+  match: {
+    status: "COMPATIBILE",
+    score: 82,
+    confirmed: ["ATECO"],
+    missing: [],
+    blockers: [],
+  },
+};
+const good = {
+  ok: true,
+  bandi: [row],
+  generated_at: "2026-08-07T08:00:00Z",
+  fetched_at: "2026-08-07T08:01:00Z",
+};
 
-function parseRequestBody(payload: unknown) {
-  if (payload === null || typeof payload !== "object" || Array.isArray(payload))
-    return { ok: false as const, code: "INVALID_BODY" };
-  const body = payload as Record<string, unknown>;
-  if (Object.keys(body).some((key) => key !== "action"))
-    return { ok: false as const, code: "UNEXPECTED_FIELDS" };
-  const action = body.action;
-  if (typeof action !== "string" || !ALLOWED_ACTIONS.includes(action as never))
-    return { ok: false as const, code: "INVALID_ACTION" };
-  return { ok: true as const, action };
-}
-
-const REQUIRED_BANDO_FIELDS = [
-  "id",
-  "title",
-  "authority_name",
-  "authority_level",
-  "category",
-  "summary",
-  "official_url",
-] as const;
-
-function bandoRowIsValid(item: unknown) {
-  if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
-  const row = item as Record<string, unknown>;
-  return REQUIRED_BANDO_FIELDS.every(
-    (key) => typeof row[key] === "string" && (row[key] as string).trim().length > 0,
-  );
-}
-
-function sanitizeFeedResponse(payload: unknown, status: number) {
-  if (status !== 200) return { ok: false as const, code: "UPSTREAM_STATUS" };
-  if (payload === null || typeof payload !== "object" || Array.isArray(payload))
-    return { ok: false as const, code: "UPSTREAM_SHAPE" };
-  const body = payload as Record<string, unknown>;
-  if (body.ok !== true) return { ok: false as const, code: "UPSTREAM_NOT_OK" };
-  if (!Array.isArray(body.bandi)) return { ok: false as const, code: "UPSTREAM_NO_BANDI" };
-  const rows = body.bandi as unknown[];
-  if (!rows.every(bandoRowIsValid)) return { ok: false as const, code: "UPSTREAM_INVALID_ROW" };
-  return { ok: true as const, bandi: rows };
-}
-
-function profileIsComplete(profile: Record<string, unknown> | null): boolean {
-  if (!profile) return false;
-  const required = ["ragione_sociale", "forma_giuridica", "regione", "codice_ateco"];
-  return required.every(
-    (key) => typeof profile[key] === "string" && (profile[key] as string).trim(),
-  );
-}
-
-function evaluateRefreshResponse(payload: unknown, status: number) {
-  if (status !== 202) return { queued: false, code: "REFRESH_STATUS" };
-  if (payload === null || typeof payload !== "object" || Array.isArray(payload))
-    return { queued: false, code: "REFRESH_SHAPE" };
-  const body = payload as Record<string, unknown>;
-  if (body.ok !== true || body.queued !== true)
-    return { queued: false, code: "REFRESH_NOT_QUEUED" };
-  return { queued: true, code: "REFRESH_QUEUED" };
-}
-
-function coreEndpoint(base: string) {
-  const trimmed = base.trim().replace(/\/$/, "");
-  return trimmed.endsWith("/functions/v1/trovabandi-engine")
-    ? trimmed
-    : `${trimmed}/functions/v1/trovabandi-engine`;
-}
-
-describe("trovabandi-feed allowlist", () => {
-  it("accetta solo le due action previste", () => {
-    expect(parseRequestBody({ action: "feed" }).ok).toBe(true);
-    expect(parseRequestBody({ action: "request_refresh" }).ok).toBe(true);
+describe("profilo minimizzato trovabandi-feed", () => {
+  it("invia solo campi matching e scarta identificativi e contatti", () => {
+    const minimized = matchingProfile({
+      user_id: "u",
+      ragione_sociale: "ACME Srl",
+      partita_iva: "IT123",
+      legale_rappresentante: "Mario Rossi",
+      email_referente: "mario@example.com",
+      telefono: "123",
+      pec: "acme@pec.example",
+      forma_giuridica: "SRL",
+      codice_ateco: "62.01",
+      regione: "Lazio",
+      provincia: "RM",
+      comune: "Roma",
+    });
+    expect(minimized).toMatchObject({
+      forma_giuridica: "SRL",
+      codice_ateco: "62.01",
+      regione: "Lazio",
+    });
+    for (const forbidden of [
+      "user_id",
+      "ragione_sociale",
+      "partita_iva",
+      "legale_rappresentante",
+      "email_referente",
+      "telefono",
+      "pec",
+    ]) expect(minimized).not.toHaveProperty(forbidden);
   });
 
-  it("rifiuta action non in allowlist", () => {
-    expect(parseRequestBody({ action: "drop" }).code).toBe("INVALID_ACTION");
-    expect(parseRequestBody({ action: 1 }).code).toBe("INVALID_ACTION");
-  });
-
-  it("rifiuta campi extra (profile/user_id/url iniettati dal caller)", () => {
-    expect(parseRequestBody({ action: "feed", user_id: "x" }).code).toBe("UNEXPECTED_FIELDS");
-    expect(parseRequestBody({ action: "feed", profile: {} }).code).toBe("UNEXPECTED_FIELDS");
-  });
-
-  it("rifiuta body non oggetto", () => {
-    expect(parseRequestBody(null).code).toBe("INVALID_BODY");
-    expect(parseRequestBody([{ action: "feed" }]).code).toBe("INVALID_BODY");
+  it("la Edge usa la funzione condivisa per feed e refresh", () => {
+    const src = readFileSync("supabase/functions/trovabandi-feed/index.ts", "utf8");
+    expect(src).toContain('from "../_shared/trovabandi-contract.ts"');
+    expect(src).toContain("const minimizedProfile = matchingProfile");
+    expect(src).toContain('{ profile: minimizedProfile, limit: 250 }');
+    expect(src).not.toContain('{ profile, limit: 250 }');
   });
 });
 
-describe("trovabandi-feed output upstream", () => {
-  const row = {
-    id: "a",
-    title: "Bando A",
-    authority_name: "MIMIT",
-    authority_level: "NAZIONALE",
-    category: "FONDO_PERDUTO",
-    summary: "Sintesi",
-    official_url: "https://example.gov.it/a",
-  };
-  const good = { ok: true, bandi: [row] };
-
-  it("accetta solo 200 + ok + bandi array", () => {
-    const res = sanitizeFeedResponse(good, 200);
-    expect(res.ok).toBe(true);
-    if (res.ok) expect(res.bandi).toHaveLength(1);
+describe("contratto upstream rigoroso", () => {
+  it("accetta un envelope valido e preserva timestamp e fonte dettaglio", () => {
+    const envelope = parseGatewayEnvelope(good);
+    expect(envelope?.generated_at).toBe("2026-08-07T08:00:00Z");
+    expect(envelope?.fetched_at).toBe("2026-08-07T08:01:00Z");
+    const mapped = mapCoreOpportunity(envelope!.bandi[0]);
+    expect(mapped.id).toBe("a");
+    expect(mapped.notice_url).toBe(row.official_url);
+    expect(mapped.piattaforma_url).toBe(row.application_url);
   });
 
-  it("fail-closed su upstream non valido", () => {
-    expect(sanitizeFeedResponse(good, 500).code).toBe("UPSTREAM_STATUS");
-    expect(sanitizeFeedResponse({ ok: false, bandi: [] }, 200).code).toBe("UPSTREAM_NOT_OK");
-    expect(sanitizeFeedResponse({ ok: true }, 200).code).toBe("UPSTREAM_NO_BANDI");
-    expect(sanitizeFeedResponse(null, 200).code).toBe("UPSTREAM_SHAPE");
-  });
-
-  it("fallisce (no filtro silenzioso) se anche una sola riga è malformata", () => {
-    expect(sanitizeFeedResponse({ ok: true, bandi: [row, null] }, 200).code).toBe(
-      "UPSTREAM_INVALID_ROW",
-    );
-    expect(sanitizeFeedResponse({ ok: true, bandi: [row, { ...row, id: "" }] }, 200).code).toBe(
-      "UPSTREAM_INVALID_ROW",
-    );
-  });
-
-  it("richiede tutti i campi minimi non vuoti", () => {
-    for (const key of REQUIRED_BANDO_FIELDS) {
-      const bad = { ...row, [key]: "   " };
-      expect(sanitizeFeedResponse({ ok: true, bandi: [bad] }, 200).code).toBe(
-        "UPSTREAM_INVALID_ROW",
-      );
+  it("rifiuta categoria, scope, URL, match e tipi fuori contratto", () => {
+    const invalid = [
+      { ...row, category: "QUALSIASI" },
+      { ...row, authority_level: "MONDIALE" },
+      { ...row, official_url: "javascript:alert(1)" },
+      { ...row, official_url: "/relativo" },
+      { ...row, requirements: "PMI" },
+      { ...row, max_grant_amount: Number.NaN },
+      { ...row, match: { ...row.match, score: 101 } },
+      { ...row, match: { ...row.match, status: "FORSE" } },
+    ];
+    for (const candidate of invalid) {
+      expect(opportunityIsValid(candidate)).toBe(false);
+      expect(sanitizeFeedResponse({ ok: true, bandi: [candidate] }, 200)).toMatchObject({
+        ok: false,
+        code: "UPSTREAM_INVALID_ROW",
+      });
     }
   });
 
-  it("request_refresh accetta solo 202 + ok + queued", () => {
-    expect(evaluateRefreshResponse({ ok: true, queued: true }, 202).queued).toBe(true);
-    expect(evaluateRefreshResponse({ ok: true, queued: true }, 200).code).toBe("REFRESH_STATUS");
-    expect(evaluateRefreshResponse({ ok: true }, 202).code).toBe("REFRESH_NOT_QUEUED");
+  it("fallisce l'intero payload se una sola riga è invalida", () => {
+    expect(parseGatewayFeed({ ok: true, bandi: [row, { ...row, id: "" }] })).toBeNull();
+    expect(parseGatewayFeed({ ok: true, bandi: [row, null] })).toBeNull();
   });
 
-  it("costruisce solo l'endpoint trovabandi-engine", () => {
-    expect(coreEndpoint("https://core.example.com/")).toBe(
-      "https://core.example.com/functions/v1/trovabandi-engine",
+  it("rimuove campi upstream non usati dalle card o dal dettaglio", () => {
+    const result = sanitizeFeedResponse(
+      { ok: true, bandi: [{ ...row, internal_secret: "no", user_id: "no" }] },
+      200,
     );
-    expect(coreEndpoint("https://core.example.com/functions/v1/trovabandi-engine")).toBe(
-      "https://core.example.com/functions/v1/trovabandi-engine",
-    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.bandi[0]).not.toHaveProperty("internal_secret");
+      expect(result.bandi[0]).not.toHaveProperty("user_id");
+    }
+  });
+
+  it("richiede 200, ok=true e bandi array", () => {
+    expect(sanitizeFeedResponse(good, 500)).toMatchObject({ ok: false, code: "UPSTREAM_STATUS" });
+    expect(sanitizeFeedResponse({ ok: false, bandi: [] }, 200)).toMatchObject({
+      ok: false,
+      code: "UPSTREAM_NOT_OK",
+    });
+    expect(sanitizeFeedResponse({ ok: true }, 200)).toMatchObject({
+      ok: false,
+      code: "UPSTREAM_NO_BANDI",
+    });
   });
 });
 
-describe("profileIsComplete", () => {
-  const base = {
-    ragione_sociale: "ACME Srl",
-    forma_giuridica: "SRL",
-    regione: "Lazio",
-    codice_ateco: "62.01",
-  };
-
-  it("accetta un profilo con regione e codice_ateco", () => {
-    expect(profileIsComplete(base)).toBe(true);
-  });
-
-  it("rifiuta profili senza regione o codice_ateco", () => {
-    expect(profileIsComplete({ ...base, regione: "" })).toBe(false);
-    expect(profileIsComplete({ ...base, codice_ateco: "  " })).toBe(false);
-    expect(profileIsComplete({ ...base, codice_ateco: undefined })).toBe(false);
-    expect(profileIsComplete(null)).toBe(false);
-  });
-});
-
-describe("server function senza secret del Core", () => {
-  it("il modulo TanStack non referenzia i secret del Central Core", () => {
+describe("gateway isolato", () => {
+  it("il browser non contiene secret del Core", () => {
     const sources = [
       readFileSync("src/lib/proxy-core.functions.ts", "utf8"),
       readFileSync("src/lib/proxy-core.server.ts", "utf8"),
@@ -184,32 +150,20 @@ describe("server function senza secret del Core", () => {
     expect(sources).not.toMatch(/process\.env/);
   });
 
-  it("valida il payload del gateway prima del mapping", () => {
-    const row = {
-      id: "a",
-      title: "A",
-      authority_name: "MIMIT",
-      authority_level: "NAZIONALE",
-      category: "FONDO_PERDUTO",
-      summary: "Sintesi",
-      official_url: "https://example.gov.it/a",
-    };
-    expect(parseGatewayFeed({ ok: false, bandi: [] })).toBeNull();
-    expect(parseGatewayFeed({ ok: true })).toBeNull();
-    expect(parseGatewayFeed({ ok: true, bandi: [row] })).toHaveLength(1);
+  it("l'endpoint accetta dal browser solo feed e request_refresh senza campi extra", () => {
+    const src = readFileSync("supabase/functions/trovabandi-feed/index.ts", "utf8");
+    expect(src).toContain('const ALLOWED_ACTIONS = ["feed", "request_refresh"]');
+    expect(src).toContain('key !== "action"');
+    expect(src).toContain("UPSTREAM_UNAVAILABLE");
   });
 
-  it("ritorna null per l'intero payload se una riga è invalida (no mapping parziale)", () => {
-    const row = {
-      id: "a",
-      title: "A",
-      authority_name: "MIMIT",
-      authority_level: "NAZIONALE",
-      category: "FONDO_PERDUTO",
-      summary: "Sintesi",
-      official_url: "https://example.gov.it/a",
-    };
-    expect(parseGatewayFeed({ ok: true, bandi: [row, { id: "b", title: "B" }] })).toBeNull();
-    expect(parseGatewayFeed({ ok: true, bandi: [row, null] })).toBeNull();
+  it("controlla gli errori cache e applica la stessa TTL a feed e dettagli", () => {
+    const src = readFileSync("src/lib/proxy-core.functions.ts", "utf8");
+    expect(src).toContain("CACHE_WRITE_FAILED");
+    expect(src).toContain("HIDDEN_CACHE_WRITE_FAILED");
+    expect(src).toContain("CACHE_FALLBACK_READ_FAILED");
+    expect(src).toContain("HIDDEN_CACHE_READ_FAILED");
+    expect(src.match(/\.gte\("fetched_at", cutoff\)/g)).toHaveLength(2);
+    expect(src).toContain('.gte("discovered_at", cutoff)');
   });
 });

@@ -9,7 +9,7 @@ import { Building2, Save, Sparkles } from "lucide-react";
 export const Route = createFileRoute("/_authenticated/profilo")({
   head: () => ({
     meta: [
-      { title: "Profilo Aziendale — BandoCore" },
+      { title: "Profilo Aziendale — UEradar.com" },
       {
         name: "description",
         content: "Configura il profilo aziendale per ricevere bandi personalizzati.",
@@ -88,6 +88,9 @@ function Profilo() {
   const [saving, setSaving] = useState(false);
   const [isNew, setIsNew] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(false);
+  const [morningDigest, setMorningDigest] = useState(true);
+  const [urgentAlerts, setUrgentAlerts] = useState(true);
+  const [inAppAlerts, setInAppAlerts] = useState(true);
 
   useEffect(() => {
     supabase
@@ -103,9 +106,14 @@ function Profilo() {
       });
     supabase
       .from("notification_preferences")
-      .select("email_enabled")
+      .select("email_enabled, morning_digest_enabled, urgent_enabled, in_app_enabled")
       .maybeSingle()
-      .then(({ data }) => setEmailAlerts(data?.email_enabled ?? false));
+      .then(({ data }) => {
+        setEmailAlerts(data?.email_enabled ?? false);
+        setMorningDigest(data?.morning_digest_enabled ?? true);
+        setUrgentAlerts(data?.urgent_enabled ?? true);
+        setInAppAlerts(data?.in_app_enabled ?? true);
+      });
   }, []);
 
   const update = <K extends keyof CompanyProfile>(k: K, v: CompanyProfile[K]) =>
@@ -114,33 +122,37 @@ function Profilo() {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-    const row = { ...profile, user_id: userData.user.id };
-    const { error } = await supabase
-      .from("company_profiles")
-      .upsert(row, { onConflict: "user_id" });
-    if (!error) {
-      await supabase.from("notification_preferences").upsert(
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) throw new Error("Sessione scaduta. Accedi di nuovo.");
+
+      const row = { ...profile, user_id: userData.user.id };
+      const { error: profileError } = await supabase
+        .from("company_profiles")
+        .upsert(row, { onConflict: "user_id" });
+      if (profileError) throw profileError;
+
+      const { error: preferencesError } = await supabase.from("notification_preferences").upsert(
         {
           user_id: userData.user.id,
           email_enabled: emailAlerts,
-          in_app_enabled: true,
-          morning_digest_enabled: true,
-          urgent_enabled: true,
+          in_app_enabled: inAppAlerts,
+          morning_digest_enabled: morningDigest,
+          urgent_enabled: urgentAlerts,
           timezone: "Europe/Rome",
           updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" },
       );
+      if (preferencesError) throw preferencesError;
+
+      toast.success("Profilo e preferenze salvati");
+      navigate({ to: "/dashboard" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Salvataggio non riuscito");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success("Profilo salvato");
-    navigate({ to: "/dashboard" });
   };
 
   if (loading) {
@@ -446,8 +458,26 @@ function Profilo() {
             desc="Le novità vengono preparate dagli aggiornamenti programmati del servizio"
           >
             <ToggleField
-              label="Digest email periodico"
-              description="Ricevi i nuovi bandi compatibili, click day e scadenze urgenti all'email referente."
+              label="Notifiche nell'app"
+              description="Mostra le nuove opportunità nel centro notifiche."
+              checked={inAppAlerts}
+              onChange={setInAppAlerts}
+            />
+            <ToggleField
+              label="Novità periodiche"
+              description="Segnala i nuovi bandi compatibili con il profilo."
+              checked={morningDigest}
+              onChange={setMorningDigest}
+            />
+            <ToggleField
+              label="Scadenze urgenti e click day"
+              description="Segnala separatamente le opportunità con scadenza ravvicinata."
+              checked={urgentAlerts}
+              onChange={setUrgentAlerts}
+            />
+            <ToggleField
+              label="Invio anche via email"
+              description="Invia all'email referente le notifiche abilitate sopra."
               checked={emailAlerts}
               onChange={setEmailAlerts}
             />

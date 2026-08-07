@@ -1,6 +1,10 @@
 import type { Bando } from "./bandocore-types";
+import {
+  sanitizeFeedResponse,
+  type ContractRow,
+} from "../../supabase/functions/_shared/trovabandi-contract.ts";
 
-export type CoreOpportunity = Record<string, unknown> & {
+export type CoreOpportunity = ContractRow & {
   id: string;
   title: string;
   authority_name: string;
@@ -8,126 +12,118 @@ export type CoreOpportunity = Record<string, unknown> & {
   category: string;
   summary: string;
   official_url: string;
-  deadline_at?: string | null;
-  opens_at?: string | null;
-  max_grant_amount?: number | null;
-  region?: string | null;
-  province?: string | null;
-  municipality?: string | null;
-  protocol_email?: string | null;
-  forms_url?: string | null;
-  application_url?: string | null;
-  click_day?: boolean;
-  requirements?: string[];
-  eligible_expenses?: string[];
-  verification_status?: Bando["verification_status"];
-  official_source?: boolean;
-  last_verified_at?: string | null;
-  first_seen_at?: string | null;
-  rarity_score?: number | null;
-  source_kind?: string | null;
-  programme_name?: string | null;
-  programme_code?: string | null;
-  pnrr_mission?: string | null;
-  pnrr_component?: string | null;
-  implementing_body?: string | null;
-  eligible_countries?: string[];
-  consortium_required?: boolean | null;
-  min_partners?: number | null;
-  trovabandi_evidence?: Bando["evidence"];
-  match?: Bando["match"];
 };
 
-/**
- * Valida la risposta della Edge Function trovabandi-feed prima del mapping.
- * Nessun URL, profilo o secret proveniente dal browser viene mai accettato.
- */
-const REQUIRED_BANDO_FIELDS = [
-  "id",
-  "title",
-  "authority_name",
-  "authority_level",
-  "category",
-  "summary",
-  "official_url",
-] as const;
+export type GatewayEnvelope = {
+  bandi: CoreOpportunity[];
+  fetched_at: string;
+  generated_at: string;
+};
+
+function validDate(value: unknown): value is string {
+  return typeof value === "string" && Number.isFinite(Date.parse(value));
+}
+
+/** Usa lo stesso contratto puro importato dalla Edge Function: nessuna copia divergente. */
+export function parseGatewayEnvelope(payload: unknown): GatewayEnvelope | null {
+  const sanitized = sanitizeFeedResponse(payload, 200);
+  if (!sanitized.ok) return null;
+  const body = payload as Record<string, unknown>;
+  const now = new Date().toISOString();
+  const fetchedAt = validDate(body.fetched_at) ? body.fetched_at : now;
+  const generatedAt = sanitized.generated_at ?? fetchedAt;
+  return {
+    bandi: sanitized.bandi as CoreOpportunity[],
+    fetched_at: fetchedAt,
+    generated_at: generatedAt,
+  };
+}
 
 export function gatewayRowIsValid(item: unknown): item is CoreOpportunity {
-  if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
-  const row = item as Record<string, unknown>;
-  return REQUIRED_BANDO_FIELDS.every(
-    (key) => typeof row[key] === "string" && (row[key] as string).trim().length > 0,
-  );
+  const result = sanitizeFeedResponse({ ok: true, bandi: [item] }, 200);
+  return result.ok;
 }
 
 export function parseGatewayFeed(payload: unknown): CoreOpportunity[] | null {
-  if (payload === null || typeof payload !== "object" || Array.isArray(payload)) return null;
-  const body = payload as Record<string, unknown>;
-  if (body.ok !== true || !Array.isArray(body.bandi)) return null;
-  const rows = body.bandi as unknown[];
-  // Strict: nessun mapping parziale, una riga invalida scarta l'intero payload.
-  if (!rows.every(gatewayRowIsValid)) return null;
-  return rows as CoreOpportunity[];
+  return parseGatewayEnvelope(payload)?.bandi ?? null;
 }
 
 export function mapCoreOpportunity(item: CoreOpportunity): Bando {
   const scopeMap: Record<string, Bando["scope"]> = {
     EU: "EUROPEO",
+    EUROPEO: "EUROPEO",
     NAZIONALE: "NAZIONALE",
     REGIONALE: "REGIONALE",
     CAMERALE: "CAMERALE",
     COMUNALE: "COMUNALE",
   };
-  const category = item.category as Bando["categoria"];
-  const deadline = item.deadline_at ?? undefined;
+  const deadline = (item.deadline_at as string | null | undefined) ?? undefined;
   const daysLeft = deadline
     ? Math.ceil((new Date(deadline).getTime() - Date.now()) / 86_400_000)
     : null;
+  const officialUrl = item.official_url as string;
+  const applicationUrl = (item.application_url as string | null | undefined) ?? undefined;
+  const formsUrl = (item.forms_url as string | null | undefined) ?? undefined;
+  const protocolEmail = (item.protocol_email as string | null | undefined) ?? undefined;
+  const rarity = (item.rarity_score as number | null | undefined) ?? undefined;
+  const sourceKind = (item.source_kind as string | null | undefined) ?? undefined;
+
   return {
     id: item.id,
     titolo: item.title,
     ente: item.authority_name,
     descrizione: item.summary,
-    categoria: category,
-    scope: scopeMap[item.authority_level] ?? "NAZIONALE",
-    regione: item.region ?? undefined,
-    provincia: item.province ?? undefined,
-    comune: item.municipality ?? undefined,
-    importo_max: item.max_grant_amount ?? undefined,
+    categoria: item.category as Bando["categoria"],
+    scope: scopeMap[item.authority_level],
+    regione: (item.region as string | null | undefined) ?? undefined,
+    provincia: (item.province as string | null | undefined) ?? undefined,
+    comune: (item.municipality as string | null | undefined) ?? undefined,
+    codice_istat: (item.municipality_istat_code as string | null | undefined) ?? undefined,
+    importo_max: (item.max_grant_amount as number | null | undefined) ?? undefined,
     scadenza: deadline,
-    apertura: item.opens_at ?? undefined,
+    apertura: (item.opens_at as string | null | undefined) ?? undefined,
     click_day: item.click_day === true,
     flash: item.click_day === true || (daysLeft != null && daysLeft >= 0 && daysLeft <= 10),
-    pec: item.protocol_email ?? undefined,
-    ufficio_protocollo_pec: item.protocol_email ?? undefined,
-    piattaforma_url: item.application_url ?? item.official_url,
-    modulistica_url: item.forms_url ?? undefined,
-    requisiti: item.requirements ?? [],
-    eligible_expenses: item.eligible_expenses ?? [],
-    verification_status: item.verification_status,
-    official_source: item.official_source,
-    last_verified_at: item.last_verified_at ?? undefined,
-    first_seen_at: item.first_seen_at ?? undefined,
-    rarity_score: item.rarity_score ?? undefined,
-    source_kind: item.source_kind ?? undefined,
-    programme_name: item.programme_name ?? undefined,
-    programme_code: item.programme_code ?? undefined,
-    pnrr_mission: item.pnrr_mission ?? undefined,
-    pnrr_component: item.pnrr_component ?? undefined,
-    implementing_body: item.implementing_body ?? undefined,
-    eligible_countries: item.eligible_countries ?? [],
-    consortium_required: item.consortium_required ?? undefined,
-    min_partners: item.min_partners ?? undefined,
-    evidence: item.trovabandi_evidence ?? [],
-    match: item.match,
+    pec: protocolEmail,
+    ufficio_protocollo_pec: protocolEmail,
+    piattaforma_url: applicationUrl ?? officialUrl,
+    modulistica_url: formsUrl,
+    notice_url: officialUrl,
+    application_url: applicationUrl,
+    requisiti: (item.requirements as string[] | null | undefined) ?? [],
+    ateco_compatibili: (item.eligible_ateco_codes as string[] | null | undefined) ?? [],
+    pdf_field_mapping:
+      (item.pdf_field_mapping as Bando["pdf_field_mapping"] | undefined) ?? undefined,
+    aid_intensity_percent:
+      (item.aid_intensity_percent as number | null | undefined) ?? undefined,
+    total_budget: (item.total_budget as number | null | undefined) ?? undefined,
+    competition_index:
+      (item.competition_index as number | null | undefined) ?? undefined,
+    eligible_expenses: (item.eligible_expenses as string[] | null | undefined) ?? [],
+    verification_status: item.verification_status as Bando["verification_status"],
+    official_source: item.official_source as boolean | undefined,
+    last_verified_at: (item.last_verified_at as string | null | undefined) ?? undefined,
+    first_seen_at: (item.first_seen_at as string | null | undefined) ?? undefined,
+    rarity_score: rarity,
+    source_kind: sourceKind,
+    programme_name: (item.programme_name as string | null | undefined) ?? undefined,
+    programme_code: (item.programme_code as string | null | undefined) ?? undefined,
+    pnrr_mission: (item.pnrr_mission as string | null | undefined) ?? undefined,
+    pnrr_component: (item.pnrr_component as string | null | undefined) ?? undefined,
+    implementing_body: (item.implementing_body as string | null | undefined) ?? undefined,
+    eligible_countries: (item.eligible_countries as string[] | null | undefined) ?? [],
+    consortium_required: (item.consortium_required as boolean | null | undefined) ?? undefined,
+    min_partners: (item.min_partners as number | null | undefined) ?? undefined,
+    evidence: (item.trovabandi_evidence as Bando["evidence"] | undefined) ?? [],
+    match: item.match as Bando["match"],
     is_hidden:
-      (item.rarity_score ?? 0) >= 4 ||
+      (rarity ?? 0) >= 4 ||
       ["BUR", "ALBO_PRETORIO", "CAMERALE", "GAL", "DECRETO", "EU_PORTAL"].includes(
-        item.source_kind ?? "",
+        sourceKind ?? "",
       ),
     fonte_extratestuale:
-      (item.rarity_score ?? 0) >= 4
-        ? `${item.source_kind ?? "Fonte ufficiale"} · reperibilità ${item.rarity_score ?? 1}/5`
+      (rarity ?? 0) >= 4
+        ? `${sourceKind ?? "Fonte ufficiale"} · reperibilità ${rarity ?? 1}/5`
         : undefined,
   };
 }
