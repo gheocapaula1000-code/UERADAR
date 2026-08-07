@@ -22,6 +22,11 @@ function Privacy() {
       <LegalSection title="Diritti">
         <p>Puoi chiedere accesso, rettifica, cancellazione, limitazione, portabilità o opposizione scrivendo a privacy@ueradar.com. È sempre possibile proporre reclamo al Garante per la protezione dei dati personali.</p>
       </LegalSection>
+      <LegalSection title="Cache dei contenuti pubblici e isolamento dei dati privati">
+        <p>Il contenuto ufficiale dei bandi e la relativa analisi provengono da fonti pubbliche: il motore li deduplica e li riusa dalla propria cache finché versione e TTL della fonte restano validi, con invalidazione quando il bando cambia. Questa cache pubblica può essere riusata anche tra gli utenti nominativi della stessa impresa.</p>
+        <p>Profilo impresa, documenti, checklist compilate e dossier sono dati privati: restano isolati per impresa/tenant e non sono mai condivisi cross-tenant né riusati per altri clienti.</p>
+        <p>Rate limit anti-abuso e circuit breaker sono misure tecniche di sicurezza, costo e affidabilità del servizio, non quote commerciali.</p>
+      </LegalSection>
     </LegalPage>
   );
 }
