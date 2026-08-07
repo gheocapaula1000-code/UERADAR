@@ -117,7 +117,6 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       throw new Error("Motore bandi non raggiungibile e nessuna cache disponibile.");
     }
 
-
     // Persist i bandi "sommersi" in tabella dedicata (resilienza).
     const hidden = (bandi ?? []).filter((b) => b.is_hidden);
     if (persistHiddenCache && hidden.length > 0) {
@@ -178,6 +177,7 @@ export const loadCachedFeed = createServerFn({ method: "GET" })
       .from("cached_hidden_bandi")
       .select("payload")
       .eq("user_id", context.userId)
+      .gte("discovered_at", cutoff)
       .order("discovered_at", { ascending: false });
     if (hiddenCacheError) throw new Error("HIDDEN_CACHE_READ_FAILED");
 
