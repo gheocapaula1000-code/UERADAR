@@ -102,7 +102,7 @@ export function mapCoreOpportunity(item: CoreOpportunity): Bando {
     pnrr_component: (item.pnrr_component as string | null | undefined) ?? undefined,
     implementing_body: (item.implementing_body as string | null | undefined) ?? undefined,
     eligible_countries: (item.eligible_countries as string[] | null | undefined) ?? [],
-    consortium_required: (item.consoritum_required as boolean | null | undefined) ?? undefined,
+    consortium_required: (item.consortium_required as boolean | null | undefined) ?? undefined,
     min_partners: (item.min_partners as number | null | undefined) ?? undefined,
     evidence: (item.trovabandi_evidence as Bando["evidence"] | undefined) ?? [],
     match: item.match as Bando["match"],
