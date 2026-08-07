@@ -17,7 +17,8 @@ function Terms() {
       </LegalSection>
       <LegalSection title="Piani e prezzi">
         <p>I piani pubblici sono due, entrambi riferiti a una sola impresa verificata: BUSINESS a €299,00 al mese + IVA con fino a 3 utenti nominativi e TEAM a €599,00 al mese + IVA con fino a 10 utenti nominativi. Tutti i prezzi sono IVA esclusa. Oltre 10 utenti nominativi la soluzione è su misura, previo contatto.</p>
-        <p>I costi API sono inclusi entro un uso corretto del servizio: non sono previsti overage né costi extra automatici. Un utilizzo anomalo o automatizzato può essere limitato previa comunicazione.</p>
+        <p>Le funzionalità sono illimitate in entrambi i piani: nessuna quota, nessun credito e nessun limite su dossier, pratiche, ricerche, controlli, matching, compilazioni ed export. Gli unici limiti sono commerciali: una impresa verificata e il numero di utenti nominativi.</p>
+        <p>I costi API sono inclusi nel canone: non sono previsti overage né costi extra automatici. Eventuali rate limit anti-abuso e circuit breaker sono protezioni tecniche interne di costo e affidabilità, non quote commerciali, e non comportano in alcun caso addebiti aggiuntivi.</p>
       </LegalSection>
       <LegalSection title="Cancellazione">
         <p>La cancellazione avviene online dal pannello account, senza disdetta scritta e senza PEC, con effetto dal periodo successivo.</p>
