@@ -27,7 +27,7 @@ import { isExpired, matchStatusMeta } from "@/lib/bando-status";
 export const Route = createFileRoute("/_authenticated/bando/$id")({
   head: () => ({
     meta: [
-      { title: "Prepara bozza — BandoCore" },
+      { title: "Prepara bozza — Bando Navigator" },
       {
         name: "description",
         content:
@@ -437,7 +437,7 @@ Ente erogatore: ${bando.ente}
 Riferimento: ${bando.id}
 ${bando.scadenza ? `Scadenza: ${new Date(bando.scadenza).toLocaleDateString("it-IT")}` : ""}
 
-DATI DEL RICHIEDENTE (autofill BandoCore)
+DATI DEL RICHIEDENTE (autofill Bando Navigator)
 Ragione Sociale: ${profile.ragione_sociale}
 Partita IVA: ${profile.partita_iva}
 Forma Giuridica: ${profile.forma_giuridica}
