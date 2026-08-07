@@ -240,10 +240,20 @@ export function buildCoverLetter(bando: Bando, profile: AllowedProfile): string 
   return lines.join("\n");
 }
 
-/** Dati ufficiali minimi mancanti nel bando ricevuto dal feed. */
-export function missingOfficialData(bando: Bando): string[] {
+/** Dati ufficiali minimi mancanti nel bando ricevuto dal feed (fail-closed). */
+export function missingOfficialData(bando: Bando, now: number = Date.now()): string[] {
   const missing = REQUIRED_OFFICIAL.filter((f) => !bando[f.key]).map((f) => f.label);
-  if (!officialUrl(bando)) missing.push("URL ufficiale del bando");
+  if (!officialUrl(bando)) missing.push("URL della fonte ufficiale (official_url / notice_url)");
+  if (bando.verification_status !== "VERIFICATO") {
+    missing.push(
+      bando.verification_status
+        ? `Verifica ufficiale non completata (stato: ${bando.verification_status})`
+        : "Stato di verifica ufficiale assente",
+    );
+  }
+  if (!(bando.requisiti ?? []).length) missing.push("Elenco requisiti del bando");
+  if (!(bando.evidence ?? []).some((e) => e?.source_url)) missing.push("Evidenza documentale ufficiale");
+  if (bando.scadenza && isExpired(bando, now)) missing.push("Termine di presentazione già superato");
   return missing;
 }
 
