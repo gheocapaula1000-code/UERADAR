@@ -81,6 +81,38 @@ async function checkReleaseGate() {
   }
 }
 
+const MATCHING_PROFILE_FIELDS = [
+  "forma_giuridica",
+  "codice_ateco",
+  "ateco_secondari",
+  "regione",
+  "provincia",
+  "comune",
+  "codice_istat",
+  "numero_dipendenti",
+  "fatturato_annuo",
+  "anno_costituzione",
+  "imprenditoria_femminile",
+  "impresa_giovanile",
+  "startup_innovativa",
+  "pmi_innovativa",
+  "dimensione_impresa",
+  "investimenti_previsti",
+  "spesa_prevista",
+  "de_minimis_ultimi_3_anni",
+  "impresa_in_difficolta",
+  "paese_sede",
+  "disponibile_consorzio_europeo",
+] as const;
+
+export function matchingProfile(profile: Row): Row {
+  const minimized: Row = {};
+  for (const field of MATCHING_PROFILE_FIELDS) {
+    if (profile[field] !== undefined && profile[field] !== null) minimized[field] = profile[field];
+  }
+  return minimized;
+}
+
 async function coreFeed(profile: Row) {
   const secret = env("CENTRAL_CORE_API_KEY");
   const res = await fetch(coreUrl(), {
@@ -91,12 +123,13 @@ async function coreFeed(profile: Row) {
       "x-internal-secret": secret,
       "x-source-app": "trovabandi-digest",
     },
-    body: JSON.stringify({ action: "feed", profile, limit: 250 }),
+    body: JSON.stringify({ action: "feed", profile: matchingProfile(profile), limit: 250 }),
     signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) throw new Error(`CORE_${res.status}`);
   const payload = (await res.json()) as Row;
-  return Array.isArray(payload.bandi) ? (payload.bandi as Row[]) : [];
+  if (payload.ok !== true || !Array.isArray(payload.bandi)) throw new Error("CORE_INVALID_PAYLOAD");
+  return payload.bandi as Row[];
 }
 
 function euro(value: unknown) {
@@ -128,7 +161,7 @@ async function sendDigest(email: string, company: string, items: Row[]) {
       from,
       to: [email],
       subject: `${items.length} nuove opportunità per ${company}`,
-      html: `<div style="font-family:Arial,sans-serif;max-width:680px;margin:auto"><h1>Le novità di oggi</h1><p>Abbiamo trovato nuove opportunità compatibili o da verificare per la tua impresa.</p><ul style="padding-left:20px">${rows}</ul><p>Accedi a TrovaBandi per vedere requisiti, prove e motivazione del match.</p></div>`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:680px;margin:auto"><h1>Le novità di oggi</h1><p>Abbiamo trovato nuove opportunità compatibili o da verificare per la tua impresa.</p><ul style="padding-left:20px">${rows}</ul><p>Accedi a Bando Navigator per vedere requisiti, prove e motivazione del match.</p></div>`,
     }),
     signal: AbortSignal.timeout(12_000),
   });
@@ -150,12 +183,10 @@ async function processProfile(sb: ReturnType<typeof createClient>, profile: Row)
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
-  if (
-    preferences &&
-    preferences.morning_digest_enabled === false &&
-    preferences.urgent_enabled === false
-  )
-    return { created: 0, emailed: false };
+  const morningEnabled = preferences?.morning_digest_enabled !== false;
+  const urgentEnabled = preferences?.urgent_enabled !== false;
+  const inAppEnabled = preferences?.in_app_enabled !== false;
+  if (!morningEnabled && !urgentEnabled) return { created: 0, emailed: false };
   const opportunities = await coreFeed(profile);
   const cutoff = Date.now() - 30 * 60 * 60 * 1000;
   const relevant = opportunities.filter((item) => {
@@ -180,6 +211,8 @@ async function processProfile(sb: ReturnType<typeof createClient>, profile: Row)
         : Number.isFinite(deadline) && deadline <= Date.now() + 10 * 86_400_000
           ? "URGENT_DEADLINE"
           : "NEW_MATCH";
+    const notificationAllowed = type === "NEW_MATCH" ? morningEnabled : urgentEnabled;
+    if (!notificationAllowed || !inAppEnabled) continue;
     const match = (item.match ?? {}) as Row;
     const row = {
       user_id: userId,
@@ -227,9 +260,19 @@ serve(async (req) => {
   if (!cronSecret) return out(503, { ok: false, code: "AUTH_NOT_CONFIGURED" });
   if (!(await safeSecretEqual(cronSecret, req.headers.get("x-cron-secret") ?? "")))
     return out(401, { ok: false, code: "UNAUTHORIZED" });
+  const run_id = crypto.randomUUID();
+  const started_at = new Date().toISOString();
   const gate = await checkReleaseGate();
   if (!gate.allowed)
-    return out(423, { ok: false, code: "RELEASE_GATE_BLOCKED", reason: gate.reason });
+    return out(423, {
+      ok: false,
+      status: "BLOCKED_GATE",
+      code: "RELEASE_GATE_BLOCKED",
+      reason: gate.reason,
+      run_id,
+      started_at,
+      finished_at: new Date().toISOString(),
+    });
   let body: Row = {};
   try {
     body = await req.json();
@@ -260,14 +303,28 @@ serve(async (req) => {
       } else failed++;
     }
   }
-  return out(200, {
-    ok: true,
+  const processed = profiles?.length ?? 0;
+  const status =
+    failed > 0 && failed === processed
+      ? "FAILED"
+      : failed > 0
+        ? "PARTIAL"
+        : created > 0
+          ? "SUCCESS_DATA"
+          : "SUCCESS_EMPTY";
+  const httpStatus = status === "FAILED" ? 502 : status === "PARTIAL" ? 207 : 200;
+  return out(httpStatus, {
+    ok: status === "SUCCESS_DATA" || status === "SUCCESS_EMPTY",
+    status,
+    run_id,
+    started_at,
+    finished_at: new Date().toISOString(),
     offset,
-    processed: profiles?.length ?? 0,
+    processed,
     created,
     emailed,
     failed,
-    has_more: (profiles?.length ?? 0) === limit,
-    next_offset: offset + (profiles?.length ?? 0),
+    has_more: processed === limit,
+    next_offset: offset + processed,
   });
 });
