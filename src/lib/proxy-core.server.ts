@@ -51,6 +51,7 @@ export function parseGatewayFeed(payload: unknown): CoreOpportunity[] | null {
 export function mapCoreOpportunity(item: CoreOpportunity): Bando {
   const scopeMap: Record<string, Bando["scope"]> = {
     EU: "EUROPEO",
+    EUROPEO: "EUROPEO",
     NAZIONALE: "NAZIONALE",
     REGIONALE: "REGIONALE",
     CAMERALE: "CAMERALE",
@@ -77,6 +78,7 @@ export function mapCoreOpportunity(item: CoreOpportunity): Bando {
     regione: (item.region as string | null | undefined) ?? undefined,
     provincia: (item.province as string | null | undefined) ?? undefined,
     comune: (item.municipality as string | null | undefined) ?? undefined,
+    codice_istat: (item.municipality_istat_code as string | null | undefined) ?? undefined,
     importo_max: (item.max_grant_amount as number | null | undefined) ?? undefined,
     scadenza: deadline,
     apertura: (item.opens_at as string | null | undefined) ?? undefined,
@@ -89,6 +91,14 @@ export function mapCoreOpportunity(item: CoreOpportunity): Bando {
     notice_url: officialUrl,
     application_url: applicationUrl,
     requisiti: (item.requirements as string[] | null | undefined) ?? [],
+    ateco_compatibili: (item.eligible_ateco_codes as string[] | null | undefined) ?? [],
+    pdf_field_mapping:
+      (item.pdf_field_mapping as Bando["pdf_field_mapping"] | undefined) ?? undefined,
+    aid_intensity_percent:
+      (item.aid_intensity_percent as number | null | undefined) ?? undefined,
+    total_budget: (item.total_budget as number | null | undefined) ?? undefined,
+    competition_index:
+      (item.competition_index as number | null | undefined) ?? undefined,
     eligible_expenses: (item.eligible_expenses as string[] | null | undefined) ?? [],
     verification_status: item.verification_status as Bando["verification_status"],
     official_source: item.official_source as boolean | undefined,
