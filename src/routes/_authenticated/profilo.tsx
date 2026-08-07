@@ -9,7 +9,7 @@ import { Building2, Save, Sparkles } from "lucide-react";
 export const Route = createFileRoute("/_authenticated/profilo")({
   head: () => ({
     meta: [
-      { title: "Profilo Aziendale — Bando Navigator" },
+      { title: "Profilo Aziendale — UEradar.com" },
       {
         name: "description",
         content: "Configura il profilo aziendale per ricevere bandi personalizzati.",
