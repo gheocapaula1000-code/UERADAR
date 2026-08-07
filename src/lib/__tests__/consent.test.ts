@@ -193,6 +193,8 @@ describe("UI banner e footer — requisiti normativi statici", () => {
       .map((f) => readFileSync(f, "utf8"))
       .join("\n");
     expect(files).not.toMatch(/347\s?6373956/);
+    expect(files).not.toMatch(/paulagheoca@pec\.it/i);
+    expect(files).toMatch(/pigiservice@pec\.it/);
     expect(files).not.toMatch(/\bREA\b/);
     expect(files).not.toMatch(/Registro Imprese/i);
     expect(files).not.toMatch(/Netlify|Vercel|Cloudflare|Aruba/i);
