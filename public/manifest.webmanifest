@@ -42,7 +42,7 @@
     },
     {
       "src": "/favicon.ico",
-      "sizes": "256x256",
+      "sizes": "48x48",
       "type": "image/x-icon",
       "purpose": "any"
     }
