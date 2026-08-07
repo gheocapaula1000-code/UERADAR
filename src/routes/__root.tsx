@@ -77,20 +77,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Bando Navigator — Il radar dei bandi per PMI, SRL e Partite IVA" },
+      { title: "UEradar.com — Il radar dei bandi per PMI, SRL e Partite IVA" },
       {
         name: "description",
         content:
           "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda.",
       },
-      { name: "author", content: "Bando Navigator" },
+      { name: "author", content: "UEradar.com" },
       { name: "theme-color", content: "#1c2536" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-title", content: "Bando Navigator" },
+      { name: "apple-mobile-web-app-title", content: "UEradar.com" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       {
         property: "og:title",
-        content: "Bando Navigator — Il radar dei bandi per PMI, SRL e Partite IVA",
+        content: "UEradar.com — Il radar dei bandi per PMI, SRL e Partite IVA",
       },
       {
         property: "og:description",
@@ -101,7 +101,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       {
         name: "twitter:title",
-        content: "Bando Navigator — Il radar dei bandi per PMI, SRL e Partite IVA",
+        content: "UEradar.com — Il radar dei bandi per PMI, SRL e Partite IVA",
       },
       {
         name: "twitter:description",
