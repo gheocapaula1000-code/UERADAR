@@ -268,7 +268,7 @@ export function buildDossier(
   const missing_profile = REQUIRED_PROFILE.filter((f) => profile[f.key] === undefined).map((f) => f.label);
 
   const left = daysLeftOf(bando, now);
-  const expired = isExpired(bando, now);
+  const expired = expiredNow;
   const meta = matchStatusMeta(bando.match?.status);
 
   const cover: DossierField[] = [
