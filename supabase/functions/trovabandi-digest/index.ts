@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { matchingProfile } from "../_shared/trovabandi-contract.ts";
 
 type Row = Record<string, unknown>;
 
@@ -79,38 +80,6 @@ async function checkReleaseGate() {
   } catch {
     return { allowed: false, reason: "GATE_UNREACHABLE" };
   }
-}
-
-const MATCHING_PROFILE_FIELDS = [
-  "forma_giuridica",
-  "codice_ateco",
-  "ateco_secondari",
-  "regione",
-  "provincia",
-  "comune",
-  "codice_istat",
-  "numero_dipendenti",
-  "fatturato_annuo",
-  "anno_costituzione",
-  "imprenditoria_femminile",
-  "impresa_giovanile",
-  "startup_innovativa",
-  "pmi_innovativa",
-  "dimensione_impresa",
-  "investimenti_previsti",
-  "spesa_prevista",
-  "de_minimis_ultimi_3_anni",
-  "impresa_in_difficolta",
-  "paese_sede",
-  "disponibile_consorzio_europeo",
-] as const;
-
-export function matchingProfile(profile: Row): Row {
-  const minimized: Row = {};
-  for (const field of MATCHING_PROFILE_FIELDS) {
-    if (profile[field] !== undefined && profile[field] !== null) minimized[field] = profile[field];
-  }
-  return minimized;
 }
 
 async function coreFeed(profile: Row) {
