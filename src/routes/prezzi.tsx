@@ -1,6 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Radar, ShieldCheck, Users } from "lucide-react";
-import { CUSTOM_PLAN, PRICING_FAQ, PUBLIC_PLANS, TRIAL_TERMS } from "@/lib/pricing";
+import {
+  ARCHITECTURE_NOTES,
+  CUSTOM_PLAN,
+  PRICING_FAQ,
+  PUBLIC_PLANS,
+  TRIAL_TERMS,
+} from "@/lib/pricing";
 
 export const Route = createFileRoute("/prezzi")({
   head: () => ({
@@ -9,7 +15,7 @@ export const Route = createFileRoute("/prezzi")({
       {
         name: "description",
         content:
-          "Due piani per imprese: Business e Team, IVA esclusa. 7 giorni di prova senza carta di credito e senza addebito automatico.",
+          "Due piani per imprese con tutto illimitato: Business e Team, IVA esclusa. 7 giorni di prova senza carta di credito e senza addebito automatico.",
       },
       { property: "og:title", content: "Prezzi — UEradar.com" },
       {
@@ -48,8 +54,9 @@ function Pricing() {
             Provalo per 7 giorni, senza carta.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            Tutti i prezzi sono IVA esclusa. Nessun dato bancario richiesto per iniziare e nessun
-            addebito automatico al termine della prova.
+            Tutto illimitato in entrambi i piani: nessuna quota e nessun credito. Tutti i prezzi
+            sono IVA esclusa, nessun dato bancario richiesto per iniziare e nessun addebito
+            automatico al termine della prova.
           </p>
         </div>
 
@@ -116,6 +123,22 @@ function Pricing() {
               </li>
             ))}
           </ul>
+        </section>
+
+        <section className="mt-12">
+          <h2 className="text-2xl font-bold">Come sosteniamo l'illimitato</h2>
+          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+            Nota tecnica sull'architettura del motore lato server, coerente con il backend
+            esistente.
+          </p>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {ARCHITECTURE_NOTES.map((n) => (
+              <div key={n.t} className="rounded-xl border border-border bg-card p-5">
+                <h3 className="text-sm font-semibold">{n.t}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">{n.d}</p>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="mt-12">
