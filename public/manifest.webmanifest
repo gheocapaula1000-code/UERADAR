@@ -1,6 +1,6 @@
 {
-  "name": "BandoCore — Radar Bandi per PMI",
-  "short_name": "BandoCore",
+  "name": "Bando Navigator — Radar Bandi per PMI",
+  "short_name": "Bando Navigator",
   "description": "Bandi, fondo perduto e incentivi per imprese italiane.",
   "start_url": "/",
   "display": "standalone",
