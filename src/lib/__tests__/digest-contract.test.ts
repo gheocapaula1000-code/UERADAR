@@ -8,7 +8,7 @@ function classifyDigest(processed: number, created: number, failed: number) {
   return { http: 200, status: "SUCCESS_EMPTY", ok: true };
 }
 
-describe("contratto digest Bando Navigator", () => {
+describe("contratto digest UEradar.com", () => {
   it("distingue successo con dati, successo vuoto, parziale e fallimento", () => {
     expect(classifyDigest(4, 2, 0)).toEqual({ http: 200, status: "SUCCESS_DATA", ok: true });
     expect(classifyDigest(4, 0, 0)).toEqual({ http: 200, status: "SUCCESS_EMPTY", ok: true });
