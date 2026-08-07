@@ -176,7 +176,7 @@ describe("UI banner e footer — requisiti normativi statici", () => {
     expect(legal).toContain("Pi.Gi Service di Gheoca Paula");
     expect(legal).toContain("05770260288");
     expect(legal).toContain("info@pigiservice.com");
-    expect(legal).toContain("paulagheoca@pec.it");
+    expect(legal).toContain("pigiservice@pec.it");
     expect(legal).toContain("+39 352 0966114");
     expect(legal).toContain("tel:+393520966114");
   });
