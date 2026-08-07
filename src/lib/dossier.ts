@@ -38,7 +38,7 @@ export function pickAllowedProfile(profile: CompanyProfile | null | undefined): 
   if (!profile) return {};
   const out: Record<string, unknown> = {};
   for (const key of ALLOWED_PROFILE_FIELDS) {
-    const value = (profile as Record<string, unknown>)[key];
+    const value = (profile as unknown as Record<string, unknown>)[key];
     if (value !== undefined && value !== null && value !== "") out[key] = value;
   }
   return out as AllowedProfile;
