@@ -7,6 +7,7 @@ import { loadCachedFeed } from "@/lib/proxy-core.functions";
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanyProfile } from "@/lib/bandocore-types";
 import { buildDossier, renderDossierText } from "@/lib/dossier";
+import type { DossierField } from "@/lib/dossier";
 import { downloadDossierPdf } from "@/lib/dossier-pdf";
 import {
   ArrowLeft,
