@@ -7,6 +7,7 @@
  */
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
+import { inflateSync } from "node:zlib";
 
 const errors = [];
 const ok = (m) => console.log(`  ok  ${m}`);
