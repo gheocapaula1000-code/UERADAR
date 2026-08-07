@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { seoHead } from "@/lib/seo";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -32,16 +33,7 @@ import { toast } from "sonner";
 import { isExpired, matchStatusMeta } from "@/lib/bando-status";
 
 export const Route = createFileRoute("/_authenticated/bando/$id")({
-  head: () => ({
-    meta: [
-      { title: "Dossier candidatura — UEradar.com" },
-      {
-        name: "description",
-        content:
-          "Dossier di candidatura in bozza generato dai dati del bando e dal profilo aziendale: da verificare sulla fonte ufficiale.",
-      },
-    ],
-  }),
+  head: () => seoHead("/bando"),
   component: BandoDetail,
 });
 

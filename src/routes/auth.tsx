@@ -2,18 +2,13 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import { Radar, Mail, Lock, ArrowLeft } from "lucide-react";
+import { Mail, Lock, ArrowLeft } from "lucide-react";
+import { BrandLogo } from "@/components/bandocore/BrandLogo";
+import { seoHead } from "@/lib/seo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({
-    meta: [
-      { title: "Accedi — UEradar.com" },
-      { name: "description", content: "Accedi al radar dei bandi per la tua impresa." },
-      { property: "og:title", content: "Accedi — UEradar.com" },
-      { property: "og:description", content: "Accedi al radar dei bandi per la tua impresa." },
-    ],
-  }),
+  head: () => seoHead("/auth"),
   component: AuthPage,
 });
 
@@ -78,19 +73,19 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
-      <div className="hidden lg:flex flex-col justify-between gradient-hero p-12 relative overflow-hidden">
+    <div className="safe-x safe-top safe-bottom min-h-dvh grid lg:grid-cols-2">
+      <header className="hidden lg:flex flex-col justify-between gradient-hero p-12 relative overflow-hidden">
         <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
-        <Link
-          to="/"
-          className="relative flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Torna alla home
-        </Link>
+        <nav aria-label="Ritorno al sito pubblico" className="relative">
+          <Link
+            to="/"
+            className="tap inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft aria-hidden="true" className="h-4 w-4" /> Torna alla home
+          </Link>
+        </nav>
         <div className="relative">
-          <div className="grid h-12 w-12 place-items-center rounded-xl gradient-primary shadow-glow">
-            <Radar className="h-6 w-6 text-primary-foreground" />
-          </div>
+          <BrandLogo />
           <h2 className="mt-6 text-4xl font-bold leading-tight">
             Il radar dei bandi
             <br />
@@ -102,15 +97,18 @@ function AuthPage() {
           </p>
         </div>
         <p className="relative text-xs text-muted-foreground">© UEradar.com · Servizio B2B</p>
-      </div>
+      </header>
 
-      <div className="flex items-center justify-center p-8">
+      <main id="contenuto-principale" className="flex items-center justify-center p-5 sm:p-8">
         <div className="w-full max-w-md">
-          <div className="lg:hidden mb-8">
-            <Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground">
-              <ArrowLeft className="h-4 w-4" /> Home
+          <nav aria-label="Ritorno al sito pubblico" className="lg:hidden mb-8">
+            <Link
+              to="/"
+              className="tap inline-flex items-center gap-2 text-sm text-muted-foreground"
+            >
+              <ArrowLeft aria-hidden="true" className="h-4 w-4" /> Home
             </Link>
-          </div>
+          </nav>
           <h1 className="text-3xl font-bold">
             {mode === "signin" ? "Bentornato" : "Attiva UEradar.com"}
           </h1>
@@ -123,7 +121,7 @@ function AuthPage() {
           <button
             onClick={handleGoogle}
             disabled={loading}
-            className="mt-8 w-full inline-flex items-center justify-center gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm font-medium transition hover:bg-surface-elevated disabled:opacity-50"
+            className="tap mt-8 w-full inline-flex items-center justify-center gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm font-medium transition hover:bg-surface-elevated disabled:opacity-50"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -153,37 +151,41 @@ function AuthPage() {
 
           <form onSubmit={handleEmail} className="space-y-4">
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Email</label>
+              <label htmlFor="email" className="text-xs font-medium text-muted-foreground">Email</label>
               <div className="mt-1 relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Mail aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
+                  id="email"
                   type="email"
+                  autoComplete="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-input pl-10 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full rounded-lg border border-border bg-input pl-10 pr-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="tu@azienda.it"
                 />
               </div>
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Password</label>
+              <label htmlFor="password" className="text-xs font-medium text-muted-foreground">Password</label>
               <div className="mt-1 relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Lock aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
+                  id="password"
                   type="password"
+                  autoComplete="current-password"
                   required
                   minLength={6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-input pl-10 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full rounded-lg border border-border bg-input pl-10 pr-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Minimo 6 caratteri"
                 />
               </div>
             </div>
             <button
               disabled={loading}
-              className="w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110 disabled:opacity-50"
+              className="tap w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110 disabled:opacity-50"
             >
               {loading ? "Attendi…" : mode === "signin" ? "Accedi" : "Crea account"}
             </button>
@@ -199,13 +201,13 @@ function AuthPage() {
             {mode === "signin" ? "Non hai un account?" : "Hai già un account?"}{" "}
             <button
               onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-              className="text-primary font-medium hover:underline"
+              className="tap inline-flex items-center text-primary font-medium hover:underline"
             >
               {mode === "signin" ? "Registrati" : "Accedi"}
             </button>
           </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

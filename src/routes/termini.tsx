@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage, LegalSection } from "@/components/bandocore/LegalPage";
+import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/termini")({
-  head: () => ({ meta: [{ title: "Termini di servizio — UEradar.com" }] }),
+  head: () => seoHead("/termini"),
   component: Terms,
 });
 

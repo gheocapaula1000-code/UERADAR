@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BrandLogo, BrandLockup } from "@/components/bandocore/BrandLogo";
 import { CUSTOM_PLAN, PUBLIC_PLANS, TRIAL_TERMS } from "@/lib/pricing";
+import { ORGANIZATION_JSONLD, SOFTWARE_APPLICATION_JSONLD, seoHead } from "@/lib/seo";
 import {
   Radar,
   Target,
@@ -14,33 +15,17 @@ import {
 
 export const Route = createFileRoute("/")({
   head: () => ({
-    meta: [
-      { title: "UEradar.com — Il radar dei bandi per PMI, SRL e Partite IVA" },
+    ...seoHead("/"),
+    scripts: [
       {
-        name: "description",
-        content:
-          "Scovare bandi locali, nazionali, PNRR e UE, fondo perduto, digitale e incentivi per imprenditoria femminile e giovanile, filtrati sulla tua azienda.",
+        type: "application/ld+json",
+        children: JSON.stringify(ORGANIZATION_JSONLD),
       },
       {
-        property: "og:title",
-        content: "UEradar.com — Il radar dei bandi per PMI, SRL e Partite IVA",
-      },
-      {
-        property: "og:description",
-        content:
-          "Scovare bandi locali, nazionali, PNRR e UE, fondo perduto, digitale e incentivi per imprenditoria femminile e giovanile, filtrati sulla tua azienda.",
-      },
-      {
-        property: "og:image",
-        content: "https://ueradar.com/brand/ueradar-social-1200x630.png",
-      },
-      { property: "og:url", content: "https://ueradar.com/" },
-      {
-        name: "twitter:image",
-        content: "https://ueradar.com/brand/ueradar-social-1200x630.png",
+        type: "application/ld+json",
+        children: JSON.stringify(SOFTWARE_APPLICATION_JSONLD),
       },
     ],
-    links: [{ rel: "canonical", href: "https://ueradar.com/" }],
   }),
   component: Landing,
 });
@@ -49,12 +34,15 @@ function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* NAV */}
-      <header className="border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-40">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link to="/" className="flex items-center gap-2">
+      <header className="safe-x safe-top border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-40">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+          <Link to="/" className="flex min-w-0 items-center gap-2" aria-label="UEradar.com, home">
             <BrandLogo />
           </Link>
-          <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
+          <nav
+            aria-label="Navigazione principale"
+            className="hidden items-center gap-8 text-sm text-muted-foreground md:flex"
+          >
             <a href="#come-funziona" className="hover:text-foreground transition">
               Come funziona
             </a>
@@ -70,32 +58,33 @@ function Landing() {
           </nav>
           <Link
             to="/auth"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
+            className="tap inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
           >
             Accedi <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </header>
 
+      <main id="contenuto-principale" className="safe-x">
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 gradient-hero opacity-90" />
         <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
         <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
-        <div className="relative mx-auto max-w-7xl px-6 py-24 md:py-32">
+        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 md:py-32">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <div className="inline-flex items-start gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground">
+              <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
               Unione Europea Radar — opportunità da fonti ufficiali
             </div>
-            <h1 className="mt-6 text-5xl font-bold leading-tight md:text-6xl">
+            <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl md:text-6xl">
               Il radar dei{" "}
               <span className="bg-gradient-to-r from-primary via-warning to-accent bg-clip-text text-transparent">
                 bandi
               </span>{" "}
               per la tua impresa.
             </h1>
-            <p className="mt-6 text-lg text-muted-foreground md:text-xl">
+            <p className="mt-6 text-base text-muted-foreground sm:text-lg md:text-xl">
               Fondo perduto, PNRR, programmi UE, credito d'imposta e finanza agevolata per Partite
               IVA e PMI — ricercati e ordinati su ATECO, sede, dimensione, età e caratteristiche
               reali dell'impresa.
@@ -103,18 +92,18 @@ function Landing() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 to="/auth"
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
+                className="tap inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
               >
                 Attiva il radar <ArrowRight className="h-4 w-4" />
               </Link>
               <a
                 href="#come-funziona"
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/50 px-6 py-3 text-base font-medium text-foreground transition hover:bg-card"
+                className="tap inline-flex items-center gap-2 rounded-lg border border-border bg-card/50 px-6 py-3 text-base font-medium text-foreground transition hover:bg-card"
               >
                 Come funziona
               </a>
             </div>
-            <div className="mt-10 grid grid-cols-3 gap-6 max-w-xl">
+            <div className="mt-10 grid max-w-xl grid-cols-1 gap-6 sm:grid-cols-3">
               {[
                 { k: "Italia + UE", v: "Copertura separata" },
                 { k: "Fonti ufficiali", v: "Nazionali, territoriali e UE" },
@@ -131,7 +120,7 @@ function Landing() {
       </section>
 
       {/* FEATURES */}
-      <section id="come-funziona" className="mx-auto max-w-7xl px-6 py-20">
+      <section id="come-funziona" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="mb-12 max-w-2xl">
           <div className="text-xs uppercase tracking-widest text-primary font-semibold">
             Come funziona
@@ -172,7 +161,7 @@ function Landing() {
 
       {/* PER CHI */}
       <section id="per-chi" className="border-y border-border bg-surface-elevated/50">
-        <div className="mx-auto max-w-7xl px-6 py-20">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
           <div className="grid gap-10 md:grid-cols-2">
             <div>
               <div className="text-xs uppercase tracking-widest text-accent font-semibold">
@@ -215,7 +204,7 @@ function Landing() {
       </section>
 
       {/* PREZZI */}
-      <section id="prezzi" className="mx-auto max-w-7xl px-6 py-20">
+      <section id="prezzi" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="mb-10 max-w-2xl">
           <div className="text-xs uppercase tracking-widest text-primary font-semibold">Piani</div>
           <h2 className="mt-2 text-3xl font-bold md:text-4xl">
@@ -255,14 +244,14 @@ function Landing() {
         </ul>
         <Link
           to="/prezzi"
-          className="mt-8 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium transition hover:bg-surface-elevated"
+          className="tap mt-8 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium transition hover:bg-surface-elevated"
         >
           Vedi i dettagli dei piani <ArrowRight className="h-4 w-4" />
         </Link>
       </section>
 
       {/* CTA */}
-      <section id="sicurezza" className="mx-auto max-w-7xl px-6 py-24 text-center">
+      <section id="sicurezza" className="mx-auto max-w-7xl px-4 py-20 text-center sm:px-6 sm:py-24">
         <h2 className="mx-auto max-w-2xl text-3xl font-bold md:text-4xl">
           Tieni sotto controllo le opportunità aperte.
         </h2>
@@ -271,24 +260,40 @@ function Landing() {
         </p>
         <Link
           to="/auth"
-          className="mt-8 inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
+          className="tap mt-8 inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
         >
           Attiva UEradar.com <ArrowRight className="h-4 w-4" />
         </Link>
       </section>
+      </main>
 
-      <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground">
+      <footer className="safe-x safe-bottom border-t border-border px-4 py-8 text-center text-xs text-muted-foreground">
         <BrandLockup className="mx-auto mb-5" />
         <p>© {new Date().getFullYear()} UEradar.com · Servizio B2B riservato a Partite IVA</p>
-        <p className="mt-3">
-          <Link to="/prezzi" className="hover:text-foreground">Prezzi</Link>
-          {" · "}
-          <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
-          {" · "}
-          <Link to="/termini" className="hover:text-foreground">Termini</Link>
-          {" · "}
-          <Link to="/cookie" className="hover:text-foreground">Cookie</Link>
-        </p>
+        <nav aria-label="Link legali e informativi" className="mt-3">
+          <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <li>
+              <Link to="/prezzi" className="tap inline-flex items-center hover:text-foreground">
+                Prezzi
+              </Link>
+            </li>
+            <li>
+              <Link to="/privacy" className="tap inline-flex items-center hover:text-foreground">
+                Privacy
+              </Link>
+            </li>
+            <li>
+              <Link to="/termini" className="tap inline-flex items-center hover:text-foreground">
+                Termini
+              </Link>
+            </li>
+            <li>
+              <Link to="/cookie" className="tap inline-flex items-center hover:text-foreground">
+                Cookie
+              </Link>
+            </li>
+          </ul>
+        </nav>
       </footer>
     </div>
   );

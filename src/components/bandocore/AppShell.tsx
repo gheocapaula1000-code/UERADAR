@@ -22,23 +22,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex">
+    <div className="min-h-dvh bg-background text-foreground flex">
       {/* Sidebar desktop */}
-      <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-sidebar">
+      <aside aria-label="Navigazione area riservata" className="safe-top safe-bottom hidden lg:flex w-64 flex-col border-r border-border bg-sidebar">
         <Link
           to="/dashboard"
           className="flex items-center gap-2 px-6 py-6 border-b border-sidebar-border"
         >
           <BrandLogo />
         </Link>
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav aria-label="Sezioni principali" className="flex-1 px-3 py-4 space-y-1">
           {nav.map((item) => {
             const active = pathname.startsWith(item.to);
             return (
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
+                className={`tap flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${
                   active
                     ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
@@ -52,7 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <button
           onClick={signOut}
-          className="mx-3 mb-4 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-sidebar-accent/50 hover:text-destructive transition"
+          className="tap mx-3 mb-4 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-sidebar-accent/50 hover:text-destructive transition"
         >
           <LogOut className="h-4 w-4" /> Esci
         </button>
@@ -60,23 +60,23 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile top bar */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="lg:hidden sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
+        <header className="safe-x safe-top lg:hidden sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
           <div className="flex items-center justify-between px-4 py-3">
             <Link to="/dashboard" className="flex items-center gap-2">
               <BrandLogo size="sm" />
             </Link>
-            <button onClick={signOut} className="text-muted-foreground p-2">
+            <button onClick={signOut} aria-label="Esci dall'area riservata" className="tap inline-flex items-center justify-center text-muted-foreground p-2">
               <LogOut className="h-5 w-5" />
             </button>
           </div>
-          <nav className="flex gap-1 px-2 pb-2 overflow-x-auto">
+          <nav aria-label="Sezioni principali" className="flex gap-1 px-2 pb-2 overflow-x-auto">
             {nav.map((item) => {
               const active = pathname.startsWith(item.to);
               return (
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs whitespace-nowrap ${
+                  className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-1.5 text-xs whitespace-nowrap ${
                     active
                       ? "bg-primary text-primary-foreground font-medium"
                       : "text-muted-foreground bg-card"
@@ -90,7 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
         </header>
 
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main id="contenuto-principale" className="safe-x safe-bottom flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
   );

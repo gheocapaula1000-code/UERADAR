@@ -76,39 +76,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "UEradar.com — Il radar dei bandi per PMI, SRL e Partite IVA" },
-      {
-        name: "description",
-        content:
-          "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda.",
-      },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "author", content: "UEradar.com" },
       { name: "theme-color", content: "#1c2536" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-title", content: "UEradar.com" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      {
-        property: "og:title",
-        content: "UEradar.com — Il radar dei bandi per PMI, SRL e Partite IVA",
-      },
-      {
-        property: "og:description",
-        content:
-          "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      {
-        name: "twitter:title",
-        content: "UEradar.com — Il radar dei bandi per PMI, SRL e Partite IVA",
-      },
-      {
-        name: "twitter:description",
-        content:
-          "Scovare bandi regionali, statali, europei, fondo perduto, credito d'imposta e incentivi per imprenditoria femminile filtrati sulla tua azienda.",
-      },
-      { name: "og:site_name", content: "UEradar.com" },
     ],
     links: [
       {
@@ -187,6 +160,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <a className="skip-link" href="#contenuto-principale">
+        Vai al contenuto principale
+      </a>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
     </QueryClientProvider>
