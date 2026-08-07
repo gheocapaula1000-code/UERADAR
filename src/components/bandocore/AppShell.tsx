@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Radar, LayoutDashboard, Building2, LogOut } from "lucide-react";
+import { Radar, LayoutDashboard, Building2, CreditCard, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { ReactNode } from "react";
@@ -17,6 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const nav = [
     { to: "/dashboard", label: "Radar Bandi", icon: LayoutDashboard },
     { to: "/profilo", label: "Profilo Azienda", icon: Building2 },
+    { to: "/prezzi", label: "Piano e prezzi", icon: CreditCard },
   ] as const;
 
   return (
