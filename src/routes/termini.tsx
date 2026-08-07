@@ -26,7 +26,7 @@ function Terms() {
       <LegalSection title="Verifica delle opportunità">
         <p>I risultati aiutano la ricerca ma non costituiscono consulenza legale, fiscale o garanzia di ammissione. Prima dell'invio l'utente deve verificare avviso ufficiale, requisiti, scadenze e modulistica presso l'ente competente.</p>
       </LegalSection>
-      <LegalSection title="Uso corretto e disponibilità">
+      <LegalSection title="Utilizzo consentito e disponibilità">
         <p>È vietato aggirare i controlli di accesso, rivendere dati grezzi o usare il servizio in modo illecito. Manutenzioni, indisponibilità delle fonti e cause esterne possono limitare temporaneamente gli aggiornamenti.</p>
       </LegalSection>
       <LegalSection title="Contatti">

@@ -79,14 +79,16 @@ describe("piani pubblici UEradar", () => {
       /crediti (inclusi|residui|disponibili|mensili)/i,
       /consumo di crediti/i,
       /pacchetto crediti/i,
-      /\boverage\b(?!\s+(e|né|o)\s+nessun)/i,
     ];
     for (const f of UI_FILES) {
       const src = readFileSync(f, "utf8");
       for (const re of FORBIDDEN) {
         const m = src.match(re);
-        // "nessun overage" e formule negative sono ammesse
-        if (m && !/nessun\s+overage/i.test(m[0])) hits.push(`${f} :: ${re} :: ${m[0]}`);
+        if (m) hits.push(`${f} :: ${re} :: ${m[0]}`);
+      }
+      // "overage" è ammesso solo in formulazioni negative
+      for (const occ of src.matchAll(/.{0,40}overage/gi)) {
+        if (!/nessun|non sono previsti|né/i.test(occ[0])) hits.push(`${f} :: overage :: ${occ[0]}`);
       }
     }
     expect(hits).toEqual([]);
