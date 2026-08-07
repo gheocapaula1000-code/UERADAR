@@ -1,6 +1,6 @@
 {
-  "name": "Bando Navigator — Radar Bandi per PMI",
-  "short_name": "Bando Navigator",
+  "name": "UEradar.com — Radar Bandi per PMI",
+  "short_name": "UEradar",
   "description": "Bandi, fondo perduto e incentivi per imprese italiane.",
   "start_url": "/",
   "display": "standalone",
