@@ -107,7 +107,7 @@ describe("dossier candidatura", () => {
     const d = buildDossier(bando, profile, NOW);
     expect(renderDossierText(d)).toContain(DOSSIER_DISCLAIMER);
     const pdfText = dossierPdfModel(d)
-      .flatMap((b) => [b.title ?? "", ...(b.lines ?? [])])
+      .map((b) => b.text)
       .join("\n");
     expect(pdfText).toContain("bozza informativa");
     expect(pdfText.toLowerCase()).toContain("non è una domanda");
