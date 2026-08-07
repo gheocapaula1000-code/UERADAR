@@ -1,7 +1,7 @@
 /**
  * Piani pubblici UEradar.com.
  * Fonte unica di verità per prezzi e condizioni: usata da landing, pagina prezzi e test.
- * Billing tecnicamente disabilitato: nessun checkout, nessun provider di pagamento collegato.
+ * Billing tecnicamente disabilitato: nessun pagamento e nessun provider collegato.
  */
 export const BILLING_ENABLED = false;
 
@@ -88,7 +88,7 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
     a: "No. I costi API sono inclusi entro un uso corretto del servizio: nessun overage e nessun costo extra automatico.",
   },
   {
-    q: "Posso gestire più aziende?",
+    q: "Posso gestire altre imprese con lo stesso piano?",
     a: "No. Entrambi i piani coprono una sola impresa verificata; cambia soltanto il numero di utenti nominativi (3 o 10).",
   },
   {

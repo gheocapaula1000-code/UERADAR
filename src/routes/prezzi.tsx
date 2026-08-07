@@ -25,7 +25,7 @@ export const Route = createFileRoute("/prezzi")({
 });
 
 function Pricing() {
-  // Billing tecnicamente disabilitato: nessun checkout, nessun provider di pagamento.
+  // Billing tecnicamente disabilitato: nessun pagamento, nessun provider collegato.
   const billingEnabled = import.meta.env.VITE_BILLING_ENABLED === "true";
 
   return (
