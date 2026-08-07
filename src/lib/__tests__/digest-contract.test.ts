@@ -44,11 +44,13 @@ describe("contratto digest UEradar.com", () => {
     expect(src).toContain("profile: matchingProfile(profile)");
   });
 
-  it("rispetta separatamente preferenze mattutine, urgenti e in-app", () => {
+  it("richiede una modalità esplicita e la propaga al percorso reale", () => {
     const src = readFileSync("supabase/functions/trovabandi-digest/index.ts", "utf8");
-    expect(src).toContain("morningEnabled");
-    expect(src).toContain("urgentEnabled");
-    expect(src).toContain("inAppEnabled");
-    expect(src).toContain('type === "NEW_MATCH" ? morningEnabled : urgentEnabled');
+    expect(src).toContain("parseDigestMode(body.mode)");
+    expect(src).toContain('code: "INVALID_JSON"');
+    expect(src).toContain('code: "INVALID_MODE"');
+    expect(src).toContain("processProfile(sb, profile, mode)");
+    expect(src).toContain("modeAllowsNotification(mode, type)");
+    expect(src).toContain("created, mode)");
   });
 });
