@@ -1,4 +1,4 @@
-name: Bando Navigator CI
+name: UEradar.com CI
 
 on:
   pull_request:
