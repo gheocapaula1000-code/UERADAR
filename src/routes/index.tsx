@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BrandLogo, BrandLockup } from "@/components/bandocore/BrandLogo";
+import { CUSTOM_PLAN, PUBLIC_PLANS, TRIAL_TERMS } from "@/lib/pricing";
 import {
   Radar,
   Target,
@@ -211,6 +212,49 @@ function Landing() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* PREZZI */}
+      <section id="prezzi" className="mx-auto max-w-7xl px-6 py-20">
+        <div className="mb-10 max-w-2xl">
+          <div className="text-xs uppercase tracking-widest text-primary font-semibold">Piani</div>
+          <h2 className="mt-2 text-3xl font-bold md:text-4xl">Due piani, IVA esclusa.</h2>
+          <p className="mt-3 text-muted-foreground">
+            Prova gratuita 7 giorni, senza carta di credito e senza addebito automatico al termine.
+          </p>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          {PUBLIC_PLANS.map((plan) => (
+            <div key={plan.id} className="rounded-2xl border border-border bg-card p-6">
+              <h3 className="text-xl font-semibold">{plan.name}</h3>
+              <div className="mt-3">
+                <span className="text-3xl font-bold">{plan.price}</span>
+                <span className="text-sm text-muted-foreground"> {plan.vatNote}</span>
+              </div>
+              <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <div className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" /> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <p className="mt-6 text-sm text-muted-foreground">
+          {CUSTOM_PLAN.name} — {CUSTOM_PLAN.headline}: {CUSTOM_PLAN.cta} a {CUSTOM_PLAN.contact}.
+        </p>
+        <ul className="mt-6 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
+          {TRIAL_TERMS.map((t) => (
+            <li key={t}>· {t}</li>
+          ))}
+        </ul>
+        <Link
+          to="/prezzi"
+          className="mt-8 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium transition hover:bg-surface-elevated"
+        >
+          Vedi i dettagli dei piani <ArrowRight className="h-4 w-4" />
+        </Link>
       </section>
 
       {/* CTA */}
