@@ -31,7 +31,7 @@ function Terms() {
         <p>La cancellazione avviene online dal pannello account, senza disdetta scritta e senza PEC, con effetto dal periodo successivo.</p>
       </LegalSection>
       <LegalSection title="Stato della fatturazione">
-        <p>In questa fase la fatturazione è tecnicamente disattivata fino al collaudo: non è presente alcun checkout, non vengono richiesti dati di pagamento e nessun abbonamento può essere addebitato. I prezzi indicati sono definitivi e saranno applicati solo dopo l'attivazione volontaria, quando il pagamento sarà abilitato.</p>
+        <p>In questa fase la fatturazione è tecnicamente disattivata fino al collaudo: non è presente alcuna procedura di pagamento online, non vengono richiesti dati di pagamento e nessun abbonamento può essere addebitato. I prezzi indicati sono definitivi e saranno applicati solo dopo l'attivazione volontaria, quando il pagamento sarà abilitato.</p>
       </LegalSection>
       <LegalSection title="Cache dei contenuti pubblici e isolamento dei dati">
         <p>Il contenuto ufficiale dei bandi proviene da fonti pubbliche: viene deduplicato e riusato dalla cache finché versione e TTL restano validi, anche tra gli utenti nominativi della stessa impresa. Profilo, documenti, checklist e dossier sono dati privati isolati per impresa e mai condivisi tra clienti diversi.</p>
