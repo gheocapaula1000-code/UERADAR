@@ -88,7 +88,7 @@ describe("piani pubblici UEradar", () => {
       }
       // "overage" è ammesso solo in formulazioni negative
       for (const occ of src.matchAll(/.{0,40}overage/gi)) {
-        if (!/nessun|non sono previsti|né/i.test(occ[0])) hits.push(`${f} :: overage :: ${occ[0]}`);
+        if (!/nessun|non sono previsti|non generano|né/i.test(occ[0])) hits.push(`${f} :: overage :: ${occ[0]}`);
       }
     }
     expect(hits).toEqual([]);
