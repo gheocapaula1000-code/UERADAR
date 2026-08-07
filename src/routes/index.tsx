@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { BrandLogo, BrandLockup } from "@/components/bandocore/BrandLogo";
 import {
   Radar,
   Target,
@@ -28,7 +29,17 @@ export const Route = createFileRoute("/")({
         content:
           "Scovare bandi locali, nazionali, PNRR e UE, fondo perduto, digitale e incentivi per imprenditoria femminile e giovanile, filtrati sulla tua azienda.",
       },
+      {
+        property: "og:image",
+        content: "https://ueradar.com/brand/ueradar-social-1200x630.png",
+      },
+      { property: "og:url", content: "https://ueradar.com/" },
+      {
+        name: "twitter:image",
+        content: "https://ueradar.com/brand/ueradar-social-1200x630.png",
+      },
     ],
+    links: [{ rel: "canonical", href: "https://ueradar.com/" }],
   }),
   component: Landing,
 });
@@ -40,10 +51,7 @@ function Landing() {
       <header className="border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-40">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link to="/" className="flex items-center gap-2">
-            <div className="grid h-9 w-9 place-items-center rounded-lg gradient-primary shadow-glow">
-              <Radar className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-semibold tracking-tight">UEradar.com</span>
+            <BrandLogo />
           </Link>
           <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
             <a href="#come-funziona" className="hover:text-foreground transition">
@@ -222,6 +230,7 @@ function Landing() {
       </section>
 
       <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground">
+        <BrandLockup className="mx-auto mb-5" />
         <p>© {new Date().getFullYear()} UEradar.com · Servizio B2B riservato a Partite IVA</p>
         <p className="mt-3">
           <Link to="/prezzi" className="hover:text-foreground">Prezzi</Link>
