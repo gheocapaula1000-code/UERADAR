@@ -55,6 +55,9 @@ function Landing() {
             <a href="#sicurezza" className="hover:text-foreground transition">
               Sicurezza
             </a>
+            <Link to="/prezzi" className="hover:text-foreground transition">
+              Prezzi
+            </Link>
           </nav>
           <Link
             to="/auth"
@@ -219,7 +222,16 @@ function Landing() {
       </section>
 
       <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} UEradar.com · Servizio B2B riservato a Partite IVA
+        <p>© {new Date().getFullYear()} UEradar.com · Servizio B2B riservato a Partite IVA</p>
+        <p className="mt-3">
+          <Link to="/prezzi" className="hover:text-foreground">Prezzi</Link>
+          {" · "}
+          <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
+          {" · "}
+          <Link to="/termini" className="hover:text-foreground">Termini</Link>
+          {" · "}
+          <Link to="/cookie" className="hover:text-foreground">Cookie</Link>
+        </p>
       </footer>
     </div>
   );
