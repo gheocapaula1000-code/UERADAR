@@ -6,6 +6,7 @@ import {
   DOSSIER_DISCLAIMER,
   buildDossier,
   missingOfficialData,
+  officialUrl,
   pickAllowedProfile,
   renderDossierText,
 } from "@/lib/dossier";
@@ -21,9 +22,17 @@ const bando = {
   categoria: "FONDO_PERDUTO",
   scadenza: "2026-02-10T00:00:00.000Z",
   notice_url: "https://esempio.it/bando",
+  official_url: "https://esempio.it/bando",
   modulistica_url: "https://esempio.it/moduli",
-  verification_status: "VERIFIED",
+  verification_status: "VERIFICATO",
   requisiti: ["Sede operativa in provincia", "Iscrizione al registro imprese"],
+  evidence: [
+    {
+      source_url: "https://esempio.it/bando/determina.pdf",
+      source_title: "Determina dirigenziale",
+      evidence_type: "DETERMINA",
+    },
+  ],
   match: {
     status: "DA_VERIFICARE",
     score: 62,
@@ -74,15 +83,65 @@ describe("dossier candidatura", () => {
   });
 
   it("è PARZIALE e segnala i dati mancanti su opportunità incomplete", () => {
-    const partiale = { ...bando, scadenza: undefined, notice_url: undefined } as unknown as Bando;
-    expect(missingOfficialData(partiale)).toEqual([
+    const partiale = {
+      ...bando,
+      scadenza: undefined,
+      notice_url: undefined,
+      official_url: undefined,
+    } as unknown as Bando;
+    expect(missingOfficialData(partiale, NOW)).toEqual([
       "Data di scadenza",
-      "URL ufficiale del bando",
+      "URL della fonte ufficiale (official_url / notice_url)",
     ]);
     const d = buildDossier(partiale, null, NOW);
     expect(d.readiness).toBe("PARZIALE");
     expect(d.missing_profile).toContain("Partita IVA");
     expect(d.missing_before_use.some((m) => m.startsWith("Dato ufficiale mancante"))).toBe(true);
+  });
+
+  it("non promuove a COMPLETO un bando PARZIALE anche con scadenza e URL validi", () => {
+    for (const stato of ["PARZIALE", "DA_VERIFICARE", undefined]) {
+      const b = { ...bando, verification_status: stato } as unknown as Bando;
+      const d = buildDossier(b, profile, NOW);
+      expect(d.readiness).toBe("PARZIALE");
+      expect(d.missing_official.join(" ")).toMatch(/[Vv]erifica/);
+      expect(d.missing_before_use.join(" ")).toMatch(/[Vv]erifica/);
+    }
+  });
+
+  it("richiede almeno un requisito e almeno una evidenza ufficiale", () => {
+    const senzaRequisiti = { ...bando, requisiti: [] } as unknown as Bando;
+    expect(buildDossier(senzaRequisiti, profile, NOW).readiness).toBe("PARZIALE");
+    expect(missingOfficialData(senzaRequisiti, NOW)).toContain("Elenco requisiti del bando");
+
+    const senzaEvidence = { ...bando, evidence: [] } as unknown as Bando;
+    expect(buildDossier(senzaEvidence, profile, NOW).readiness).toBe("PARZIALE");
+    expect(missingOfficialData(senzaEvidence, NOW)).toContain("Evidenza documentale ufficiale");
+  });
+
+  it("non considera application_url/piattaforma_url come fonte ufficiale primaria", () => {
+    const soloCanali = {
+      ...bando,
+      official_url: undefined,
+      notice_url: undefined,
+      application_url: "https://portale.it/domanda",
+      piattaforma_url: "https://portale.it/domanda",
+    } as unknown as Bando;
+    expect(missingOfficialData(soloCanali, NOW)).toContain(
+      "URL della fonte ufficiale (official_url / notice_url)",
+    );
+    expect(buildDossier(soloCanali, profile, NOW).readiness).toBe("PARZIALE");
+
+    const conOfficial = { ...bando, notice_url: undefined } as unknown as Bando;
+    expect(officialUrl(conOfficial)).toBe("https://esempio.it/bando");
+  });
+
+  it("un bando scaduto non è mai COMPLETO", () => {
+    const scaduto = { ...bando, scadenza: "2025-12-01T00:00:00.000Z" } as unknown as Bando;
+    const d = buildDossier(scaduto, profile, NOW);
+    expect(d.readiness).toBe("SCADUTO");
+    expect(d.missing_official).toContain("Termine di presentazione già superato");
+    expect(d.missing_before_use.join(" ")).toContain("Termine di presentazione già superato");
   });
 
   it("genera una checklist documenti marcata come suggerita", () => {

@@ -64,8 +64,12 @@ export interface DossierTimelineStep {
 export interface Dossier {
   bando_id: string;
   generated_at: string;
-  /** COMPLETO quando tutti i dati minimi ufficiali e di profilo sono presenti. */
-  readiness: "COMPLETO" | "PARZIALE";
+  /**
+   * Fail-closed: COMPLETO solo con verifica ufficiale, scadenza futura, fonte
+   * ufficiale mappata, requisiti, evidence e profilo minimo. SCADUTO se il
+   * termine è superato. In ogni altro caso PARZIALE.
+   */
+  readiness: "COMPLETO" | "PARZIALE" | "SCADUTO";
   missing_official: string[];
   missing_profile: string[];
   cover: DossierField[];
@@ -114,8 +118,13 @@ function date(value: string | undefined): string | undefined {
   return Number.isFinite(t.getTime()) ? t.toLocaleDateString("it-IT") : undefined;
 }
 
-function officialUrl(bando: Bando): string | undefined {
-  return bando.notice_url ?? bando.application_url ?? bando.piattaforma_url ?? undefined;
+/**
+ * Fonte ufficiale primaria ai fini della readiness: official_url, poi notice_url.
+ * application_url / piattaforma_url sono canali di presentazione e non valgono
+ * come prova della fonte ufficiale.
+ */
+export function officialUrl(bando: Bando): string | undefined {
+  return bando.official_url || bando.notice_url || undefined;
 }
 
 function field(label: string, value: string | undefined): DossierField {
@@ -231,10 +240,20 @@ export function buildCoverLetter(bando: Bando, profile: AllowedProfile): string 
   return lines.join("\n");
 }
 
-/** Dati ufficiali minimi mancanti nel bando ricevuto dal feed. */
-export function missingOfficialData(bando: Bando): string[] {
+/** Dati ufficiali minimi mancanti nel bando ricevuto dal feed (fail-closed). */
+export function missingOfficialData(bando: Bando, now: number = Date.now()): string[] {
   const missing = REQUIRED_OFFICIAL.filter((f) => !bando[f.key]).map((f) => f.label);
-  if (!officialUrl(bando)) missing.push("URL ufficiale del bando");
+  if (!officialUrl(bando)) missing.push("URL della fonte ufficiale (official_url / notice_url)");
+  if (bando.verification_status !== "VERIFICATO") {
+    missing.push(
+      bando.verification_status
+        ? `Verifica ufficiale non completata (stato: ${bando.verification_status})`
+        : "Stato di verifica ufficiale assente",
+    );
+  }
+  if (!(bando.requisiti ?? []).length) missing.push("Elenco requisiti del bando");
+  if (!(bando.evidence ?? []).some((e) => e?.source_url)) missing.push("Evidenza documentale ufficiale");
+  if (bando.scadenza && isExpired(bando, now)) missing.push("Termine di presentazione già superato");
   return missing;
 }
 
@@ -244,11 +263,12 @@ export function buildDossier(
   now: number = Date.now(),
 ): Dossier {
   const profile = pickAllowedProfile(rawProfile);
-  const missing_official = missingOfficialData(bando);
+  const expiredNow = isExpired(bando, now);
+  const missing_official = missingOfficialData(bando, now);
   const missing_profile = REQUIRED_PROFILE.filter((f) => profile[f.key] === undefined).map((f) => f.label);
 
   const left = daysLeftOf(bando, now);
-  const expired = isExpired(bando, now);
+  const expired = expiredNow;
   const meta = matchStatusMeta(bando.match?.status);
 
   const cover: DossierField[] = [
@@ -292,7 +312,11 @@ export function buildDossier(
   return {
     bando_id: bando.id,
     generated_at: new Date(now).toISOString(),
-    readiness: missing_official.length === 0 && missing_profile.length === 0 ? "COMPLETO" : "PARZIALE",
+    readiness: expiredNow
+      ? "SCADUTO"
+      : missing_official.length === 0 && missing_profile.length === 0
+        ? "COMPLETO"
+        : "PARZIALE",
     missing_official,
     missing_profile,
     cover,

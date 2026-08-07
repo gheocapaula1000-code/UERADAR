@@ -90,6 +90,7 @@ export function mapCoreOpportunity(item: CoreOpportunity): Bando {
     modulistica_url: formsUrl,
     notice_url: officialUrl,
     application_url: applicationUrl,
+    official_url: officialUrl,
     requisiti: (item.requirements as string[] | null | undefined) ?? [],
     ateco_compatibili: (item.eligible_ateco_codes as string[] | null | undefined) ?? [],
     pdf_field_mapping:
