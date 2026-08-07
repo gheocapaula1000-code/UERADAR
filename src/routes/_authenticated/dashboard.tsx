@@ -26,7 +26,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Radar Bandi — Bando Navigator" },
+      { title: "Radar Bandi — UEradar.com" },
       { name: "description", content: "Dashboard bandi personalizzata sul profilo aziendale." },
     ],
   }),
