@@ -1,12 +1,36 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-import { CUSTOM_PLAN, PRICING_FAQ, PUBLIC_PLANS, TRIAL_TERMS } from "@/lib/pricing";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
+import {
+  ARCHITECTURE_NOTES,
+  CUSTOM_PLAN,
+  PRICING_FAQ,
+  PUBLIC_PLANS,
+  TRIAL_TERMS,
+  UNLIMITED_FEATURES,
+} from "@/lib/pricing";
 
 const pricingPage = readFileSync("src/routes/prezzi.tsx", "utf8");
 const landing = readFileSync("src/routes/index.tsx", "utf8");
 const terms = readFileSync("src/routes/termini.tsx", "utf8");
+const privacy = readFileSync("src/routes/privacy.tsx", "utf8");
 const pricingLib = readFileSync("src/lib/pricing.ts", "utf8");
-const ALL = [pricingPage, landing, terms, pricingLib].join("\n");
+const ALL = [pricingPage, landing, terms, privacy, pricingLib].join("\n");
+
+function walk(dir: string, out: string[] = []): string[] {
+  for (const e of readdirSync(dir)) {
+    const p = join(dir, e);
+    if (statSync(p).isDirectory()) walk(p, out);
+    else if (/\.(tsx?|json|webmanifest)$/.test(p)) out.push(p);
+  }
+  return out;
+}
+
+/** Copy pubblico dell'app, escludendo test e file generati. */
+const UI_FILES = walk("src")
+  .filter((p) => !p.includes("__tests__") && !p.endsWith("routeTree.gen.ts"))
+  .filter((p) => p.includes("/routes/") || p.includes("/components/") || p.endsWith("/pricing.ts"))
+  .filter((p) => !p.includes("/routes/api/"));
 
 describe("piani pubblici UEradar", () => {
   it("espone esattamente i due piani con prezzi 299/599 IVA esclusa", () => {
@@ -31,6 +55,68 @@ describe("piani pubblici UEradar", () => {
     }
     expect(ALL.toLowerCase()).not.toContain("multi-azienda");
     expect(ALL.toLowerCase()).not.toContain("più aziende");
+  });
+
+  it("dichiara tutto illimitato in entrambi i piani", () => {
+    for (const p of PUBLIC_PLANS) {
+      for (const f of UNLIMITED_FEATURES) expect(p.features).toContain(f);
+      expect(p.features).toContain("Tutto illimitato: nessuna quota e nessun credito");
+    }
+    expect(TRIAL_TERMS.join(" ")).toContain("Tutto illimitato");
+    expect(terms).toContain("nessuna quota, nessun credito");
+    expect(landing).toContain("illimitat");
+    expect(PRICING_FAQ.some((f) => /illimitat/i.test(f.a))).toBe(true);
+  });
+
+  it("nessuna quota, credito, fair use o soglia di uso corretto nel copy pubblico", () => {
+    const hits: string[] = [];
+    const FORBIDDEN: RegExp[] = [
+      /\bfair\s*use\b/i,
+      /uso corretto/i,
+      /\d+\s*(dossier|pratiche|ricerche|export|analisi)\s*\/?\s*(al\s+)?mese/i,
+      /limite mensile/i,
+      /quota mensile/i,
+      /crediti (inclusi|residui|disponibili|mensili)/i,
+      /consumo di crediti/i,
+      /pacchetto crediti/i,
+    ];
+    for (const f of UI_FILES) {
+      const src = readFileSync(f, "utf8");
+      for (const re of FORBIDDEN) {
+        const m = src.match(re);
+        if (m) hits.push(`${f} :: ${re} :: ${m[0]}`);
+      }
+      // "overage" è ammesso solo in formulazioni negative
+      for (const occ of src.matchAll(/.{0,40}overage/gi)) {
+        if (!/nessun|non sono previsti|non generano|né/i.test(occ[0])) hits.push(`${f} :: overage :: ${occ[0]}`);
+      }
+    }
+    expect(hits).toEqual([]);
+  });
+
+  it("descrive costi API inclusi senza overage né addebiti automatici", () => {
+    const t = TRIAL_TERMS.join(" ");
+    expect(t).toContain("Costi API inclusi nel canone.");
+    expect(t).toContain("Nessun overage e nessun costo extra automatico.");
+    expect(terms).toContain("I costi API sono inclusi nel canone");
+    expect(terms).toContain("non sono previsti overage né costi extra automatici");
+  });
+
+  it("spiega l'architettura cost-efficient senza condividere dati privati", () => {
+    const notes = ARCHITECTURE_NOTES.map((n) => `${n.t} ${n.d}`).join(" ");
+    expect(notes).toMatch(/dedupl/i);
+    expect(notes).toMatch(/TTL/);
+    expect(notes).toMatch(/versione/i);
+    expect(notes).toMatch(/invalidazione/i);
+    expect(notes).toMatch(/idempotent/i);
+    expect(notes).toMatch(/cache/i);
+    expect(notes).toMatch(/rate limit/i);
+    expect(notes).toMatch(/circuit breaker/i);
+    expect(notes).toMatch(/isolat/i);
+    expect(notes).toMatch(/cross-tenant/i);
+    expect(privacy).toContain("cross-tenant");
+    // le protezioni interne non devono mai essere presentate come quote o addebiti
+    expect(notes).toMatch(/non sono quote commerciali/i);
   });
 
   it("offre una soluzione su misura oltre 10 utenti senza form di invio", () => {
@@ -62,22 +148,18 @@ describe("piani pubblici UEradar", () => {
     expect(terms).toContain("senza disdetta scritta e senza PEC");
   });
 
-  it("include i costi API e vieta overage automatici", () => {
-    const t = TRIAL_TERMS.join(" ");
-    expect(t).toContain("Costi API inclusi entro un uso corretto del servizio.");
-    expect(t).toContain("Nessun overage o costo extra automatico.");
-    expect(terms).toContain("non sono previsti overage né costi extra automatici");
-  });
-
   it("non contiene prezzi legacy né checkout/Stripe/billing reale", () => {
-    expect(ALL).not.toMatch(/39\s*€/);
-    expect(ALL).not.toMatch(/€\s*39\b/);
-    expect(ALL).not.toMatch(/stripe/i);
-    expect(ALL).not.toMatch(/checkout/i);
-    expect(ALL).not.toMatch(/paypal|payment_link|buy\.stripe/i);
-    expect(pricingPage).not.toMatch(/href="https?:\/\/(?!ueradar)/);
+    const hits: string[] = [];
+    for (const f of UI_FILES) {
+      const src = readFileSync(f, "utf8");
+      for (const re of [/39\s*€/, /€\s*39\b/, /stripe/i, /paypal/i, /payment_link/i, /\bcheck-?out\b/i]) {
+        if (re.test(src)) hits.push(`${f} :: ${re}`);
+      }
+    }
+    expect(hits).toEqual([]);
     // le CTA della prova puntano solo al percorso auth esistente
     expect(pricingPage).toContain('to="/auth"');
+    expect(pricingPage).not.toMatch(/href="https?:\/\/(?!ueradar)/);
   });
 
   it("non promette funzionalità Team inesistenti", () => {

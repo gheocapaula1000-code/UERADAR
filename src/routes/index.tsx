@@ -218,9 +218,13 @@ function Landing() {
       <section id="prezzi" className="mx-auto max-w-7xl px-6 py-20">
         <div className="mb-10 max-w-2xl">
           <div className="text-xs uppercase tracking-widest text-primary font-semibold">Piani</div>
-          <h2 className="mt-2 text-3xl font-bold md:text-4xl">Due piani, IVA esclusa.</h2>
+          <h2 className="mt-2 text-3xl font-bold md:text-4xl">
+            Due piani, tutto illimitato, IVA esclusa.
+          </h2>
           <p className="mt-3 text-muted-foreground">
-            Prova gratuita 7 giorni, senza carta di credito e senza addebito automatico al termine.
+            Nessuna quota e nessun credito: dossier, ricerche, controlli, matching, compilazioni ed
+            export sono illimitati. Prova gratuita 7 giorni, senza carta di credito e senza addebito
+            automatico al termine.
           </p>
         </div>
         <div className="grid gap-6 md:grid-cols-2">
