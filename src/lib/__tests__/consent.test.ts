@@ -177,7 +177,7 @@ describe("UI banner e footer — requisiti normativi statici", () => {
     const terms = readFileSync("src/routes/termini.tsx", "utf8");
     expect(terms).toContain("€299,00");
     expect(terms).toContain("€599,00");
-    expect(terms).toContain("senza carta di credito");
+    expect(terms).toMatch(/non richiede carta di credito/);
     expect(terms).toContain("senza PEC");
     expect(terms).toMatch(/fatturazione .*disattivata fino al collaudo/);
   });
