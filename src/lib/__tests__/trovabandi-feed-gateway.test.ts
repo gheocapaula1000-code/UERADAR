@@ -156,4 +156,14 @@ describe("gateway isolato", () => {
     expect(src).toContain('key !== "action"');
     expect(src).toContain("UPSTREAM_UNAVAILABLE");
   });
+
+  it("controlla gli errori cache e applica la stessa TTL a feed e dettagli", () => {
+    const src = readFileSync("src/lib/proxy-core.functions.ts", "utf8");
+    expect(src).toContain("CACHE_WRITE_FAILED");
+    expect(src).toContain("HIDDEN_CACHE_WRITE_FAILED");
+    expect(src).toContain("CACHE_FALLBACK_READ_FAILED");
+    expect(src).toContain("HIDDEN_CACHE_READ_FAILED");
+    expect(src.match(/\.gte\("fetched_at", cutoff\)/g)).toHaveLength(2);
+    expect(src).toContain('.gte("discovered_at", cutoff)');
+  });
 });
