@@ -263,7 +263,8 @@ export function buildDossier(
   now: number = Date.now(),
 ): Dossier {
   const profile = pickAllowedProfile(rawProfile);
-  const missing_official = missingOfficialData(bando);
+  const expiredNow = isExpired(bando, now);
+  const missing_official = missingOfficialData(bando, now);
   const missing_profile = REQUIRED_PROFILE.filter((f) => profile[f.key] === undefined).map((f) => f.label);
 
   const left = daysLeftOf(bando, now);
@@ -311,7 +312,11 @@ export function buildDossier(
   return {
     bando_id: bando.id,
     generated_at: new Date(now).toISOString(),
-    readiness: missing_official.length === 0 && missing_profile.length === 0 ? "COMPLETO" : "PARZIALE",
+    readiness: expiredNow
+      ? "SCADUTO"
+      : missing_official.length === 0 && missing_profile.length === 0
+        ? "COMPLETO"
+        : "PARZIALE",
     missing_official,
     missing_profile,
     cover,
