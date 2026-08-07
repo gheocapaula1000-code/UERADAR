@@ -629,6 +629,53 @@ function Row({ l, v }: { l: string; v: string }) {
   );
 }
 
+function DossierBlock({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-border bg-background/40 p-4">
+      <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
+        <span className="text-primary">{icon}</span>
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+function FieldGrid({ fields }: { fields: DossierField[] }) {
+  return (
+    <dl className="grid gap-x-6 gap-y-1.5 text-xs sm:grid-cols-2">
+      {fields.map((f) => (
+        <div key={f.label} className="flex justify-between gap-2 border-b border-border/40 pb-1">
+          <dt className="text-muted-foreground">{f.label}</dt>
+          <dd className={`text-right font-medium ${f.missing ? "text-warning" : ""}`}>{f.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function ListSection({ label, items }: { label: string; items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="mt-2 first:mt-0">
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+        {items.map((i) => (
+          <li key={i}>• {i}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 import type { Bando } from "@/lib/bandocore-types";
 
 /** Avviso obbligatorio incluso in ogni bozza copiata o scaricata. */
