@@ -26,7 +26,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Radar Bandi — BandoCore" },
+      { title: "Radar Bandi — Bando Navigator" },
       { name: "description", content: "Dashboard bandi personalizzata sul profilo aziendale." },
     ],
   }),
@@ -206,7 +206,7 @@ function Dashboard() {
           <div className="flex items-center gap-2">
             {isOffline && (
               <span className="inline-flex items-center gap-1.5 rounded-lg bg-warning/15 px-3 py-2 text-xs text-warning">
-                <WifiOff className="h-3.5 w-3.5" /> Modalità cache offline
+                <WifiOff className="h-3.5 w-3.5" /> Dati salvati
               </span>
             )}
             <button
