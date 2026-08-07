@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BrandLogo, BrandLockup } from "@/components/bandocore/BrandLogo";
+import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { CUSTOM_PLAN, PUBLIC_PLANS, TRIAL_TERMS } from "@/lib/pricing";
 import { ORGANIZATION_JSONLD, SOFTWARE_APPLICATION_JSONLD, seoHead } from "@/lib/seo";
 import {
