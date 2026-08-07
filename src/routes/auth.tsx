@@ -53,7 +53,14 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin + "/auth" },
+          options: {
+            emailRedirectTo: window.location.origin + "/auth",
+            data: {
+              ueradar_trial_days: 7,
+              terms_accepted_at: new Date().toISOString(),
+              terms_version: "2026-08-07",
+            },
+          },
         });
         if (error) throw error;
         toast.success("Registrazione completata. Verifica la mail se richiesto.");
@@ -110,7 +117,7 @@ function AuthPage() {
           <p className="mt-2 text-sm text-muted-foreground">
             {mode === "signin"
               ? "Accedi al tuo radar bandi."
-              : "Registrati con la tua email aziendale."}
+              : "7 giorni gratuiti senza carta. Registrati con la tua email aziendale."}
           </p>
 
           <button
@@ -181,6 +188,12 @@ function AuthPage() {
               {loading ? "Attendi…" : mode === "signin" ? "Accedi" : "Crea account"}
             </button>
           </form>
+
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            Continuando accetti i <Link to="/termini" className="text-primary hover:underline">Termini</Link>
+            {" e l'"}<Link to="/privacy" className="text-primary hover:underline">informativa privacy</Link>.
+            Il trial non genera addebiti automatici.
+          </p>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             {mode === "signin" ? "Non hai un account?" : "Hai già un account?"}{" "}
