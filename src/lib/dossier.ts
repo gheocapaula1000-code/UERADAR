@@ -231,14 +231,20 @@ export function buildCoverLetter(bando: Bando, profile: AllowedProfile): string 
   return lines.join("\n");
 }
 
+/** Dati ufficiali minimi mancanti nel bando ricevuto dal feed. */
+export function missingOfficialData(bando: Bando): string[] {
+  const missing = REQUIRED_OFFICIAL.filter((f) => !bando[f.key]).map((f) => f.label);
+  if (!officialUrl(bando)) missing.push("URL ufficiale del bando");
+  return missing;
+}
+
 export function buildDossier(
   bando: Bando,
   rawProfile: CompanyProfile | null | undefined,
   now: number = Date.now(),
 ): Dossier {
   const profile = pickAllowedProfile(rawProfile);
-  const missing_official = REQUIRED_OFFICIAL.filter((f) => !bando[f.key]).map((f) => f.label);
-  if (!officialUrl(bando)) missing_official.push("URL ufficiale del bando");
+  const missing_official = missingOfficialData(bando);
   const missing_profile = REQUIRED_PROFILE.filter((f) => profile[f.key] === undefined).map((f) => f.label);
 
   const left = daysLeftOf(bando, now);
