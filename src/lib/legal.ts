@@ -17,7 +17,7 @@ export const LEGAL = {
   },
   vatId: "05770260288",
   email: "info@pigiservice.com",
-  pec: "paulagheoca@pec.it",
+  pec: "pigiservice@pec.it",
   /** Formato leggibile e link tel: coerente, senza spazi. */
   phone: "+39 352 0966114",
   phoneHref: "tel:+393520966114",

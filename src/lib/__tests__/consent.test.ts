@@ -176,7 +176,7 @@ describe("UI banner e footer — requisiti normativi statici", () => {
     expect(legal).toContain("Pi.Gi Service di Gheoca Paula");
     expect(legal).toContain("05770260288");
     expect(legal).toContain("info@pigiservice.com");
-    expect(legal).toContain("paulagheoca@pec.it");
+    expect(legal).toContain("pigiservice@pec.it");
     expect(legal).toContain("+39 352 0966114");
     expect(legal).toContain("tel:+393520966114");
   });
@@ -193,6 +193,8 @@ describe("UI banner e footer — requisiti normativi statici", () => {
       .map((f) => readFileSync(f, "utf8"))
       .join("\n");
     expect(files).not.toMatch(/347\s?6373956/);
+    expect(files).not.toMatch(/paulagheoca@pec\.it/i);
+    expect(files).toMatch(/pigiservice@pec\.it/);
     expect(files).not.toMatch(/\bREA\b/);
     expect(files).not.toMatch(/Registro Imprese/i);
     expect(files).not.toMatch(/Netlify|Vercel|Cloudflare|Aruba/i);
