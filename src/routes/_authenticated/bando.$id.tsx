@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { AppShell } from "@/components/bandocore/AppShell";
 import { loadCachedFeed } from "@/lib/proxy-core.functions";
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanyProfile } from "@/lib/bandocore-types";
+import { buildDossier, renderDossierText } from "@/lib/dossier";
+import { downloadDossierPdf } from "@/lib/dossier-pdf";
 import {
   ArrowLeft,
   Download,
@@ -20,6 +22,10 @@ import {
   AlertTriangle,
   XCircle,
   CalendarX,
+  ListChecks,
+  CalendarClock,
+  Euro,
+  FileDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { isExpired, matchStatusMeta } from "@/lib/bando-status";
@@ -27,11 +33,11 @@ import { isExpired, matchStatusMeta } from "@/lib/bando-status";
 export const Route = createFileRoute("/_authenticated/bando/$id")({
   head: () => ({
     meta: [
-      { title: "Prepara bozza — UEradar.com" },
+      { title: "Dossier candidatura — UEradar.com" },
       {
         name: "description",
         content:
-          "Bozza precompilata dai dati aziendali: contenuto informativo da verificare sulla fonte ufficiale.",
+          "Dossier di candidatura in bozza generato dai dati del bando e dal profilo aziendale: da verificare sulla fonte ufficiale.",
       },
     ],
   }),
@@ -42,6 +48,8 @@ function BandoDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const loadFeed = useServerFn(loadCachedFeed);
+  const [dossierOpen, setDossierOpen] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
 
   const feedQ = useQuery({
     queryKey: ["bandi-feed"],
@@ -88,6 +96,36 @@ function BandoDetail() {
   }
 
   const profile = profileQ.data;
+
+  const dossier = buildDossier(bando, profile);
+  const dossierText = renderDossierText(dossier);
+
+  const copyDossier = async () => {
+    await navigator.clipboard.writeText(dossierText);
+    toast.success("Dossier copiato negli appunti");
+  };
+
+  const downloadDossierTxt = () => {
+    const blob = new Blob([dossierText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dossier-${bando.id}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadPdf = async () => {
+    setPdfBusy(true);
+    try {
+      await downloadDossierPdf(dossier, `dossier-${bando.id}.pdf`);
+      toast.success("PDF generato nel browser");
+    } catch {
+      toast.error("Generazione PDF non riuscita");
+    } finally {
+      setPdfBusy(false);
+    }
+  };
 
   // Se il motore ha restituito la mappatura del PDF nativo della PA,
   // usa quella per generare un testo copiabile allineato al modulo ufficiale.
