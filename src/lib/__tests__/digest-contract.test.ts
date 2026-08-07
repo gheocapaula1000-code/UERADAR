@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { matchingProfile } from "../../../supabase/functions/_shared/trovabandi-contract.ts";
 
 function classifyDigest(processed: number, created: number, failed: number) {
   if (failed > 0 && failed === processed) return { http: 502, status: "FAILED", ok: false };
@@ -25,18 +26,21 @@ describe("contratto digest UEradar.com", () => {
     expect(src).toContain("finished_at");
   });
 
-  it("invia al motore solo i campi necessari al matching", () => {
+  it("invia al motore solo i campi necessari usando l'allowlist condivisa", () => {
     const src = readFileSync("supabase/functions/trovabandi-digest/index.ts", "utf8");
-    const block = src.match(/const MATCHING_PROFILE_FIELDS = \[([\s\S]*?)\] as const;/)?.[1] ?? "";
-    expect(block).toContain('"codice_ateco"');
-    expect(block).toContain('"regione"');
-    expect(block).not.toContain('"user_id"');
-    expect(block).not.toContain('"partita_iva"');
-    expect(block).not.toContain('"ragione_sociale"');
-    expect(block).not.toContain('"legale_rappresentante"');
-    expect(block).not.toContain('"email_referente"');
-    expect(block).not.toContain('"telefono"');
-    expect(block).not.toContain('"pec"');
+    const minimized = matchingProfile({
+      user_id: "u",
+      partita_iva: "IT123",
+      ragione_sociale: "ACME Srl",
+      legale_rappresentante: "Mario Rossi",
+      email_referente: "mario@example.com",
+      telefono: "123",
+      pec: "acme@pec.example",
+      codice_ateco: "62.01",
+      regione: "Lazio",
+    });
+    expect(minimized).toEqual({ codice_ateco: "62.01", regione: "Lazio" });
+    expect(src).toContain('from "../_shared/trovabandi-contract.ts"');
     expect(src).toContain("profile: matchingProfile(profile)");
   });
 
