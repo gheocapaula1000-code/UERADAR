@@ -64,8 +64,12 @@ export interface DossierTimelineStep {
 export interface Dossier {
   bando_id: string;
   generated_at: string;
-  /** COMPLETO quando tutti i dati minimi ufficiali e di profilo sono presenti. */
-  readiness: "COMPLETO" | "PARZIALE";
+  /**
+   * Fail-closed: COMPLETO solo con verifica ufficiale, scadenza futura, fonte
+   * ufficiale mappata, requisiti, evidence e profilo minimo. SCADUTO se il
+   * termine è superato. In ogni altro caso PARZIALE.
+   */
+  readiness: "COMPLETO" | "PARZIALE" | "SCADUTO";
   missing_official: string[];
   missing_profile: string[];
   cover: DossierField[];
@@ -114,8 +118,13 @@ function date(value: string | undefined): string | undefined {
   return Number.isFinite(t.getTime()) ? t.toLocaleDateString("it-IT") : undefined;
 }
 
-function officialUrl(bando: Bando): string | undefined {
-  return bando.notice_url ?? bando.application_url ?? bando.piattaforma_url ?? undefined;
+/**
+ * Fonte ufficiale primaria ai fini della readiness: official_url, poi notice_url.
+ * application_url / piattaforma_url sono canali di presentazione e non valgono
+ * come prova della fonte ufficiale.
+ */
+export function officialUrl(bando: Bando): string | undefined {
+  return bando.official_url || bando.notice_url || undefined;
 }
 
 function field(label: string, value: string | undefined): DossierField {
