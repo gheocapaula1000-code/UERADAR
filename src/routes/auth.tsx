@@ -8,9 +8,9 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Accedi — BandoCore" },
+      { title: "Accedi — Bando Navigator" },
       { name: "description", content: "Accedi al radar dei bandi per la tua impresa." },
-      { property: "og:title", content: "Accedi — BandoCore" },
+      { property: "og:title", content: "Accedi — Bando Navigator" },
       { property: "og:description", content: "Accedi al radar dei bandi per la tua impresa." },
     ],
   }),
@@ -94,7 +94,7 @@ function AuthPage() {
             legale e forma giuridica.
           </p>
         </div>
-        <p className="relative text-xs text-muted-foreground">© BandoCore · Servizio B2B</p>
+        <p className="relative text-xs text-muted-foreground">© Bando Navigator · Servizio B2B</p>
       </div>
 
       <div className="flex items-center justify-center p-8">
@@ -105,7 +105,7 @@ function AuthPage() {
             </Link>
           </div>
           <h1 className="text-3xl font-bold">
-            {mode === "signin" ? "Bentornato" : "Attiva BandoCore"}
+            {mode === "signin" ? "Bentornato" : "Attiva Bando Navigator"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {mode === "signin"
