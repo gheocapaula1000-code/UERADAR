@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { BrandLogo } from "@/components/bandocore/BrandLogo";
+import { BrandLogo, BrandLockup } from "@/components/bandocore/BrandLogo";
 import {
   Radar,
   Target,
@@ -230,6 +230,7 @@ function Landing() {
       </section>
 
       <footer className="border-t border-border py-8 text-center text-xs text-muted-foreground">
+        <BrandLockup className="mx-auto mb-5" />
         <p>© {new Date().getFullYear()} UEradar.com · Servizio B2B riservato a Partite IVA</p>
         <p className="mt-3">
           <Link to="/prezzi" className="hover:text-foreground">Prezzi</Link>
