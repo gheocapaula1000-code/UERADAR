@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
 import { daysLeft as daysLeftOf, isExpired, matchStatusMeta } from "@/lib/bando-status";
+import { missingOfficialData } from "@/lib/dossier";
 
 const categoryStyles: Record<Bando["categoria"], { label: string; class: string }> = {
   FONDO_PERDUTO: { label: "Fondo Perduto", class: "bg-primary/15 text-primary border-primary/30" },
@@ -82,6 +83,8 @@ export function BandoCard({ bando }: { bando: Bando }) {
   const urgent = !expired && daysLeft !== null && daysLeft <= 10 && daysLeft >= 0;
   const match = bando.match;
   const matchMeta = match ? matchStatusMeta(match.status) : null;
+  const missingOfficial = missingOfficialData(bando);
+  const partial = missingOfficial.length > 0;
 
   return (
     <div
@@ -215,14 +218,21 @@ export function BandoCard({ bando }: { bando: Bando }) {
         ) : null}
       </div>
 
+      {partial && (
+        <p className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
+          Dossier parziale — dati ufficiali mancanti: {missingOfficial.join(", ")}.
+        </p>
+      )}
+
       <Link
         to="/bando/$id"
         params={{ id: bando.id }}
-        aria-label={`Prepara bozza precompilata per ${bando.titolo} — contenuto informativo da verificare`}
-        title="Prepara una bozza precompilata: contenuto informativo da verificare, non è una domanda inviata"
+        aria-label={`Genera dossier candidatura per ${bando.titolo} — bozza informativa da verificare`}
+        title="Genera un dossier di candidatura in bozza: contenuto informativo da verificare, nessuna domanda viene inviata"
         className="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
       >
-        Prepara bozza <ArrowRight className="h-4 w-4" />
+        {partial ? "Genera dossier parziale" : "Genera dossier candidatura"}{" "}
+        <ArrowRight className="h-4 w-4" />
       </Link>
     </div>
   );
