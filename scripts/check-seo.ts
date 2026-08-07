@@ -127,8 +127,14 @@ for (const key of Object.keys(ROUTE_FILES) as SeoKey[]) {
     fail(`${file}: manca l'ancora dello skip-to-content`);
   if (!combined.includes("<header")) fail(`${file}: manca il landmark <header>`);
   if (!/<nav[^>]*aria-label=/.test(combined)) fail(`${file}: nav senza aria-label`);
-  if (ROUTE_SEO[key].indexable && !combined.includes("<footer"))
-    fail(`${file}: rotta pubblica senza <footer>`);
+  // Il footer legale e' centralizzato in SiteFooter (link Termini/Privacy/Cookie
+  // e pulsante "Gestisci cookie"): la rotta puo' renderlo direttamente o via layout.
+  if (
+    ROUTE_SEO[key].indexable &&
+    !combined.includes("<footer") &&
+    !combined.includes("<SiteFooter")
+  )
+    fail(`${file}: rotta pubblica senza footer legale (<footer> o <SiteFooter />)`);
 
   if (ROUTE_SEO[key].indexable) {
     // I claim si valutano solo sul copy indicizzabile: nelle aree private

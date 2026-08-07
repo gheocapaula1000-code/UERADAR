@@ -49,8 +49,27 @@ PROBE = """() => {
   }
   const ld = [...document.querySelectorAll('script[type="application/ld+json"]')]
     .flatMap((n) => { try { const j = JSON.parse(n.textContent); return [j['@type']]; } catch { return ['INVALID']; } });
+  const banner = document.querySelector('[data-testid="cookie-banner"]');
+  const consent = { present: !!banner, actions: 0, smallActions: [], overflow: false, storage: 0 };
+  if (banner) {
+    const acts = banner.querySelectorAll('button');
+    consent.actions = acts.length;
+    for (const b of acts) {
+      const r = b.getBoundingClientRect();
+      if (r.width && r.height && (r.width < 44 || r.height < 44)) {
+        consent.smallActions.push(((b.innerText || b.getAttribute('aria-label') || '?').trim().slice(0, 30))
+          + ` ${Math.round(r.width)}x${Math.round(r.height)}`);
+      }
+    }
+    consent.overflow = banner.scrollWidth > window.innerWidth + 1;
+    consent.dialog = banner.getAttribute('role') === 'dialog'
+      && !!banner.getAttribute('aria-labelledby') && !!banner.getAttribute('aria-describedby');
+  }
+  try {
+    consent.storage = Object.keys(localStorage).filter((k) => k !== "ueradar.cookie-consent").length;
+  } catch { consent.storage = -1; }
   return {
-    ld,
+    ld, consent,
     scrollWidth: doc.scrollWidth,
     innerWidth: window.innerWidth,
     h1: document.querySelectorAll('h1').length,
@@ -97,6 +116,20 @@ async def main():
                         probs.append(f"JSON-LD {t} assente")
                 if "INVALID" in r["ld"]:
                     probs.append("JSON-LD non valido")
+                c = r.get("consent") or {}
+                if not c.get("present"):
+                    probs.append("banner cookie assente al primo accesso")
+                else:
+                    if not c.get("dialog"):
+                        probs.append("banner cookie senza semantica dialog/aria")
+                    if c.get("actions", 0) < 4:
+                        probs.append(f"banner cookie con {c.get('actions')} pulsanti (attesi >= 4)")
+                    if c.get("smallActions"):
+                        probs.append("banner tap<44: " + "; ".join(c["smallActions"][:4]))
+                    if c.get("overflow"):
+                        probs.append("banner cookie in overflow orizzontale")
+                if c.get("storage", 0) not in (0, -1):
+                    probs.append(f"storage non necessario prima della scelta ({c.get('storage')} chiavi)")
                 if r["small"]:
                     probs.append("tap<44: " + "; ".join(r["small"][:6]))
                 if r["clipped"]:

@@ -1,0 +1,184 @@
+import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import {
+  CONSENT_STORAGE_KEY,
+  CONSENT_VERSION,
+  DEFAULT_CHOICES,
+  OPTIONAL_CATEGORIES,
+  OPTIONAL_VENDORS,
+  createRecord,
+  effectiveChoices,
+  hasOptionalVendors,
+  needsPrompt,
+  parseRecord,
+  readConsent,
+  writeConsent,
+} from "@/lib/consent";
+
+function memoryStorage() {
+  const map = new Map<string, string>();
+  return {
+    getItem: (k: string) => map.get(k) ?? null,
+    setItem: (k: string, v: string) => void map.set(k, v),
+    raw: map,
+  };
+}
+
+describe("consenso cookie — default e rifiuto", () => {
+  it("al primo accesso le categorie opzionali sono spente e il banner va mostrato", () => {
+    const store = memoryStorage();
+    const record = readConsent(store);
+    expect(record).toBeNull();
+    expect(needsPrompt(record)).toBe(true);
+    for (const cat of OPTIONAL_CATEGORIES) expect(effectiveChoices(record)[cat]).toBe(false);
+    expect(DEFAULT_CHOICES.necessary).toBe(true);
+  });
+
+  it("X / Escape / rifiuto producono lo stesso record senza opzionali", () => {
+    const rec = createRecord("reject_optional");
+    expect(rec.method).toBe("reject_optional");
+    expect(rec.choices).toEqual({ ...DEFAULT_CHOICES });
+    for (const cat of OPTIONAL_CATEGORIES) expect(rec.choices[cat]).toBe(false);
+  });
+
+  it("un tentativo di consenso implicito viene normalizzato a rifiuto", () => {
+    const rec = createRecord("reject_optional", { analytics: true, marketing: true });
+    expect(rec.choices.analytics).toBe(false);
+    expect(rec.choices.marketing).toBe(false);
+  });
+});
+
+describe("consenso cookie — accettazione e granularita'", () => {
+  it("accetta tutti attiva ogni categoria", () => {
+    const rec = createRecord("accept_all");
+    for (const cat of OPTIONAL_CATEGORIES) expect(rec.choices[cat]).toBe(true);
+  });
+
+  it("la personalizzazione granulare conserva solo le categorie scelte", () => {
+    const rec = createRecord("custom", { analytics: true });
+    expect(rec.choices.analytics).toBe(true);
+    expect(rec.choices.preferences).toBe(false);
+    expect(rec.choices.marketing).toBe(false);
+    expect(rec.choices.necessary).toBe(true);
+  });
+});
+
+describe("consenso cookie — persistenza e versione", () => {
+  it("scrive versione, timestamp e scelte e non ripropone il banner", () => {
+    const store = memoryStorage();
+    const rec = createRecord("custom", { preferences: true }, new Date("2026-08-07T10:00:00Z"));
+    writeConsent(store, rec);
+    const saved = JSON.parse(store.raw.get(CONSENT_STORAGE_KEY)!);
+    expect(saved.version).toBe(CONSENT_VERSION);
+    expect(saved.timestamp).toBe("2026-08-07T10:00:00.000Z");
+    expect(saved.choices.preferences).toBe(true);
+    const reread = readConsent(store);
+    expect(needsPrompt(reread)).toBe(false);
+    expect(reread?.choices.preferences).toBe(true);
+  });
+
+  it("una versione diversa richiede una nuova scelta e riporta i default", () => {
+    const old = { ...createRecord("accept_all"), version: "2020-01-01" };
+    expect(needsPrompt(old)).toBe(true);
+    expect(effectiveChoices(old)).toEqual({ ...DEFAULT_CHOICES });
+  });
+
+  it("un valore corrotto equivale ad assenza di consenso", () => {
+    expect(parseRecord("non-json")).toBeNull();
+    expect(parseRecord('{"version":"x"}')).toBeNull();
+    expect(parseRecord(JSON.stringify({ ...createRecord("accept_all"), choices: { necessary: false } }))).toBeNull();
+    expect(needsPrompt(parseRecord(null))).toBe(true);
+  });
+});
+
+describe("nessun vendor opzionale caricato", () => {
+  it("la lista vendor e' vuota finche' non viene integrato uno strumento reale", () => {
+    expect(OPTIONAL_VENDORS).toHaveLength(0);
+    expect(hasOptionalVendors()).toBe(false);
+  });
+
+  it("il codice non carica script di terze parti di analytics o marketing", () => {
+    const files = [
+      "src/components/bandocore/CookieConsent.tsx",
+      "src/components/bandocore/SiteFooter.tsx",
+      "src/routes/__root.tsx",
+      "src/lib/consent.ts",
+    ];
+    const forbidden =
+      /googletagmanager|google-analytics|gtag\(|fbq\(|hotjar|clarity\.ms|matomo|plausible|segment\.com|doubleclick/i;
+    for (const f of files) {
+      expect(readFileSync(f, "utf8")).not.toMatch(forbidden);
+    }
+  });
+});
+
+describe("UI banner e footer — requisiti normativi statici", () => {
+  const banner = readFileSync("src/components/bandocore/CookieConsent.tsx", "utf8");
+  const footer = readFileSync("src/components/bandocore/SiteFooter.tsx", "utf8");
+  const cookiePage = readFileSync("src/routes/cookie.tsx", "utf8");
+
+  it("il dialog ha semantica accessibile, focus trap e ripristino del focus", () => {
+    expect(banner).toContain('role="dialog"');
+    expect(banner).toContain("aria-modal");
+    expect(banner).toContain("aria-labelledby");
+    expect(banner).toContain("aria-describedby");
+    expect(banner).toContain('e.key === "Escape"');
+    expect(banner).toContain("restoreRef");
+  });
+
+  it("i tre pulsanti hanno pari evidenza e area di tocco >= 44px", () => {
+    expect(banner).toContain("Accetta tutti");
+    expect(banner).toContain("Rifiuta opzionali");
+    expect(banner).toContain("Personalizza");
+    const styled = banner.match(/bg-secondary/g) ?? [];
+    expect(styled.length).toBeGreaterThanOrEqual(3);
+    expect(banner).not.toMatch(/Accetta tutti[\s\S]{0,200}bg-primary/);
+    expect(banner).toContain("min-h-11");
+  });
+
+  it("il bottom-sheet rispetta le safe-area iOS", () => {
+    expect(banner).toContain("fixed inset-x-0 bottom-0");
+    expect(banner).toContain("safe-bottom");
+    expect(banner).toContain("safe-x");
+  });
+
+  it("la X e' dichiarata come chiusura senza accettazione", () => {
+    expect(banner).toContain("Chiudi senza accettare gli strumenti opzionali");
+    expect(banner).toContain("dismissAsRefusal");
+  });
+
+  it("il footer espone i link legali e la revoca del consenso", () => {
+    for (const s of ["Termini e Condizioni", "Privacy", "Cookie", "Gestisci cookie"]) {
+      expect(footer).toContain(s);
+    }
+    expect(footer).toContain("CONSENT_OPEN_EVENT");
+  });
+
+  it("le pagine legali linkano le fonti ufficiali", () => {
+    expect(cookiePage).toContain("docweb/9677876");
+    expect(cookiePage).toContain("eur-lex.europa.eu/eli/reg/2016/679/oj");
+    expect(readFileSync("src/routes/privacy.tsx", "utf8")).toContain("docweb/9677876");
+  });
+
+  it("le pagine legali marcano i dati del titolare come da completare, senza inventarli", () => {
+    for (const f of ["src/routes/privacy.tsx", "src/routes/termini.tsx", "src/routes/cookie.tsx"]) {
+      expect(readFileSync(f, "utf8")).toContain("da completare prima della pubblicazione");
+    }
+    const legal = ["src/routes/privacy.tsx", "src/routes/termini.tsx", "src/routes/cookie.tsx"]
+      .map((f) => readFileSync(f, "utf8"))
+      .join("\n");
+    // nessuna P.IVA, REA o indirizzo inventato
+    expect(legal).not.toMatch(/\bIT\d{11}\b/);
+    expect(legal).not.toMatch(/\bREA\s*[:n]?\s*[A-Z]{2}-?\d+/i);
+    expect(legal).not.toMatch(/\bvia\s+[A-Z][a-z]+\s+\d+/);
+  });
+
+  it("i termini riportano prezzi, prova e billing disattivato", () => {
+    const terms = readFileSync("src/routes/termini.tsx", "utf8");
+    expect(terms).toContain("€299,00");
+    expect(terms).toContain("€599,00");
+    expect(terms).toMatch(/non richiede carta di credito/);
+    expect(terms).toContain("senza PEC");
+    expect(terms).toMatch(/fatturazione .*disattivata fino al collaudo/);
+  });
+});

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BrandLogo, BrandLockup } from "@/components/bandocore/BrandLogo";
+import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { CUSTOM_PLAN, PUBLIC_PLANS, TRIAL_TERMS } from "@/lib/pricing";
 import { ORGANIZATION_JSONLD, SOFTWARE_APPLICATION_JSONLD, seoHead } from "@/lib/seo";
 import {
@@ -267,34 +268,9 @@ function Landing() {
       </section>
       </main>
 
-      <footer className="safe-x safe-bottom border-t border-border px-4 py-8 text-center text-xs text-muted-foreground">
+      <SiteFooter>
         <BrandLockup className="mx-auto mb-5" />
-        <p>© {new Date().getFullYear()} UEradar.com · Servizio B2B riservato a Partite IVA</p>
-        <nav aria-label="Link legali e informativi" className="mt-3">
-          <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-            <li>
-              <Link to="/prezzi" className="tap inline-flex items-center hover:text-foreground">
-                Prezzi
-              </Link>
-            </li>
-            <li>
-              <Link to="/privacy" className="tap inline-flex items-center hover:text-foreground">
-                Privacy
-              </Link>
-            </li>
-            <li>
-              <Link to="/termini" className="tap inline-flex items-center hover:text-foreground">
-                Termini
-              </Link>
-            </li>
-            <li>
-              <Link to="/cookie" className="tap inline-flex items-center hover:text-foreground">
-                Cookie
-              </Link>
-            </li>
-          </ul>
-        </nav>
-      </footer>
+      </SiteFooter>
     </div>
   );
 }
