@@ -1,6 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Building2, CreditCard, LogOut } from "lucide-react";
 import { BrandLogo } from "@/components/bandocore/BrandLogo";
+import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { ReactNode } from "react";
@@ -91,6 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
 
         <main id="contenuto-principale" className="safe-x safe-bottom flex-1 overflow-y-auto">{children}</main>
+        <SiteFooter />
       </div>
     </div>
   );
