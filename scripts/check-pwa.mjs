@@ -73,6 +73,12 @@ else if (!root.includes("import.meta.env.PROD") || !root.includes("id-preview--"
   fail("registrazione SW senza le guardie di produzione esistenti");
 else ok("registrazione SW protetta dalle guardie di produzione");
 
+const sw = readFileSync("public/sw.js", "utf8");
+for (const route of ["/auth", "/prezzi", "/privacy", "/termini", "/cookie"]) {
+  if (!sw.includes(`"${route}"`)) fail(`shell offline: manca ${route}`);
+  else ok(`shell offline include ${route}`);
+}
+
 // 3. vecchia CTA
 const stale = [];
 function walk(dir) {
