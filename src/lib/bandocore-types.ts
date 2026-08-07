@@ -103,6 +103,8 @@ export interface Bando {
   pdf_field_mapping?: PdfFieldMapping[];
   notice_url?: string;
   application_url?: string;
+  /** URL della fonte ufficiale primaria, quando restituito dal contratto core. */
+  official_url?: string;
   aid_intensity_percent?: number;
   total_budget?: number;
   eligible_expenses?: string[];
