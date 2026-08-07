@@ -160,17 +160,43 @@ describe("UI banner e footer — requisiti normativi statici", () => {
     expect(readFileSync("src/routes/privacy.tsx", "utf8")).toContain("docweb/9677876");
   });
 
-  it("le pagine legali marcano i dati del titolare come da completare, senza inventarli", () => {
-    for (const f of ["src/routes/privacy.tsx", "src/routes/termini.tsx", "src/routes/cookie.tsx"]) {
-      expect(readFileSync(f, "utf8")).toContain("da completare prima della pubblicazione");
+  it("le pagine legali riportano i dati legali reali senza placeholder", () => {
+    const files = [
+      "src/routes/privacy.tsx",
+      "src/routes/termini.tsx",
+      "src/routes/cookie.tsx",
+      "src/routes/contatti.tsx",
+      "src/components/bandocore/SiteFooter.tsx",
+    ];
+    for (const f of files) {
+      const src = readFileSync(f, "utf8");
+      expect(src).not.toContain("da completare prima della pubblicazione");
     }
-    const legal = ["src/routes/privacy.tsx", "src/routes/termini.tsx", "src/routes/cookie.tsx"]
+    const legal = readFileSync("src/lib/legal.ts", "utf8");
+    expect(legal).toContain("Pi.Gi Service di Gheoca Paula");
+    expect(legal).toContain("05770260288");
+    expect(legal).toContain("info@pigiservice.com");
+    expect(legal).toContain("paulagheoca@pec.it");
+    expect(legal).toContain("+39 352 0966114");
+    expect(legal).toContain("tel:+393520966114");
+  });
+
+  it("non compaiono il vecchio numero, dati inventati o provider di hosting non verificati", () => {
+    const files = [
+      "src/lib/legal.ts",
+      "src/routes/privacy.tsx",
+      "src/routes/termini.tsx",
+      "src/routes/cookie.tsx",
+      "src/routes/contatti.tsx",
+      "src/components/bandocore/SiteFooter.tsx",
+    ]
       .map((f) => readFileSync(f, "utf8"))
       .join("\n");
-    // nessuna P.IVA, REA o indirizzo inventato
-    expect(legal).not.toMatch(/\bIT\d{11}\b/);
-    expect(legal).not.toMatch(/\bREA\s*[:n]?\s*[A-Z]{2}-?\d+/i);
-    expect(legal).not.toMatch(/\bvia\s+[A-Z][a-z]+\s+\d+/);
+    expect(files).not.toMatch(/347\s?6373956/);
+    expect(files).not.toMatch(/\bREA\b/);
+    expect(files).not.toMatch(/Registro Imprese/i);
+    expect(files).not.toMatch(/Netlify|Vercel|Cloudflare|Aruba/i);
+    expect(files).not.toMatch(/Codice Fiscale/i);
   });
 
   it("i termini riportano prezzi, prova e billing disattivato", () => {

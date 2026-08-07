@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage, LegalSection } from "@/components/bandocore/LegalPage";
+import { LEGAL, LEGAL_ADDRESS_LINE } from "@/lib/legal";
 import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/termini")({
@@ -12,11 +13,14 @@ function Terms() {
     <LegalPage title="Termini di servizio">
       <LegalSection title="Oggetto">
         <p>UEradar.com è un servizio B2B che raccoglie e ordina opportunità pubbliche sulla base del profilo dell'impresa. È riservato a soggetti economici e professionali.</p>
-        <p className="rounded-lg border border-dashed border-border p-3 text-foreground">
-          Dati legali del titolare da completare prima della pubblicazione: denominazione, sede
-          legale, P.IVA/CF, numero REA e recapiti ufficiali non sono ancora disponibili e non
-          vengono inventati. Blocco interno da compilare prima della messa online, insieme al foro
-          competente.
+        <p>
+          Il servizio è erogato da <strong className="text-foreground">{LEGAL.owner}</strong>, sede
+          legale in {LEGAL_ADDRESS_LINE}, P. IVA {LEGAL.vatId}, email {LEGAL.email}, PEC {LEGAL.pec},
+          telefono{" "}
+          <a href={LEGAL.phoneHref} className="underline hover:text-foreground">
+            {LEGAL.phone}
+          </a>
+          .
         </p>
       </LegalSection>
       <LegalSection title="Prova gratuita e attivazione">
@@ -46,7 +50,13 @@ function Terms() {
         <p>È vietato aggirare i controlli di accesso, rivendere dati grezzi o usare il servizio in modo illecito. Manutenzioni, indisponibilità delle fonti e cause esterne possono limitare temporaneamente gli aggiornamenti.</p>
       </LegalSection>
       <LegalSection title="Contatti">
-        <p>Per assistenza contrattuale: assistenza@ueradar.com.</p>
+        <p>
+          Per assistenza contrattuale: {LEGAL.email} (PEC {LEGAL.pec}), telefono{" "}
+          <a href={LEGAL.phoneHref} className="underline hover:text-foreground">
+            {LEGAL.phone}
+          </a>
+          .
+        </p>
       </LegalSection>
     </LegalPage>
   );

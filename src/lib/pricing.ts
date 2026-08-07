@@ -67,7 +67,7 @@ export const CUSTOM_PLAN = {
   cta: "Contattaci",
   description:
     "Per organizzazioni con più di 10 utenti nominativi valutiamo una soluzione su misura. Scrivici e concordiamo insieme perimetro e condizioni.",
-  contact: "assistenza@ueradar.com",
+  contact: "info@pigiservice.com",
 } as const;
 
 /** Condizioni identiche per entrambi i piani. */

@@ -4,6 +4,7 @@
  * le rotte non devono duplicare stringhe, così il check statico resta attendibile.
  */
 import { PRICING_FAQ } from "@/lib/pricing";
+import { LEGAL } from "@/lib/legal";
 
 export const SITE_URL = "https://ueradar.com";
 export const SITE_NAME = "UEradar.com";
@@ -57,6 +58,14 @@ export const ROUTE_SEO = {
     title: "Cookie e memoria locale del servizio — UEradar.com",
     description:
       "Quali cookie e quale memoria locale usa UEradar.com per autenticazione, sicurezza, installazione dell'app e consultazione offline dell'ultimo feed disponibile.",
+    indexable: true,
+    ogType: "article",
+  },
+  "/contatti": {
+    path: "/contatti",
+    title: "Contatti UEradar.com — assistenza e dati del titolare",
+    description:
+      "Contatti ufficiali di UEradar.com: email, PEC, telefono e sede legale del titolare Pi.Gi Service di Gheoca Paula per assistenza, privacy e questioni amministrative.",
     indexable: true,
     ogType: "article",
   },
@@ -127,9 +136,28 @@ export const ORGANIZATION_JSONLD = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: SITE_NAME,
+  legalName: LEGAL.owner,
   url: `${SITE_URL}/`,
   logo: `${SITE_URL}/icons/icon-512.png`,
-  email: "assistenza@ueradar.com",
+  email: LEGAL.email,
+  telephone: LEGAL.phone,
+  vatID: LEGAL.vatId,
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: LEGAL.address.street,
+    postalCode: LEGAL.address.postalCode,
+    addressLocality: LEGAL.address.city,
+    addressRegion: LEGAL.address.province,
+    addressCountry: "IT",
+  },
+  contactPoint: {
+    "@type": "ContactPoint",
+    contactType: "customer support",
+    email: LEGAL.email,
+    telephone: LEGAL.phone,
+    areaServed: "IT",
+    availableLanguage: "it",
+  },
   description:
     "Servizio B2B che aiuta Partite IVA e imprese italiane a individuare bandi e incentivi pubblici da fonti ufficiali.",
 };

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage, LegalSection } from "@/components/bandocore/LegalPage";
 import { CATEGORY_LABELS, CONSENT_VERSION, OPTIONAL_CATEGORIES, hasOptionalVendors } from "@/lib/consent";
 import { openCookiePreferences } from "@/components/bandocore/SiteFooter";
+import { LEGAL, LEGAL_ADDRESS_LINE } from "@/lib/legal";
 import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/cookie")({
@@ -12,11 +13,20 @@ export const Route = createFileRoute("/cookie")({
 function Cookie() {
   return (
     <LegalPage title="Cookie e memoria locale">
-      <LegalSection title="Dati legali del titolare da completare prima della pubblicazione">
-        <p className="rounded-lg border border-dashed border-border p-3 text-foreground">
-          Blocco interno, non pubblicabile: denominazione del titolare, sede legale, P.IVA/CF, numero
-          REA, eventuale DPO e recapiti ufficiali non sono ancora stati forniti e non vengono
-          inventati. Devono essere inseriti prima della messa online.
+      <LegalSection title="Titolare">
+        <p>
+          Titolare del sito e del trattamento: <strong className="text-foreground">{LEGAL.owner}</strong>
+          , sede legale in {LEGAL_ADDRESS_LINE}, P. IVA {LEGAL.vatId}. Contatti: {LEGAL.email}, PEC{" "}
+          {LEGAL.pec}, telefono{" "}
+          <a href={LEGAL.phoneHref} className="underline hover:text-foreground">
+            {LEGAL.phone}
+          </a>
+          .
+        </p>
+        <p>
+          Il sito è ospitato presso fornitori di servizi di hosting e infrastruttura cloud che
+          operano come responsabili del trattamento; l'elenco aggiornato è disponibile su richiesta
+          ai recapiti sopra indicati.
         </p>
       </LegalSection>
       <LegalSection title="Strumenti necessari">

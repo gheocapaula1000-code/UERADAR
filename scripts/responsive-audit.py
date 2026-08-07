@@ -23,6 +23,7 @@ ROUTES = [
     ("/privacy", CRITICAL),
     ("/termini", CRITICAL),
     ("/cookie", CRITICAL),
+    ("/contatti", CRITICAL),
     ("/dashboard", CRITICAL),
     ("/bando/qa-fixture", CRITICAL),
 ]
