@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { BrandLogo } from "@/components/bandocore/BrandLogo";
+import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import type { ReactNode } from "react";
 
 export function LegalPage({
@@ -36,27 +37,7 @@ export function LegalPage({
         <p className="mt-2 text-xs text-muted-foreground">Ultimo aggiornamento: {updated}</p>
         <article className="mt-8 space-y-7 text-sm leading-7 text-muted-foreground">{children}</article>
       </main>
-      <footer className="safe-x safe-bottom border-t border-border px-4 py-8 text-center text-xs text-muted-foreground">
-        <nav aria-label="Link legali">
-          <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-            <li>
-              <Link to="/privacy" className="tap inline-flex items-center hover:text-foreground">
-                Privacy
-              </Link>
-            </li>
-            <li>
-              <Link to="/termini" className="tap inline-flex items-center hover:text-foreground">
-                Termini
-              </Link>
-            </li>
-            <li>
-              <Link to="/cookie" className="tap inline-flex items-center hover:text-foreground">
-                Cookie
-              </Link>
-            </li>
-          </ul>
-        </nav>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
