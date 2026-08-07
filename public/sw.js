@@ -1,4 +1,4 @@
-const CACHE = "ueradar-shell-v4";
+const CACHE = "ueradar-shell-v5";
 const SHELL = [
   "/",
   "/auth",
