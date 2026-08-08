@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BrandLogo, BrandLockup } from "@/components/bandocore/BrandLogo";
 import { SiteFooter } from "@/components/bandocore/SiteFooter";
-import { CUSTOM_PLAN, PUBLIC_PLANS, TRIAL_TERMS } from "@/lib/pricing";
+import { ENTERPRISE_PLAN, PRODUCT_BOUNDARIES, PUBLIC_PLANS, TRIAL_TERMS } from "@/lib/pricing";
+import { TrialBanner } from "@/components/bandocore/TrialBanner";
 import { ORGANIZATION_JSONLD, SOFTWARE_APPLICATION_JSONLD, seoHead } from "@/lib/seo";
 import {
   Radar,
@@ -90,19 +91,22 @@ function Landing() {
               IVA e PMI — ricercati e ordinati su ATECO, sede, dimensione, età e caratteristiche
               reali dell'impresa.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                to="/auth"
-                className="tap inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
-              >
-                Attiva il radar <ArrowRight className="h-4 w-4" />
-              </Link>
+            <div className="mt-8 max-w-xl">
+              <TrialBanner />
+            </div>
+            <div className="mt-6 flex flex-wrap gap-3">
               <a
                 href="#come-funziona"
                 className="tap inline-flex items-center gap-2 rounded-lg border border-border bg-card/50 px-6 py-3 text-base font-medium text-foreground transition hover:bg-card"
               >
                 Come funziona
               </a>
+              <Link
+                to="/prezzi"
+                className="tap inline-flex items-center gap-2 rounded-lg border border-border bg-card/50 px-6 py-3 text-base font-medium text-foreground transition hover:bg-card"
+              >
+                Prezzi <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
             <div className="mt-10 grid max-w-xl grid-cols-1 gap-6 sm:grid-cols-3">
               {[
@@ -209,22 +213,38 @@ function Landing() {
         <div className="mb-10 max-w-2xl">
           <div className="text-xs uppercase tracking-widest text-primary font-semibold">Piani</div>
           <h2 className="mt-2 text-3xl font-bold md:text-4xl">
-            Due piani, tutto illimitato, IVA esclusa.
+            Tre piani self-service, IVA esclusa.
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Nessuna quota e nessun credito: dossier, ricerche, controlli, matching, compilazioni ed
-            export sono illimitati. Prova gratuita 7 giorni, senza carta di credito e senza addebito
-            automatico al termine.
+            Cambia la frequenza delle ricerche, l'ampiezza delle fonti ufficiali, le verifiche
+            approfondite e i dossier inclusi. Le opportunità pertinenti mostrate non sono mai
+            limitate. Annuale con 2 mesi inclusi.
           </p>
         </div>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="mb-8 max-w-2xl">
+          <TrialBanner compact />
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
           {PUBLIC_PLANS.map((plan) => (
-            <div key={plan.id} className="rounded-2xl border border-border bg-card p-6">
-              <h3 className="text-xl font-semibold">{plan.name}</h3>
+            <div
+              key={plan.id}
+              className={`rounded-2xl border bg-card p-6 ${plan.highlighted ? "border-accent" : "border-border"}`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-xl font-semibold">{plan.name}</h3>
+                {plan.highlighted ? (
+                  <span className="rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground">
+                    Più scelto
+                  </span>
+                ) : null}
+              </div>
               <div className="mt-3">
-                <span className="text-3xl font-bold">{plan.price}</span>
+                <span className="text-3xl font-bold">{plan.monthly}</span>
                 <span className="text-sm text-muted-foreground"> {plan.vatNote}</span>
               </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {plan.annual} {plan.annualNote}
+              </p>
               <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
@@ -236,11 +256,17 @@ function Landing() {
           ))}
         </div>
         <p className="mt-6 text-sm text-muted-foreground">
-          {CUSTOM_PLAN.name} — {CUSTOM_PLAN.headline}: {CUSTOM_PLAN.cta} a {CUSTOM_PLAN.contact}.
+          {ENTERPRISE_PLAN.name} — {ENTERPRISE_PLAN.headline}: {ENTERPRISE_PLAN.price}{" "}
+          {ENTERPRISE_PLAN.vatNote}. {ENTERPRISE_PLAN.cta} a {ENTERPRISE_PLAN.contact}.
         </p>
         <ul className="mt-6 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
           {TRIAL_TERMS.map((t) => (
             <li key={t}>· {t}</li>
+          ))}
+        </ul>
+        <ul className="mt-4 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
+          {PRODUCT_BOUNDARIES.map((b) => (
+            <li key={b}>· {b}</li>
           ))}
         </ul>
         <Link

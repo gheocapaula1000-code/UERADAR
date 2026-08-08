@@ -16,7 +16,7 @@ import {
   removeCompanyMember,
 } from "@/lib/billing.functions";
 import { MEMBER_ROLES, type MemberRole } from "@/lib/billing";
-import { CUSTOM_PLAN, PUBLIC_PLANS } from "@/lib/pricing";
+import { ENTERPRISE_PLAN, PUBLIC_PLANS, TRIAL_COPY } from "@/lib/pricing";
 import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/abbonamento")({
@@ -50,6 +50,7 @@ function Abbonamento() {
   const remove = useServerFn(removeCompanyMember);
   const pending = useServerFn(getPendingInvite);
   const accept = useServerFn(acceptCompanyInvite);
+  const [interval, setInterval] = useState<"month" | "year">("month");
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -63,7 +64,8 @@ function Abbonamento() {
   const invitation = useQuery({ queryKey: ["pending-invite"], queryFn: () => pending() });
 
   const payMutation = useMutation({
-    mutationFn: (plan: "business" | "team") => startPayment({ data: { plan } }),
+    mutationFn: (plan: "professional" | "business" | "executive") =>
+      startPayment({ data: { plan, interval } }),
     onSuccess: (res) => {
       if (res.ok && res.url) window.location.assign(res.url);
       else toast.error("Attivazione non disponibile", { description: res.code });
@@ -95,7 +97,7 @@ function Abbonamento() {
       if (!res.ok) {
         toast.error(
           res.code === "SEATS_EXCEEDED"
-            ? "Hai raggiunto il numero di utenti nominativi del piano"
+            ? "Hai raggiunto il numero di utenti operativi del piano"
             : "Utente non aggiunto",
         );
         return;
@@ -166,16 +168,16 @@ function Abbonamento() {
         <header>
           <h1 className="text-2xl font-bold sm:text-3xl">Abbonamento e utenti</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Prova gratuita di 7 giorni senza carta di credito e senza dati bancari. Al termine puoi
-            attivare volontariamente un piano mensile; disdetta online, senza comunicazione scritta
-            e senza PEC.
+            {TRIAL_COPY.headline} — {TRIAL_COPY.noCard}. {TRIAL_COPY.noCharge} La prova è
+            applicativa e scade da sola: nessun metodo di pagamento viene richiesto per iniziare.
+            Disdetta online, senza comunicazione scritta e senza PEC.
           </p>
         </header>
 
         {isMember ? (
           <p className="flex items-start gap-2 rounded-lg border border-border bg-muted p-3 text-sm">
             <ShieldCheck aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-            Sei un utente nominativo dell'impresa titolare: puoi consultare i dati condivisi, ma
+            Sei un utente operativo dell'impresa titolare: puoi consultare i dati condivisi, ma
             piano, fatturazione e dati dell'impresa restano gestiti dal titolare.
           </p>
         ) : null}
@@ -197,7 +199,7 @@ function Abbonamento() {
                   </span>
                 </div>
                 <div>
-                  Utenti nominativi:{" "}
+                  Utenti operativi:{" "}
                   <span className="text-foreground">
                     {used} / {seats || "—"}
                   </span>
@@ -237,14 +239,45 @@ function Abbonamento() {
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <div
+            role="group"
+            aria-label="Periodicità di fatturazione"
+            className="inline-flex rounded-lg border border-border bg-card p-1"
+          >
+            {(["month", "year"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={interval === value}
+                onClick={() => setInterval(value)}
+                className={`tap rounded-md px-4 py-2.5 text-sm font-semibold ${
+                  interval === value ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {value === "month" ? "Mensile" : "Annuale (2 mesi inclusi)"}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs uppercase tracking-wide text-accent">{TRIAL_COPY.headline}</p>
+        </div>
+
+        <section className="grid gap-4 md:grid-cols-3">
           {PUBLIC_PLANS.map((plan) => (
-            <div key={plan.id} className="rounded-2xl border border-border bg-card p-6">
+            <div
+              key={plan.id}
+              className={`rounded-2xl border bg-card p-6 ${plan.highlighted ? "border-accent" : "border-border"}`}
+            >
               <h2 className="text-xl font-semibold">{plan.name}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{plan.audience}</p>
               <p className="mt-4">
-                <span className="text-3xl font-bold">{plan.price}</span>
-                <span className="text-muted-foreground"> {plan.vatNote}</span>
+                <span className="text-3xl font-bold">
+                  {interval === "month" ? plan.monthly : plan.annual}
+                </span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  {interval === "month" ? plan.vatNote : plan.annualNote}
+                </span>
               </p>
               <ul className="mt-4 space-y-2 text-sm">
                 {plan.features.slice(0, 4).map((f) => (
@@ -256,7 +289,9 @@ function Abbonamento() {
               </ul>
               <button
                 type="button"
-                onClick={() => payMutation.mutate(plan.id)}
+                onClick={() =>
+                  payMutation.mutate(plan.id as "professional" | "business" | "executive")
+                }
                 disabled={payMutation.isPending || !data?.configured || isMember}
                 className="tap mt-6 w-full rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground disabled:opacity-50"
               >
@@ -268,18 +303,18 @@ function Abbonamento() {
 
         <section className="rounded-2xl border border-dashed border-border bg-card/60 p-6">
           <h2 className="text-lg font-semibold">
-            {CUSTOM_PLAN.name} — {CUSTOM_PLAN.headline}
+            {ENTERPRISE_PLAN.name} — {ENTERPRISE_PLAN.headline}
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">{CUSTOM_PLAN.description}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{ENTERPRISE_PLAN.description}</p>
           <p className="mt-2 text-sm">
-            {CUSTOM_PLAN.cta}: <span className="font-medium">{CUSTOM_PLAN.contact}</span>
+            {ENTERPRISE_PLAN.cta}: <span className="font-medium">{ENTERPRISE_PLAN.contact}</span>
           </p>
         </section>
 
         <section className="rounded-2xl border border-border bg-card p-6">
           <h2 className="flex items-center gap-2 text-lg font-semibold">
             <Users aria-hidden="true" className="h-5 w-5 text-accent" />
-            Utenti nominativi della tua impresa
+            Utenti operativi della tua impresa
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Ogni piano copre una sola impresa verificata. I posti disponibili dipendono dal piano
@@ -292,7 +327,7 @@ function Abbonamento() {
 
           {pendingInvite ? (
             <div className="mt-4 rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
-              <p>Hai un invito come utente nominativo di un'impresa.</p>
+              <p>Hai un invito come utente operativo di un'impresa.</p>
               <button
                 type="button"
                 onClick={() => acceptMutation.mutate(pendingInvite.id)}

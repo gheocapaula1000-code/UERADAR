@@ -8,6 +8,7 @@ import { loadCachedFeed } from "@/lib/proxy-core.functions";
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanyProfile } from "@/lib/bandocore-types";
 import { buildDossier, renderDossierText } from "@/lib/dossier";
+import { consumeDossier } from "@/lib/usage.functions";
 import type { DossierField } from "@/lib/dossier";
 import { downloadDossierPdf } from "@/lib/dossier-pdf";
 import {
@@ -43,6 +44,10 @@ function BandoDetail() {
   const loadFeed = useServerFn(loadCachedFeed);
   const [dossierOpen, setDossierOpen] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [dossierBusy, setDossierBusy] = useState(false);
+  const [watermarked, setWatermarked] = useState(false);
+  // Il dossier consuma una quota del piano: la decisione è sempre server-side.
+  const claimDossier = useServerFn(consumeDossier);
 
   const feedQ = useQuery({
     queryKey: ["bandi-feed"],
@@ -322,8 +327,28 @@ function BandoDetail() {
                 {!dossierOpen && (
                   <button
                     type="button"
-                    onClick={() => setDossierOpen(true)}
-                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                    disabled={dossierBusy}
+                    onClick={async () => {
+                      setDossierBusy(true);
+                      try {
+                        const res = await claimDossier({ data: { opportunity_id: bando.id } });
+                        if (!res.allowed) {
+                          toast.error(
+                            res.code === "QUOTA_EXCEEDED"
+                              ? "Hai esaurito i dossier inclusi in questo mese"
+                              : "Dossier non disponibile con il piano attivo",
+                          );
+                          return;
+                        }
+                        setWatermarked(res.watermarked === true);
+                        setDossierOpen(true);
+                      } catch {
+                        toast.error("Dossier non disponibile in questo momento");
+                      } finally {
+                        setDossierBusy(false);
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
                   >
                     <FileText className="h-4 w-4" /> Genera dossier candidatura
                   </button>
@@ -338,6 +363,13 @@ function BandoDetail() {
                 alla firma. Nessuna domanda, email o PEC viene trasmessa da UEradar.com. Verifica dati,
                 requisiti, modulistica e scadenze sulla fonte ufficiale prima di qualsiasi utilizzo.
               </p>
+
+              {dossierOpen && watermarked ? (
+                <p className="mt-3 rounded-lg border border-accent/40 bg-accent/10 p-3 text-xs">
+                  ANTEPRIMA DELLA PROVA GRATUITA — documento filigranato, non utilizzabile per la
+                  presentazione.
+                </p>
+              ) : null}
 
               {dossierOpen && (
                 <div className="mt-4 space-y-4">

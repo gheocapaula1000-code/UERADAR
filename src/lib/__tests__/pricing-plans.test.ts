@@ -2,20 +2,35 @@ import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
-  ARCHITECTURE_NOTES,
-  CUSTOM_PLAN,
+  CATALOG,
+  ENTERPRISE_FROM_CENTS,
+  PRICE_ENV_NAMES,
+  checkoutTarget,
+  normalizePlanCode,
+  planFromCode,
+} from "@/lib/catalog";
+import {
+  ENTERPRISE_PLAN,
   PRICING_FAQ,
+  PRODUCT_BOUNDARIES,
   PUBLIC_PLANS,
   TRIAL_TERMS,
-  UNLIMITED_FEATURES,
+  VERIFIED_DEFINITION,
 } from "@/lib/pricing";
+import { TRIAL_COPY, trialCooldownActive, trialFingerprints } from "@/lib/trial";
 
 const pricingPage = readFileSync("src/routes/prezzi.tsx", "utf8");
 const landing = readFileSync("src/routes/index.tsx", "utf8");
 const terms = readFileSync("src/routes/termini.tsx", "utf8");
 const privacy = readFileSync("src/routes/privacy.tsx", "utf8");
+const banner = readFileSync("src/components/bandocore/TrialBanner.tsx", "utf8");
 const pricingLib = readFileSync("src/lib/pricing.ts", "utf8");
-const ALL = [pricingPage, landing, terms, privacy, pricingLib].join("\n");
+const catalogLib = readFileSync("src/lib/catalog.ts", "utf8");
+const billingFunctions = readFileSync("src/lib/billing.functions.ts", "utf8");
+const billingServer = readFileSync("src/lib/billing.server.ts", "utf8");
+const usageFunctions = readFileSync("src/lib/usage.functions.ts", "utf8");
+const feedFunctions = readFileSync("src/lib/proxy-core.functions.ts", "utf8");
+const ALL = [pricingPage, landing, terms, privacy, pricingLib, catalogLib].join("\n");
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(dir)) {
@@ -26,154 +41,208 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-/** Copy pubblico dell'app, escludendo test e file generati. */
 const UI_FILES = walk("src")
   .filter((p) => !p.includes("__tests__") && !p.endsWith("routeTree.gen.ts"))
   .filter((p) => p.includes("/routes/") || p.includes("/components/") || p.endsWith("/pricing.ts"))
   .filter((p) => !p.includes("/routes/api/"));
 
-describe("piani pubblici UEradar", () => {
-  it("espone esattamente i due piani con prezzi 299/599 IVA esclusa", () => {
-    expect(PUBLIC_PLANS.map((p) => p.name)).toEqual(["BUSINESS", "TEAM"]);
-    expect(PUBLIC_PLANS[0]!.price).toBe("€299,00");
-    expect(PUBLIC_PLANS[1]!.price).toBe("€599,00");
-    for (const p of PUBLIC_PLANS) {
-      expect(p.vatNote).toContain("+ IVA");
-      expect(p.vatNote).toContain("IVA esclusa");
+describe("catalogo approvato", () => {
+  it("espone tre piani self-service più Enterprise su preventivo", () => {
+    expect(PUBLIC_PLANS.map((p) => p.id)).toEqual(["professional", "business", "executive"]);
+    expect(PUBLIC_PLANS.map((p) => p.monthly?.replace(/\D/g, ""))).toEqual(["499", "990", "1990"]);
+    expect(PUBLIC_PLANS.map((p) => p.annual?.replace(/\D/g, ""))).toEqual([
+      "4990",
+      "9900",
+      "19900",
+    ]);
+    expect(ENTERPRISE_FROM_CENTS).toBe(399000);
+    expect(ENTERPRISE_PLAN.price.replace(/\D/g, "")).toBe("3990");
+    expect(CATALOG.enterprise.selfService).toBe(false);
+  });
+
+  it("l'annuale vale dieci mensilità (due mesi inclusi)", () => {
+    for (const id of ["professional", "business", "executive"] as const) {
+      const plan = CATALOG[id];
+      expect(plan.prices.year!.amountCents).toBe(plan.prices.month!.amountCents * 10);
     }
-    expect(terms).toContain("€299,00");
-    expect(terms).toContain("€599,00");
-    expect(terms).toContain("IVA esclusa");
   });
 
-  it("limita gli utenti nominativi a 3 e 10 su una sola impresa verificata", () => {
-    expect(PUBLIC_PLANS[0]!.seats).toBe(3);
-    expect(PUBLIC_PLANS[1]!.seats).toBe(10);
-    for (const p of PUBLIC_PLANS) {
-      expect(p.features).toContain("1 impresa verificata");
-      expect(p.features).toContain(p.seatsLabel);
-    }
-    expect(ALL.toLowerCase()).not.toContain("multi-azienda");
-    expect(ALL.toLowerCase()).not.toContain("più aziende");
+  it("gli utenti sono capienza tecnica: 2, 5 e 10", () => {
+    expect(PUBLIC_PLANS.map((p) => p.seats)).toEqual([2, 5, 10]);
+    for (const p of PUBLIC_PLANS) expect(p.seatsLabel).toContain("capienza tecnica");
+    expect(CATALOG.trial.limits.seats).toBe(1);
   });
 
-  it("dichiara tutto illimitato in entrambi i piani", () => {
-    for (const p of PUBLIC_PLANS) {
-      for (const f of UNLIMITED_FEATURES) expect(p.features).toContain(f);
-      expect(p.features).toContain("Tutto illimitato: nessuna quota e nessun credito");
-    }
-    expect(TRIAL_TERMS.join(" ")).toContain("Tutto illimitato");
-    expect(terms).toContain("nessuna quota, nessun credito");
-    expect(landing).toContain("illimitat");
-    expect(PRICING_FAQ.some((f) => /illimitat/i.test(f.a))).toBe(true);
+  it("cadenze, fonti, verifiche e dossier rispettano il catalogo", () => {
+    expect(CATALOG.professional.limits.fullSearchIntervalMinutes).toBe(720);
+    expect(CATALOG.professional.limits.urgentLaneIntervalMinutes).toBeNull();
+    expect(CATALOG.professional.limits.sourceTier).toBe("core");
+    expect(CATALOG.professional.limits.deepVerificationsPerMonth).toBe(25);
+    expect(CATALOG.professional.limits.dossiersPerMonth).toBe(1);
+
+    expect(CATALOG.business.limits.fullSearchIntervalMinutes).toBe(120);
+    expect(CATALOG.business.limits.urgentLaneIntervalMinutes).toBe(15);
+    expect(CATALOG.business.limits.sourceTier).toBe("extended");
+    expect(CATALOG.business.limits.deepVerificationsPerMonth).toBe(100);
+    expect(CATALOG.business.limits.dossiersPerMonth).toBe(5);
+
+    expect(CATALOG.executive.limits.fullSearchIntervalMinutes).toBe(60);
+    expect(CATALOG.executive.limits.urgentLaneIntervalMinutes).toBe(5);
+    expect(CATALOG.executive.limits.crossVerification).toBe(true);
+    expect(CATALOG.executive.limits.changeMonitoring).toBe(true);
+    expect(CATALOG.executive.limits.deepVerificationsPerMonth).toBe(300);
+    expect(CATALOG.executive.limits.dossiersPerMonth).toBe(15);
+
+    expect(CATALOG.enterprise.limits.apiAccess).toBe(true);
+    expect(CATALOG.enterprise.limits.companies).toBe(-1);
   });
 
-  it("nessuna quota, credito, fair use o soglia di uso corretto nel copy pubblico", () => {
-    const hits: string[] = [];
-    const FORBIDDEN: RegExp[] = [
-      /\bfair\s*use\b/i,
-      /uso corretto/i,
-      /\d+\s*(dossier|pratiche|ricerche|export|analisi)\s*\/?\s*(al\s+)?mese/i,
-      /limite mensile/i,
-      /quota mensile/i,
-      /crediti (inclusi|residui|disponibili|mensili)/i,
-      /consumo di crediti/i,
-      /pacchetto crediti/i,
-    ];
-    for (const f of UI_FILES) {
-      const src = readFileSync(f, "utf8");
-      for (const re of FORBIDDEN) {
-        const m = src.match(re);
-        if (m) hits.push(`${f} :: ${re} :: ${m[0]}`);
-      }
-      // "overage" è ammesso solo in formulazioni negative
-      for (const occ of src.matchAll(/.{0,40}overage/gi)) {
-        if (!/nessun|non sono previsti|non generano|né/i.test(occ[0])) hits.push(`${f} :: overage :: ${occ[0]}`);
-      }
-    }
-    expect(hits).toEqual([]);
+  it("mappa i vecchi codici piano senza rompere le righe esistenti", () => {
+    expect(normalizePlanCode("ueradar_team_monthly")).toBe("ueradar_executive_monthly");
+    expect(normalizePlanCode("ueradar_pro_monthly")).toBe("ueradar_trial");
+    expect(normalizePlanCode("codice_inesistente")).toBe("ueradar_trial");
+    expect(planFromCode("ueradar_business_annual").id).toBe("business");
   });
 
-  it("descrive costi API inclusi senza overage né addebiti automatici", () => {
-    const t = TRIAL_TERMS.join(" ");
-    expect(t).toContain("Costi API inclusi nel canone.");
-    expect(t).toContain("Nessun overage e nessun costo extra automatico.");
-    expect(terms).toContain("I costi API sono inclusi nel canone");
-    expect(terms).toContain("non sono previsti overage né costi extra automatici");
+  it("l'allowlist del checkout esclude prova ed Enterprise", () => {
+    expect(checkoutTarget("business", "month")?.amountCents).toBe(99000);
+    expect(checkoutTarget("enterprise", "month")).toBeNull();
+    expect(checkoutTarget("trial", "month")).toBeNull();
+    expect(checkoutTarget("business", "settimana")).toBeNull();
   });
 
-  it("spiega l'architettura cost-efficient senza condividere dati privati", () => {
-    const notes = ARCHITECTURE_NOTES.map((n) => `${n.t} ${n.d}`).join(" ");
-    expect(notes).toMatch(/dedupl/i);
-    expect(notes).toMatch(/TTL/);
-    expect(notes).toMatch(/versione/i);
-    expect(notes).toMatch(/invalidazione/i);
-    expect(notes).toMatch(/idempotent/i);
-    expect(notes).toMatch(/cache/i);
-    expect(notes).toMatch(/rate limit/i);
-    expect(notes).toMatch(/circuit breaker/i);
-    expect(notes).toMatch(/isolat/i);
-    expect(notes).toMatch(/cross-tenant/i);
-    expect(privacy).toContain("cross-tenant");
-    // le protezioni interne non devono mai essere presentate come quote o addebiti
-    expect(notes).toMatch(/non sono quote commerciali/i);
+  it("predispone sei env TEST e nessun Price ID hardcoded", () => {
+    expect(PRICE_ENV_NAMES).toEqual([
+      "STRIPE_PRICE_PROFESSIONAL_MONTHLY_TEST",
+      "STRIPE_PRICE_PROFESSIONAL_ANNUAL_TEST",
+      "STRIPE_PRICE_BUSINESS_MONTHLY_TEST",
+      "STRIPE_PRICE_BUSINESS_ANNUAL_TEST",
+      "STRIPE_PRICE_EXECUTIVE_MONTHLY_TEST",
+      "STRIPE_PRICE_EXECUTIVE_ANNUAL_TEST",
+    ]);
+    expect(billingServer).not.toContain("STRIPE_PRICE_TEAM");
+    for (const f of [catalogLib, billingServer, billingFunctions])
+      expect(f).not.toMatch(/price_[A-Za-z0-9]{6,}/);
   });
+});
 
-  it("offre una soluzione su misura oltre 10 utenti senza form di invio", () => {
-    expect(CUSTOM_PLAN.headline).toBe("Soluzione su misura");
-    expect(CUSTOM_PLAN.cta).toBe("Contattaci");
-    expect(pricingPage).not.toMatch(/<form[\s>]/);
-    expect(pricingPage).not.toMatch(/type="submit"/);
-  });
-
-  it("dichiara prova 7 giorni senza carta e senza dati bancari", () => {
-    const t = TRIAL_TERMS.join(" ");
-    expect(t).toContain("Prova gratuita 7 giorni");
-    expect(t).toContain("Nessuna carta di credito e nessun dato bancario");
-    expect(terms).toContain("non richiede carta di credito né dati bancari");
-  });
-
-  it("esclude addebiti automatici a fine prova senza attivazione volontaria", () => {
-    expect(TRIAL_TERMS.join(" ")).toContain(
-      "Nessun addebito automatico alla fine della prova: il servizio a pagamento parte solo con attivazione volontaria.",
+describe("prova gratuita molto visibile e senza carta", () => {
+  it("usa i testi obbligatori nel banner riusato da hero, prezzi e sticky bar", () => {
+    expect(TRIAL_COPY.headline).toBe("7 GIORNI COMPLETAMENTE GRATUITI");
+    expect(TRIAL_COPY.noCard).toBe("NESSUNA CARTA DI CREDITO · NESSUN DATO BANCARIO");
+    expect(TRIAL_COPY.noCharge).toBe(
+      "Al termine non partirà alcun addebito. Sarai tu a decidere se abbonarti.",
     );
-    expect(terms).toContain("attivazione volontaria");
-    expect(PRICING_FAQ.some((f) => /nessun addebito automatico/i.test(f.a))).toBe(true);
+    expect(TRIAL_COPY.cta).toBe("INIZIA I 7 GIORNI GRATIS");
+    expect(TRIAL_COPY.ctaNote).toBe("Non ti chiederemo alcun metodo di pagamento.");
+    for (const key of ["headline", "noCard", "noCharge", "cta", "ctaNote"] as const)
+      expect(banner).toContain(`TRIAL_COPY.${key}`);
+    expect(banner).toContain("TrialStickyBar");
+    expect(pricingPage).toContain("<TrialStickyBar />");
+    expect(pricingPage).toContain("<TrialBanner />");
+    expect(landing).toContain("<TrialBanner />");
+    expect(pricingPage).toContain("TRIAL_COPY.cta");
   });
 
-  it("consente cancellazione online senza disdetta scritta e senza PEC", () => {
-    expect(TRIAL_TERMS.join(" ")).toContain(
-      "Cancellazione online, senza disdetta scritta e senza PEC.",
+  it("è applicativa: nessun checkout, customer o metodo di pagamento all'avvio", () => {
+    const t = TRIAL_TERMS.join(" ");
+    expect(t).toContain("7 GIORNI COMPLETAMENTE GRATUITI");
+    expect(t).toContain("NESSUNA CARTA DI CREDITO");
+    expect(t).toContain("anteprima dossier filigranata");
+    expect(t).toContain("ogni 12 mesi");
+    expect(terms).toContain("prova applicativa");
+    expect(terms).toMatch(/non viene creata alcuna sottoscrizione/);
+    expect(CATALOG.trial.limits.watermarkedDossier).toBe(true);
+    expect(Object.keys(CATALOG.trial.prices)).toHaveLength(0);
+  });
+
+  it("riconosce una prova per Partita IVA e dominio ogni 12 mesi", () => {
+    expect(trialFingerprints({ vat: "IT 05770260288", email: "info@impresa.it" })).toEqual([
+      { type: "vat", value: "IT05770260288" },
+      { type: "domain", value: "impresa.it" },
+    ]);
+    expect(trialFingerprints({ email: "tizio@gmail.com" })).toEqual([]);
+    expect(trialCooldownActive("2026-01-01T00:00:00.000Z", "2026-08-08T00:00:00.000Z")).toBe(true);
+    expect(trialCooldownActive("2024-01-01T00:00:00.000Z", "2026-08-08T00:00:00.000Z")).toBe(false);
+    expect(trialCooldownActive("non-una-data", "2026-08-08T00:00:00.000Z")).toBe(true);
+  });
+});
+
+describe("valore, limiti e affermazioni verificabili", () => {
+  it("non limita mai il numero di opportunità pertinenti", () => {
+    expect(PRODUCT_BOUNDARIES[0]).toContain("non è mai limitato");
+    expect(ALL).toContain("non è\n            mai limitato");
+  });
+
+  it("definisce Verificato con tutti gli elementi richiesti", () => {
+    const v = VERIFIED_DEFINITION.join(" ").toLowerCase();
+    for (const token of [
+      "fonte ufficiale",
+      "versione",
+      "stato",
+      "scadenza",
+      "beneficiari",
+      "territorio",
+      "intensità",
+      "spese",
+      "documenti",
+    ])
+      expect(v).toContain(token);
+  });
+
+  it("dichiara che il dossier non invia e non sostituisce il professionista", () => {
+    const b = PRODUCT_BOUNDARIES.join(" ");
+    expect(b).toContain("non invia nulla agli enti");
+    expect(b).toContain("non sostituisce");
+    expect(b).toContain("dal momento del rilevamento");
+    expect(terms).toContain("non sostituisce il professionista incaricato");
+  });
+
+  it("mantiene una FAQ coerente con il catalogo", () => {
+    const faq = PRICING_FAQ.map((f) => `${f.q} ${f.a}`).join(" ");
+    expect(faq).toContain("senza carta di credito");
+    expect(faq).toContain("ogni 2 ore");
+    expect(faq).toContain("ogni 5 minuti");
+    expect(faq).toContain("300 verifiche");
+    expect(PRICING_FAQ.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("non lascia in giro prezzi o piani legacy nel copy pubblico", () => {
+    for (const file of UI_FILES) {
+      const src = readFileSync(file, "utf8");
+      expect(src, file).not.toContain("€299,00");
+      expect(src, file).not.toContain("€599,00");
+      expect(src, file).not.toMatch(/piano TEAM|utenti nominativi/i);
+      expect(src, file).not.toMatch(/tutto illimitato/i);
+    }
+  });
+});
+
+describe("enforcement lato server, non solo nella UI", () => {
+  it("il feed applica entitlement, profondità e cadenza del piano", () => {
+    expect(feedFunctions).toContain("entitlementForTenant");
+    expect(feedFunctions).toContain("claimSearchLane");
+    expect(feedFunctions).toContain("FEED_NOT_ENTITLED");
+    expect(feedFunctions).toContain("REFRESH_RATE_LIMITED");
+    expect(feedFunctions).toContain('entitlement.limits.sourceTier !== "core"');
+  });
+
+  it("verifiche e dossier consumano quota lato server", () => {
+    expect(usageFunctions).toContain("consumeQuota");
+    expect(usageFunctions).toContain("requireSupabaseAuth");
+    expect(usageFunctions).toContain("deep_verifications");
+    expect(usageFunctions).toContain("EXPORT_NOT_INCLUDED");
+    expect(readFileSync("src/routes/_authenticated/bando.$id.tsx", "utf8")).toContain(
+      "claimDossier",
     );
-    expect(terms).toContain("senza disdetta scritta e senza PEC");
   });
 
-  it("non contiene prezzi legacy né checkout/Stripe/billing reale", () => {
-    const hits: string[] = [];
-    for (const f of UI_FILES) {
-      const src = readFileSync(f, "utf8");
-      for (const re of [/39\s*€/, /€\s*39\b/, /stripe/i, /paypal/i, /payment_link/i, /\bcheck-?out\b/i]) {
-        if (re.test(src)) hits.push(`${f} :: ${re}`);
-      }
-    }
-    expect(hits).toEqual([]);
-    // le CTA della prova puntano solo al percorso auth esistente
-    expect(pricingPage).toContain('to="/auth"');
-    expect(pricingPage).not.toMatch(/href="https?:\/\/(?!ueradar)/);
-  });
-
-  it("non promette funzionalità Team inesistenti", () => {
-    for (const re of [
-      /ruoli avanzati/i,
-      /workflow approvativ/i,
-      /approvazion/i,
-      /commenti/i,
-      /assegnazion/i,
-      /realtime|in tempo reale/i,
-      /tutti i bandi/i,
-      /domanda (pronta|inviata)/i,
-    ]) {
-      expect(ALL).not.toMatch(re);
-    }
+  it("il checkout valida il Price remoto e resta in modalità test", () => {
+    expect(billingFunctions).toContain("validateRemotePrice");
+    expect(billingFunctions).toContain("fetchRemotePrice");
+    expect(billingFunctions).toContain("billingConfigured");
+    expect(billingServer).toContain("PORTAL_NOT_CONFIGURED");
+    expect(billingServer).toContain("PRICES_NOT_CONFIGURED");
+    expect(billingServer).toContain("LIVE_MODE_BLOCKED");
   });
 });

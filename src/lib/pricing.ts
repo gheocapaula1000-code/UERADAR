@@ -1,145 +1,163 @@
 /**
- * Piani pubblici UEradar.com.
- * Fonte unica di verità per prezzi e condizioni: usata da landing, pagina prezzi e test.
- * Billing tecnicamente disabilitato: nessun pagamento e nessun provider collegato.
- * Nessuna quota, nessun credito, nessun limite d'uso sulle funzionalità.
+ * Presentazione pubblica dei piani UEradar.
+ * Prezzi, capienza e limiti NON sono definiti qui: derivano dal catalogo
+ * server-side (`catalog.ts`), fonte unica di verità. Questo modulo si limita a
+ * formattare per la UI.
+ * Billing pubblico disattivato finché l'ambiente TEST non è completo.
  */
+import {
+  CATALOG,
+  ENTERPRISE_FROM_CENTS,
+  formatEuro,
+  PLAN_IDS,
+  type PlanDefinition,
+  type PlanId,
+} from "./catalog";
+import { TRIAL_COPY, TRIAL_DAYS, TRIAL_SCOPE } from "./trial";
+
 export const BILLING_ENABLED = false;
 
+export { TRIAL_COPY, TRIAL_DAYS, TRIAL_SCOPE };
+
 export type PublicPlan = {
-  id: "business" | "team";
+  id: PlanId;
   name: string;
-  price: string;
-  vatNote: string;
   audience: string;
+  monthly: string | null;
+  annual: string | null;
+  annualNote: string | null;
+  vatNote: string;
   seats: number;
   seatsLabel: string;
-  features: string[];
+  highlighted: boolean;
+  selfService: boolean;
+  features: readonly string[];
 };
 
-/** Funzionalità illimitate, identiche nei due piani. */
-export const UNLIMITED_FEATURES: readonly string[] = [
-  "Dossier candidatura illimitati",
-  "Pratiche seguite illimitate",
-  "Ricerche e controlli illimitati",
-  "Matching sul profilo impresa illimitato",
-  "Compilazioni di bozze illimitate",
-  "Export TXT e PDF in locale illimitati",
-];
-
-export const PUBLIC_PLANS: readonly PublicPlan[] = [
-  {
-    id: "business",
-    name: "BUSINESS",
-    price: "€299,00",
+function toPublic(plan: PlanDefinition): PublicPlan {
+  const monthly = plan.prices.month?.amountCents ?? null;
+  const annual = plan.prices.year?.amountCents ?? null;
+  return {
+    id: plan.id,
+    name: plan.name,
+    audience: plan.audience,
+    monthly: monthly === null ? null : formatEuro(monthly),
+    annual: annual === null ? null : formatEuro(annual),
+    annualNote: annual === null ? null : "/ anno + IVA — 2 mesi inclusi",
     vatNote: "/ mese + IVA (IVA esclusa)",
-    audience: "Per una impresa verificata",
-    seats: 3,
-    seatsLabel: "fino a 3 utenti nominativi",
-    features: [
-      "1 impresa verificata",
-      "fino a 3 utenti nominativi",
-      "Tutto illimitato: nessuna quota e nessun credito",
-      ...UNLIMITED_FEATURES,
-    ],
-  },
-  {
-    id: "team",
-    name: "TEAM",
-    price: "€599,00",
-    vatNote: "/ mese + IVA (IVA esclusa)",
-    audience: "Per una impresa verificata con più referenti",
-    seats: 10,
-    seatsLabel: "fino a 10 utenti nominativi",
-    features: [
-      "1 impresa verificata",
-      "fino a 10 utenti nominativi",
-      "Tutto illimitato: nessuna quota e nessun credito",
-      "Accesso del team ai dossier e al radar della stessa impresa",
-      ...UNLIMITED_FEATURES,
-    ],
-  },
-] as const;
+    seats: plan.limits.seats,
+    seatsLabel: `${plan.limits.seats} utenti operativi (capienza tecnica)`,
+    highlighted: plan.highlighted,
+    selfService: plan.selfService,
+    features: plan.highlights,
+  };
+}
 
-export const CUSTOM_PLAN = {
-  name: "OLTRE 10 UTENTI",
+/** Piani acquistabili online, nell'ordine di presentazione approvato. */
+export const PUBLIC_PLANS: readonly PublicPlan[] = PLAN_IDS.filter(
+  (id) => CATALOG[id].selfService,
+).map((id) => toPublic(CATALOG[id]));
+
+export const ENTERPRISE_PLAN = {
+  name: CATALOG.enterprise.name,
   headline: "Soluzione su misura",
+  price: `da ${formatEuro(ENTERPRISE_FROM_CENTS)}`,
+  vatNote: "/ mese + IVA — nessun acquisto online",
   cta: "Contattaci",
-  description:
-    "Per organizzazioni con più di 10 utenti nominativi valutiamo una soluzione su misura. Scrivici e concordiamo insieme perimetro e condizioni.",
   contact: "info@pigiservice.com",
+  description:
+    "Più imprese sullo stesso contratto, fonti dedicate, API e webhook, workflow e limiti definiti in accordo. Nessun checkout pubblico: si procede su preventivo.",
+  features: CATALOG.enterprise.highlights,
 } as const;
 
-/** Condizioni identiche per entrambi i piani. */
-export const TRIAL_TERMS: readonly string[] = [
-  "Prova gratuita 7 giorni.",
-  "Nessuna carta di credito e nessun dato bancario richiesto per iniziare.",
-  "Nessun addebito automatico alla fine della prova: il servizio a pagamento parte solo con attivazione volontaria.",
-  "Cancellazione online, senza disdetta scritta e senza PEC.",
-  "Tutto illimitato: nessuna quota, nessun credito, nessun limite su dossier, ricerche, controlli, matching, compilazioni ed export.",
-  "Costi API inclusi nel canone.",
-  "Nessun overage e nessun costo extra automatico.",
-  "Gli unici limiti sono commerciali: una impresa verificata e il numero di utenti nominativi del piano.",
+/** Compatibilità con la pagina abbonamento: stessa fonte, stesso testo. */
+export const CUSTOM_PLAN = ENTERPRISE_PLAN;
+
+/** Che cosa significa esattamente "Verificato" in UEradar. */
+export const VERIFIED_DEFINITION: readonly string[] = [
+  "Fonte ufficiale raggiungibile",
+  "Data e versione del documento",
+  "Stato della misura e scadenza",
+  "Beneficiari ammessi e territorio",
+  "Intensità del contributo",
+  "Spese ammissibili e documenti richiesti",
 ];
 
-/**
- * Note tecniche sull'architettura del motore lato backend.
- * Descrittive: nessun controllo è simulato lato client.
- */
+/** Limiti di prodotto dichiarati senza ambiguità. */
+export const PRODUCT_BOUNDARIES: readonly string[] = [
+  "Il numero di opportunità pertinenti mostrate non è mai limitato.",
+  "Il dossier prepara e precompila per la tua revisione: non invia nulla agli enti.",
+  "UEradar non sostituisce il consulente o il professionista incaricato.",
+  "I tempi di notifica si misurano dal momento del rilevamento da parte di UEradar.",
+  "Gli utenti indicati nei piani sono capienza tecnica, non la leva di valore.",
+];
+
+export const TRIAL_TERMS: readonly string[] = [
+  `${TRIAL_COPY.headline}.`,
+  `${TRIAL_COPY.noCard}.`,
+  TRIAL_COPY.noCharge,
+  TRIAL_COPY.ctaNote,
+  "La prova offre temporaneamente il livello Business con 1 impresa, 1 utente, 2 obiettivi, 5 verifiche approfondite e 1 anteprima dossier filigranata.",
+  "Una prova per Partita IVA e per dominio aziendale ogni 12 mesi.",
+  "Cancellazione online, senza disdetta scritta e senza PEC.",
+  "Tutti i prezzi sono IVA esclusa; l'annuale include 2 mesi.",
+];
+
+/** Note descrittive sull'architettura del motore lato server. */
 export const ARCHITECTURE_NOTES: readonly { t: string; d: string }[] = [
   {
     t: "Cache del contenuto pubblico",
-    d: "Il testo ufficiale del bando e la relativa analisi sono deduplicati e riusabili dalla cache del motore finché la versione o il TTL della fonte restano validi, evitando nuove chiamate ai provider.",
+    d: "Il testo ufficiale della misura e la relativa analisi sono deduplicati e riusabili dalla cache del motore finché versione e TTL della fonte restano validi.",
   },
   {
     t: "Riuso sicuro tra utenti della stessa impresa",
-    d: "La cache pubblica può essere condivisa tra gli utenti nominativi della stessa impresa e, trattandosi esclusivamente di fonti pubbliche ufficiali, riusata dal motore in sicurezza.",
+    d: "La cache pubblica è condivisibile tra gli utenti operativi della stessa impresa: si tratta esclusivamente di fonti pubbliche ufficiali.",
   },
   {
     t: "Isolamento dei dati privati",
-    d: "Profilo impresa, documenti, checklist compilate e dossier restano isolati per impresa/tenant e non sono mai condivisi cross-tenant.",
+    d: "Profilo impresa, documenti, checklist compilate e dossier restano isolati per impresa e non sono mai condivisi con altre imprese.",
   },
   {
-    t: "Deduplica, idempotenza e invalidazione",
-    d: "Il motore applica deduplica, operazioni idempotenti, TTL e versione per fonte, con invalidazione quando il bando cambia.",
-  },
-  {
-    t: "Protezioni interne, non quote commerciali",
-    d: "Rate limit anti-abuso e circuit breaker sono protezioni interne di costo e affidabilità: non sono quote commerciali, non generano overage e non comportano addebiti al cliente.",
+    t: "Cadenze e verifiche misurate",
+    d: "Frequenza delle ricerche, verifiche approfondite e dossier sono applicati lato server secondo il piano attivo, non dal browser.",
   },
 ];
 
 export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   {
-    q: "Ci sono limiti di utilizzo o crediti da consumare?",
-    a: "No. Dossier, pratiche, ricerche, controlli, matching, compilazioni ed export sono illimitati in entrambi i piani. Gli unici limiti sono commerciali: una impresa verificata e il numero di utenti nominativi.",
+    q: "La prova gratuita richiede la carta di credito?",
+    a: "No. Sono 7 giorni completamente gratuiti, senza carta di credito e senza dati bancari. Al termine non partirà alcun addebito: sarai tu a decidere se abbonarti.",
   },
   {
-    q: "Serve la carta di credito per iniziare la prova?",
-    a: "No. La prova gratuita dura 7 giorni e non richiede carta di credito né dati bancari.",
+    q: "Quante opportunità posso vedere?",
+    a: "Tutte quelle pertinenti al tuo profilo: il numero di opportunità mostrate non è mai limitato. I piani si distinguono per frequenza delle ricerche, ampiezza delle fonti, verifiche approfondite e dossier.",
   },
   {
-    q: "Cosa succede al termine dei 7 giorni?",
-    a: "Non viene effettuato nessun addebito automatico. Il servizio a pagamento parte solo con una attivazione volontaria da parte tua.",
+    q: "Che differenza c'è tra Professional, Business ed Executive?",
+    a: "Professional esegue la ricerca completa 2 volte al giorno su fonti regionali, nazionali e principali programmi UE, con 25 verifiche approfondite e 1 dossier al mese. Business aggiunge la ricerca ogni 2 ore, la corsia urgente ogni 15 minuti, le fonti locali, camerali, di agenzie, settoriali e di nicchia, 100 verifiche e 5 dossier al mese. Executive porta la ricerca a ogni ora, la corsia urgente a ogni 5 minuti, la verifica incrociata e il monitoraggio delle modifiche, con 300 verifiche e 15 dossier al mese.",
   },
   {
-    q: "Come si disdice?",
-    a: "La cancellazione avviene online dal tuo account, senza disdetta scritta e senza PEC.",
+    q: "Cosa significa Verificato?",
+    a: "Una opportunità è Verificata solo con fonte ufficiale raggiungibile, data e versione, stato, scadenza, beneficiari, territorio, intensità del contributo, spese ammissibili e documenti richiesti.",
   },
   {
-    q: "Ci sono costi extra a consumo?",
-    a: "No. I costi API sono inclusi nel canone: nessun overage e nessun costo extra automatico.",
+    q: "Il dossier invia la domanda al posto mio?",
+    a: "No. Il dossier prepara e precompila i dati per la tua revisione: non invia automaticamente nulla agli enti e non sostituisce il professionista che segue la pratica.",
   },
   {
-    q: "Come fate a offrire tutto illimitato?",
-    a: "Il motore deduplica e riusa dalla cache il contenuto pubblico ufficiale dei bandi e la relativa analisi finché versione e TTL della fonte sono validi, riducendo le chiamate ai provider. I dati privati dell'impresa restano isolati per tenant.",
+    q: "Il numero di utenti è il valore del piano?",
+    a: "No. Gli utenti sono soltanto capienza tecnica: 2 con Professional, 5 con Business, 10 con Executive. Il valore sta in frequenza, ampiezza delle fonti, verifiche e dossier.",
   },
   {
-    q: "Posso gestire altre imprese con lo stesso piano?",
-    a: "No. Entrambi i piani coprono una sola impresa verificata; cambia soltanto il numero di utenti nominativi (3 o 10).",
+    q: "Quanto costa l'annuale?",
+    a: "L'annuale include 2 mesi: 4.990 € per Professional, 9.900 € per Business e 19.900 € per Executive, sempre IVA esclusa.",
   },
   {
-    q: "I prezzi sono IVA inclusa?",
-    a: "No, i prezzi indicati sono IVA esclusa: €299,00 e €599,00 al mese + IVA.",
+    q: "Da quando si misurano i tempi di notifica?",
+    a: "Dal momento del rilevamento da parte di UEradar, non dalla pubblicazione originale dell'ente.",
+  },
+  {
+    q: "Posso gestire più imprese?",
+    a: "I piani self-service coprono una sola impresa verificata. Più imprese, fonti dedicate, API e webhook rientrano in Enterprise, da 3.990 € al mese + IVA su preventivo.",
   },
 ];

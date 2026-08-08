@@ -31,9 +31,9 @@ export const ROUTE_SEO = {
   },
   "/prezzi": {
     path: "/prezzi",
-    title: "Prezzi UEradar.com — piani Business e Team per imprese",
+    title: "Prezzi UEradar.com — Professional, Business ed Executive",
     description:
-      "Piani Business e Team con tutte le funzionalità illimitate, prezzi IVA esclusa e prova gratuita di 7 giorni senza carta di credito e senza addebito automatico.",
+      "Professional, Business ed Executive: frequenza delle ricerche, fonti ufficiali, verifiche e dossier a confronto. Prezzi IVA esclusa e 7 giorni gratuiti senza carta.",
     indexable: true,
     ogType: "website",
   },
@@ -101,7 +101,7 @@ export const ROUTE_SEO = {
     path: "/abbonamento",
     title: "Abbonamento e utenti — area riservata di UEradar.com",
     description:
-      "Area riservata: stato della prova gratuita, attivazione dei piani Business e Team, fatture, dati fiscali, disdetta online e utenti nominativi della tua impresa.",
+      "Area riservata: stato della prova gratuita, attivazione dei piani Business e Team, fatture, dati fiscali, disdetta online e utenti operativi della tua impresa.",
     indexable: false,
   },
 } satisfies Record<string, RouteSeo>;

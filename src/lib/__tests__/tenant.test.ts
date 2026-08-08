@@ -91,19 +91,16 @@ describe("superfici tenant applicate nel codice server", () => {
     expect(src).toContain('.eq("user_id", tenant.tenant_owner_id)');
   });
 
-  it("il piano predefinito non è più quello legacy", () => {
-    const migration = read(
-      "supabase/migrations/" +
-        require("node:fs")
-          .readdirSync("supabase/migrations")
-          .filter((f: string) => f.endsWith(".sql"))
-          .sort()
-          .reverse()
-          .find((f: string) =>
-            read("supabase/migrations/" + f).includes("ueradar_business_monthly"),
-          )!,
-    );
-    expect(migration).toContain("plan_code SET DEFAULT 'ueradar_business_monthly'");
-    expect(migration).not.toContain("UPDATE public.ueradar_subscriptions");
+  it("il piano predefinito è quello della prova applicativa", () => {
+    const dir = "supabase/migrations";
+    const file = require("node:fs")
+      .readdirSync(dir)
+      .filter((f: string) => f.endsWith(".sql"))
+      .sort()
+      .reverse()
+      .find((f: string) => read(`${dir}/${f}`).includes("plan_code SET DEFAULT"))!;
+    const migration = read(`${dir}/${file}`);
+    expect(migration).toContain("plan_code SET DEFAULT 'ueradar_trial'");
+    expect(migration).toContain("plan_seats SET DEFAULT 1");
   });
 });
