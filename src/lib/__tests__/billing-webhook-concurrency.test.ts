@@ -11,7 +11,8 @@ function sub(over: Record<string, unknown> = {}) {
     livemode: false,
     customer: "cus_1",
     status: "active",
-    items: { data: [{ price: { id: "price_biz_m" } }] },
+    current_period_end: 1893456000,
+    items: { data: [{ quantity: 1, price: { id: "price_biz_m", type: "recurring", active: true } }] },
     ...over,
   };
 }
