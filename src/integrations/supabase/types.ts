@@ -248,41 +248,119 @@ export type Database = {
         }
         Relationships: []
       }
-      ueradar_subscriptions: {
+      ueradar_billing_events: {
+        Row: {
+          event_id: string
+          event_type: string
+          livemode: boolean
+          payload: Json
+          processed_at: string
+        }
+        Insert: {
+          event_id: string
+          event_type: string
+          livemode?: boolean
+          payload?: Json
+          processed_at?: string
+        }
+        Update: {
+          event_id?: string
+          event_type?: string
+          livemode?: boolean
+          payload?: Json
+          processed_at?: string
+        }
+        Relationships: []
+      }
+      ueradar_company_members: {
         Row: {
           created_at: string
+          email: string
+          id: string
+          member_user_id: string | null
+          owner_user_id: string
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          member_user_id?: string | null
+          owner_user_id: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          member_user_id?: string | null
+          owner_user_id?: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ueradar_subscriptions: {
+        Row: {
+          billing_mode: string
+          cancel_at_period_end: boolean
+          created_at: string
           current_period_end: string | null
+          latest_invoice_url: string | null
           plan_code: string
+          plan_seats: number
           provider: string | null
           provider_customer_id: string | null
           provider_subscription_id: string | null
           status: string
+          stripe_price_id: string | null
+          tax_id: string | null
+          trial_consumed: boolean
           trial_ends_at: string
           trial_started_at: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          billing_mode?: string
+          cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string | null
+          latest_invoice_url?: string | null
           plan_code?: string
+          plan_seats?: number
           provider?: string | null
           provider_customer_id?: string | null
           provider_subscription_id?: string | null
           status?: string
+          stripe_price_id?: string | null
+          tax_id?: string | null
+          trial_consumed?: boolean
           trial_ends_at?: string
           trial_started_at?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          billing_mode?: string
+          cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string | null
+          latest_invoice_url?: string | null
           plan_code?: string
+          plan_seats?: number
           provider?: string | null
           provider_customer_id?: string | null
           provider_subscription_id?: string | null
           status?: string
+          stripe_price_id?: string | null
+          tax_id?: string | null
+          trial_consumed?: boolean
           trial_ends_at?: string
           trial_started_at?: string
           updated_at?: string
