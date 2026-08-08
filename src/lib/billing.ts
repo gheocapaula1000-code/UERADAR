@@ -128,6 +128,44 @@ export function isProviderUrl(value: unknown): value is string {
   }
 }
 
+type ProviderResponse = { status: number; payload: Record<string, unknown> | null };
+
+/** Gate post-write sul Customer creato: id cus_, status 200, livemode false. */
+export function customerCreationGate(res: ProviderResponse): { ok: boolean; code: string } {
+  if (res.status !== 200 || !isProviderObjectId(res.payload?.["id"], "cus_"))
+    return { ok: false, code: "CUSTOMER_CREATE_FAILED" };
+  return testModeVerdict(res.payload, "CUSTOMER_MODE_UNKNOWN");
+}
+
+/** Gate post-write sulla Checkout Session creata: id cs_, url https, livemode false. */
+export function checkoutSessionGate(res: ProviderResponse): { ok: boolean; code: string } {
+  if (
+    res.status !== 200 ||
+    !isProviderObjectId(res.payload?.["id"], "cs_") ||
+    !isProviderUrl(res.payload?.["url"])
+  )
+    return { ok: false, code: "PAYMENT_SESSION_FAILED" };
+  return testModeVerdict(res.payload, "CHECKOUT_MODE_UNKNOWN");
+}
+
+/** Gate sulla ripresa di una Checkout Session esistente: deve essere aperta e di test. */
+export function checkoutResumeGate(res: ProviderResponse | null): { ok: boolean; code: string } {
+  if (!res || res.status !== 200 || !isProviderObjectId(res.payload?.["id"], "cs_"))
+    return { ok: false, code: "CHECKOUT_RESUME_UNAVAILABLE" };
+  const mode = testModeVerdict(res.payload, "CHECKOUT_MODE_UNKNOWN");
+  if (!mode.ok) return mode;
+  if (res.payload?.["status"] !== "open" || !isProviderUrl(res.payload?.["url"]))
+    return { ok: false, code: "CHECKOUT_RESUME_UNAVAILABLE" };
+  return { ok: true, code: "OK" };
+}
+
+/** Gate post-write sulla sessione Portal: url https e livemode false. */
+export function portalSessionGate(res: ProviderResponse): { ok: boolean; code: string } {
+  if (res.status !== 200 || !isProviderUrl(res.payload?.["url"]))
+    return { ok: false, code: "PORTAL_FAILED" };
+  return testModeVerdict(res.payload, "PORTAL_MODE_UNKNOWN");
+}
+
 export function validateRemotePrice(
   remote: Record<string, unknown> | null,
   expected: PlanPrice,
