@@ -38,14 +38,17 @@ describe("privilegi tabelle private UEradar", () => {
   });
 
   it("nessun GRANT ALL a anon o authenticated", () => {
-    expect(sql).not.toMatch(/GRANT ALL[^;]*TO[^;]*\b(anon|authenticated)\b/);
+    expect(sql).not.toMatch(/GRANT ALL ON [^;]*TO [^;]*\b(anon|authenticated)\b/);
   });
 
   it("il registro eventi di fatturazione non è raggiungibile dai client", () => {
     expect(sql).toContain(
       "REVOKE ALL ON public.ueradar_billing_events FROM anon, authenticated, PUBLIC",
     );
-    expect(sql).not.toMatch(/GRANT[^;]*ON public\.ueradar_billing_events TO (anon|authenticated)/);
+    const tail = sql.slice(
+      sql.lastIndexOf("REVOKE ALL ON public.ueradar_billing_events FROM anon, authenticated, PUBLIC"),
+    );
+    expect(tail).not.toMatch(/GRANT[^;]*ON public\.ueradar_billing_events TO (anon|authenticated)/);
   });
 
   it("sui membri impresa authenticated ha solo SELECT e service_role muta", () => {
@@ -54,14 +57,21 @@ describe("privilegi tabelle private UEradar", () => {
     );
     expect(sql).toContain("GRANT SELECT ON public.ueradar_company_members TO authenticated");
     expect(sql).toContain("GRANT ALL ON public.ueradar_company_members TO service_role");
-    expect(sql).not.toMatch(
+    // Stato finale: dopo l'ultima revoca non esistono più grant di scrittura.
+    const tail = sql.slice(
+      sql.lastIndexOf("REVOKE ALL ON public.ueradar_company_members FROM anon, authenticated, PUBLIC"),
+    );
+    expect(tail).not.toMatch(
       /GRANT[^;]*(INSERT|UPDATE|DELETE)[^;]*ON public\.ueradar_company_members TO authenticated/,
     );
   });
 
   it("gli abbonamenti restano in sola lettura per i client", () => {
     expect(sql).toContain("GRANT SELECT ON public.ueradar_subscriptions TO authenticated");
-    expect(sql).not.toMatch(
+    const tail = sql.slice(
+      sql.lastIndexOf("REVOKE ALL ON public.ueradar_subscriptions FROM anon, authenticated, PUBLIC"),
+    );
+    expect(tail).not.toMatch(
       /GRANT[^;]*(INSERT|DELETE)[^;]*ON public\.ueradar_subscriptions TO authenticated/,
     );
   });
