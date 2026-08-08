@@ -487,7 +487,16 @@ export function subscriptionUpdateFromEvent(input: {
     return { ok: false, code: "PRICES_NOT_CONFIGURED", patch: null };
   const match = planFromPriceId(input.priceId, input.priceMap);
   if (!match) return { ok: false, code: "PRICE_NOT_ALLOWLISTED", patch: null };
-  const seconds = typeof input.currentPeriodEnd === "number" ? input.currentPeriodEnd : 0;
+  // La fine periodo è un dato di entitlement: se manca o non è valido si
+  // rifiuta l'evento, mai si azzera il valore già presente in locale.
+  const seconds =
+    typeof input.currentPeriodEnd === "number" && Number.isFinite(input.currentPeriodEnd)
+      ? input.currentPeriodEnd
+      : 0;
+  if (seconds <= 0) return { ok: false, code: "CURRENT_PERIOD_END_INVALID", patch: null };
+  const periodEnd = new Date(seconds * 1000);
+  if (Number.isNaN(periodEnd.getTime()))
+    return { ok: false, code: "CURRENT_PERIOD_END_INVALID", patch: null };
   const patch = {
     status: normalizeStatus(input.status),
     provider: "stripe",
@@ -499,7 +508,7 @@ export function subscriptionUpdateFromEvent(input: {
     plan_code: match.price.planCode,
     plan_seats: match.plan.limits.seats,
     cancel_at_period_end: input.cancelAtPeriodEnd === true,
-    current_period_end: seconds > 0 ? new Date(seconds * 1000).toISOString() : null,
+    current_period_end: periodEnd.toISOString(),
     trial_consumed: true,
   };
   return { ok: true, code: "OK", patch };
@@ -536,9 +545,37 @@ export function canonicalSubscriptionGuard(input: {
   if (typeof input.linkedCustomerId === "string" && input.linkedCustomerId && input.linkedCustomerId !== customer)
     return { ok: false, code: "CUSTOMER_NOT_LINKED_TO_USER" };
 
+  // Un solo item ricorrente con quantità 1: nessun add-on, nessun multiplo.
+  const items = subscriptionItems(sub);
+  if (items.length !== 1) return { ok: false, code: "SUBSCRIPTION_ITEM_COUNT_INVALID" };
+  const item = items[0] as Record<string, unknown>;
+  const quantity = item["quantity"];
+  if (quantity !== undefined && quantity !== null && quantity !== 1)
+    return { ok: false, code: "SUBSCRIPTION_QUANTITY_INVALID" };
+  const price = item["price"];
+  const priceObj = price && typeof price === "object" ? (price as Record<string, unknown>) : null;
+  if (!priceObj) return { ok: false, code: "PRICE_NOT_ALLOWLISTED" };
+  if (priceObj["type"] !== "recurring" && !priceObj["recurring"])
+    return { ok: false, code: "PRICE_NOT_RECURRING" };
+  if (priceObj["active"] === false) return { ok: false, code: "PRICE_NOT_ACTIVE" };
+
   if (!planFromPriceId(canonicalPriceId(sub), input.priceMap))
     return { ok: false, code: "PRICE_NOT_ALLOWLISTED" };
+
+  const periodEnd = sub["current_period_end"];
+  if (typeof periodEnd !== "number" || !Number.isFinite(periodEnd) || periodEnd <= 0)
+    return { ok: false, code: "CURRENT_PERIOD_END_INVALID" };
   return { ok: true, code: "OK" };
+}
+
+/** Righe della Subscription canonica, senza tolleranze di forma. */
+export function subscriptionItems(sub: Record<string, unknown>): unknown[] {
+  const items = sub["items"];
+  const data =
+    items && typeof items === "object" && Array.isArray((items as Record<string, unknown>)["data"])
+      ? ((items as Record<string, unknown>)["data"] as unknown[])
+      : [];
+  return data.filter((row) => row && typeof row === "object");
 }
 
 /** Price della prima riga della Subscription canonica. */
