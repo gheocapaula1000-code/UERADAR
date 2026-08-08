@@ -250,54 +250,90 @@ export type Database = {
       }
       ueradar_billing_events: {
         Row: {
+          attempts: number
+          created_at: string
+          error_code: string | null
           event_id: string
           event_type: string
           livemode: boolean
-          payload: Json
-          processed_at: string
+          object_id: string | null
+          processed_at: string | null
+          provider_customer_id: string | null
+          status: string
+          updated_at: string
         }
         Insert: {
+          attempts?: number
+          created_at?: string
+          error_code?: string | null
           event_id: string
           event_type: string
           livemode?: boolean
-          payload?: Json
-          processed_at?: string
+          object_id?: string | null
+          processed_at?: string | null
+          provider_customer_id?: string | null
+          status?: string
+          updated_at?: string
         }
         Update: {
+          attempts?: number
+          created_at?: string
+          error_code?: string | null
           event_id?: string
           event_type?: string
           livemode?: boolean
-          payload?: Json
-          processed_at?: string
+          object_id?: string | null
+          processed_at?: string | null
+          provider_customer_id?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
       ueradar_company_members: {
         Row: {
+          accepted_at: string | null
           created_at: string
+          declared_role: string | null
           email: string
+          first_name: string | null
           id: string
+          invited_at: string
+          last_name: string | null
           member_user_id: string | null
+          owner_attested_at: string | null
           owner_user_id: string
           role: string
           status: string
           updated_at: string
         }
         Insert: {
+          accepted_at?: string | null
           created_at?: string
+          declared_role?: string | null
           email: string
+          first_name?: string | null
           id?: string
+          invited_at?: string
+          last_name?: string | null
           member_user_id?: string | null
+          owner_attested_at?: string | null
           owner_user_id: string
           role?: string
           status?: string
           updated_at?: string
         }
         Update: {
+          accepted_at?: string | null
           created_at?: string
+          declared_role?: string | null
           email?: string
+          first_name?: string | null
           id?: string
+          invited_at?: string
+          last_name?: string | null
           member_user_id?: string | null
+          owner_attested_at?: string | null
           owner_user_id?: string
           role?: string
           status?: string

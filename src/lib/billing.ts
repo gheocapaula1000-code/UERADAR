@@ -177,6 +177,60 @@ export function canAddMember(currentMembers: number, entitlement: Entitlement) {
   return { allowed: true, reason: "OK" as const };
 }
 
+/** Ruoli dichiarati dal titolare per gli utenti nominativi. Nessuna verifica camerale automatica. */
+export const MEMBER_ROLES = ["dipendente", "socio", "amministratore"] as const;
+export type MemberRole = (typeof MEMBER_ROLES)[number];
+
+export function isMemberRole(value: unknown): value is MemberRole {
+  return typeof value === "string" && (MEMBER_ROLES as readonly string[]).includes(value);
+}
+
+/**
+ * Una sola sottoscrizione per utente: se ne esiste già una attiva o in prova
+ * presso il provider, non si apre una seconda sessione di pagamento.
+ */
+export function canStartNewSubscription(row: {
+  status?: string | null;
+  provider_subscription_id?: string | null;
+} | null | undefined): { allowed: boolean; reason: string } {
+  const subscriptionId = row?.provider_subscription_id ?? null;
+  if (!subscriptionId) return { allowed: true, reason: "NO_PROVIDER_SUBSCRIPTION" };
+  const status = normalizeStatus(row?.status);
+  if (status === "active" || status === "trialing")
+    return { allowed: false, reason: "SUBSCRIPTION_ALREADY_ACTIVE" };
+  return { allowed: true, reason: "PREVIOUS_SUBSCRIPTION_INACTIVE" };
+}
+
+/**
+ * Chiave di idempotenza deterministica: la stessa intenzione non crea
+ * risorse duplicate presso il provider anche in caso di retry o doppio clic.
+ */
+export function idempotencyKey(scope: string, ...parts: (string | number)[]): string {
+  const raw = [scope, ...parts]
+    .map((p) => String(p).trim().toLowerCase().replace(/[^a-z0-9_.:-]+/g, "-"))
+    .filter(Boolean)
+    .join(":");
+  return `ueradar:test:${raw}`.slice(0, 255);
+}
+
+/** Metadati minimi dell'evento: mai il payload completo con dati personali. */
+export function billingEventMetadata(event: Record<string, unknown>) {
+  const data = event["data"];
+  const object =
+    data && typeof data === "object" && !Array.isArray(data)
+      ? ((data as Record<string, unknown>)["object"] as Record<string, unknown> | undefined)
+      : undefined;
+  const objectId = typeof object?.["id"] === "string" ? (object["id"] as string) : null;
+  const customer = typeof object?.["customer"] === "string" ? (object["customer"] as string) : null;
+  return {
+    event_id: typeof event["id"] === "string" ? (event["id"] as string) : "",
+    event_type: typeof event["type"] === "string" ? (event["type"] as string) : "",
+    livemode: event["livemode"] === true,
+    object_id: objectId,
+    provider_customer_id: customer,
+  };
+}
+
 /** Verifica firma webhook (schema v1, HMAC SHA-256, tolleranza 5 minuti). */
 export async function verifyWebhookSignature(
   payload: string,

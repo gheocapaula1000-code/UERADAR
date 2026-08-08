@@ -6,13 +6,16 @@ import { toast } from "sonner";
 import { AlertTriangle, Check, CreditCard, ShieldCheck, Trash2, Users } from "lucide-react";
 import { AppShell } from "@/components/bandocore/AppShell";
 import {
+  acceptCompanyInvite,
   createPaymentSession,
   createPortalSession,
+  getPendingInvite,
   getBillingStatus,
   inviteCompanyMember,
   listCompanyMembers,
   removeCompanyMember,
 } from "@/lib/billing.functions";
+import { MEMBER_ROLES, type MemberRole } from "@/lib/billing";
 import { CUSTOM_PLAN, PUBLIC_PLANS } from "@/lib/pricing";
 import { seoHead } from "@/lib/seo";
 
@@ -45,10 +48,19 @@ function Abbonamento() {
   const openPortal = useServerFn(createPortalSession);
   const invite = useServerFn(inviteCompanyMember);
   const remove = useServerFn(removeCompanyMember);
-  const [email, setEmail] = useState("");
+  const pending = useServerFn(getPendingInvite);
+  const accept = useServerFn(acceptCompanyInvite);
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    declared_role: "dipendente" as MemberRole,
+    attestation: false,
+  });
 
   const billing = useQuery({ queryKey: ["billing-status"], queryFn: () => status() });
   const team = useQuery({ queryKey: ["company-members"], queryFn: () => members() });
+  const invitation = useQuery({ queryKey: ["pending-invite"], queryFn: () => pending() });
 
   const payMutation = useMutation({
     mutationFn: (plan: "business" | "team") => startPayment({ data: { plan } }),
@@ -69,7 +81,16 @@ function Abbonamento() {
   });
 
   const inviteMutation = useMutation({
-    mutationFn: () => invite({ data: { email: email.trim().toLowerCase() } }),
+    mutationFn: () =>
+      invite({
+        data: {
+          first_name: form.first_name.trim(),
+          last_name: form.last_name.trim(),
+          email: form.email.trim().toLowerCase(),
+          declared_role: form.declared_role,
+          owner_attestation: true as const,
+        },
+      }),
     onSuccess: (res) => {
       if (!res.ok) {
         toast.error(
@@ -79,10 +100,34 @@ function Abbonamento() {
         );
         return;
       }
-      setEmail("");
-      toast.success("Utente aggiunto");
+      setForm({
+        first_name: "",
+        last_name: "",
+        email: "",
+        declared_role: "dipendente",
+        attestation: false,
+      });
+      toast.success("Invito registrato: l'utente deve accettarlo con il proprio account");
       void queryClient.invalidateQueries({ queryKey: ["company-members"] });
       void queryClient.invalidateQueries({ queryKey: ["billing-status"] });
+    },
+    onError: () => toast.error("Utente non aggiunto"),
+  });
+
+  const acceptMutation = useMutation({
+    mutationFn: (member_id: string) => accept({ data: { member_id } }),
+    onSuccess: (res) => {
+      if (!res.ok) {
+        toast.error(
+          res.code === "ALREADY_MEMBER_OF_ANOTHER_COMPANY"
+            ? "Il tuo account è già associato a un'altra impresa"
+            : "Invito non disponibile",
+        );
+        return;
+      }
+      toast.success("Invito accettato");
+      void queryClient.invalidateQueries({ queryKey: ["pending-invite"] });
+      void queryClient.invalidateQueries({ queryKey: ["company-members"] });
     },
   });
 
@@ -98,6 +143,12 @@ function Abbonamento() {
   const entitlement = data?.entitlement;
   const seats = entitlement?.seats ?? 0;
   const used = data?.members_count ?? 0;
+  const canInvite =
+    form.first_name.trim().length >= 2 &&
+    form.last_name.trim().length >= 2 &&
+    /.+@.+\..+/.test(form.email.trim()) &&
+    form.attestation;
+  const pendingInvite = invitation.data?.invite ?? null;
 
   return (
     <AppShell requireEntitlement={false}>
@@ -216,31 +267,112 @@ function Abbonamento() {
             Ogni piano copre una sola impresa verificata. I posti disponibili dipendono dal piano
             attivo: {seats || "—"} in totale.
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <label className="sr-only" htmlFor="member-email">
-              Email utente
-            </label>
-            <input
-              id="member-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="nome@impresa.it"
-              className="tap min-w-56 flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-            />
-            <button
-              type="button"
-              onClick={() => inviteMutation.mutate()}
-              disabled={!email.trim() || inviteMutation.isPending}
-              className="tap rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground disabled:opacity-50"
-            >
-              Aggiungi utente
-            </button>
+          <p className="mt-2 text-xs text-muted-foreground">
+            L'appartenenza all'impresa è dichiarata da te sotto la tua responsabilità: non viene
+            effettuata alcuna verifica automatica presso registri esterni.
+          </p>
+
+          {pendingInvite ? (
+            <div className="mt-4 rounded-lg border border-accent/40 bg-accent/10 p-4 text-sm">
+              <p>Hai un invito come utente nominativo di un'impresa.</p>
+              <button
+                type="button"
+                onClick={() => acceptMutation.mutate(pendingInvite.id)}
+                disabled={acceptMutation.isPending}
+                className="tap mt-3 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground disabled:opacity-50"
+              >
+                Accetta invito con questo account
+              </button>
+            </div>
+          ) : null}
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-xs font-medium" htmlFor="member-first-name">
+                Nome
+              </label>
+              <input
+                id="member-first-name"
+                value={form.first_name}
+                onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
+                maxLength={80}
+                className="tap mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium" htmlFor="member-last-name">
+                Cognome
+              </label>
+              <input
+                id="member-last-name"
+                value={form.last_name}
+                onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
+                maxLength={80}
+                className="tap mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium" htmlFor="member-email">
+                Email nominativa
+              </label>
+              <input
+                id="member-email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                maxLength={255}
+                placeholder="nome.cognome@impresa.it"
+                className="tap mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium" htmlFor="member-role">
+                Ruolo dichiarato
+              </label>
+              <select
+                id="member-role"
+                value={form.declared_role}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, declared_role: e.target.value as MemberRole }))
+                }
+                className="tap mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              >
+                {MEMBER_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+          <label className="mt-3 flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.attestation}
+              onChange={(e) => setForm((f) => ({ ...f, attestation: e.target.checked }))}
+              className="mt-1 h-4 w-4"
+            />
+            Attesto che la persona indicata appartiene alla stessa impresa titolare
+            dell'abbonamento.
+          </label>
+          <button
+            type="button"
+            onClick={() => inviteMutation.mutate()}
+            disabled={!canInvite || inviteMutation.isPending}
+            className="tap mt-3 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground disabled:opacity-50"
+          >
+            Invita utente
+          </button>
           <ul className="mt-4 divide-y divide-border text-sm">
             {(team.data?.members ?? []).map((m) => (
               <li key={m.id} className="flex items-center justify-between gap-3 py-3">
-                <span className="wrap-anywhere">{m.email}</span>
+                <span className="wrap-anywhere">
+                  {[m.first_name, m.last_name].filter(Boolean).join(" ") || m.email}
+                  <span className="block text-xs text-muted-foreground">
+                    {m.email} · {m.declared_role ?? "ruolo non indicato"} ·{" "}
+                    {m.status === "accepted" ? "invito accettato" : "invito da accettare"}
+                  </span>
+                </span>
                 <button
                   type="button"
                   aria-label={`Rimuovi ${m.email}`}

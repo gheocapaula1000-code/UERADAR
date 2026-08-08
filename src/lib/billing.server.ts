@@ -33,14 +33,18 @@ export async function providerCall(
   path: string,
   secretKey: string,
   data?: Record<string, string>,
+  idempotencyKey?: string,
 ): Promise<ProviderResult> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${secretKey}`,
+    "Content-Type": "application/x-www-form-urlencoded",
+    "Stripe-Version": "2024-06-20",
+  };
+  // Le creazioni sono idempotenti: retry o doppio invio non duplicano risorse.
+  if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
   const res = await fetch(`https://api.stripe.com/v1/${path}`, {
     method: data ? "POST" : "GET",
-    headers: {
-      Authorization: `Bearer ${secretKey}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Stripe-Version": "2024-06-20",
-    },
+    headers,
     body: data ? new URLSearchParams(data) : undefined,
   });
   const payload = (await res.json().catch(() => null)) as Record<string, unknown> | null;
