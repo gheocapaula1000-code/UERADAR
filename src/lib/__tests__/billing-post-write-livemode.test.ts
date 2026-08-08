@@ -100,3 +100,97 @@ describe("post-write fail-closed: livemode", () => {
     expect(portalSessionGate({ status: 200, payload: { url: "nope" } }).code).toBe("PORTAL_FAILED");
   });
 });
+
+describe("post-write behaviour: true vs unknown vs false", () => {
+  const ok = (extra: Record<string, unknown> = {}) => ({
+    status: 200,
+    payload: { id: "cus_123", livemode: false, ...extra },
+  });
+
+  it("customer: livemode true blocca con LIVE_MODE_BLOCKED", () => {
+    expect(customerCreationGate({ status: 200, payload: { id: "cus_1", livemode: true } })).toEqual({
+      ok: false,
+      code: "LIVE_MODE_BLOCKED",
+    });
+  });
+
+  it.each([undefined, null, "false", 0, 1, {}])(
+    "customer: livemode %p è ignoto ⇒ CUSTOMER_MODE_UNKNOWN",
+    (value) => {
+      const res = customerCreationGate({ status: 200, payload: { id: "cus_1", livemode: value } });
+      expect(res).toEqual({ ok: false, code: "CUSTOMER_MODE_UNKNOWN" });
+    },
+  );
+
+  it("customer: solo livemode false e id cus_ passano", () => {
+    expect(customerCreationGate(ok())).toEqual({ ok: true, code: "OK" });
+    expect(customerCreationGate({ status: 500, payload: { id: "cus_1", livemode: false } }).code).toBe(
+      "CUSTOMER_CREATE_FAILED",
+    );
+    expect(customerCreationGate({ status: 200, payload: { id: "cs_1", livemode: false } }).code).toBe(
+      "CUSTOMER_CREATE_FAILED",
+    );
+    expect(customerCreationGate({ status: 200, payload: null }).code).toBe("CUSTOMER_CREATE_FAILED");
+  });
+
+  it("checkout: url non https o malformata non passa il gate", () => {
+    for (const url of ["http://x.dev/s", "javascript:alert(1)", "/relative", "", 42, null]) {
+      expect(
+        checkoutSessionGate({ status: 200, payload: { id: "cs_1", url, livemode: false } }).code,
+      ).toBe("PAYMENT_SESSION_FAILED");
+    }
+    expect(
+      checkoutSessionGate({
+        status: 200,
+        payload: { id: "cs_1", url: "https://pay.example.com/s", livemode: false },
+      }),
+    ).toEqual({ ok: true, code: "OK" });
+  });
+
+  it("checkout: true ⇒ LIVE_MODE_BLOCKED, ignoto ⇒ CHECKOUT_MODE_UNKNOWN", () => {
+    const base = { id: "cs_1", url: "https://pay.example.com/s" };
+    expect(checkoutSessionGate({ status: 200, payload: { ...base, livemode: true } }).code).toBe(
+      "LIVE_MODE_BLOCKED",
+    );
+    expect(checkoutSessionGate({ status: 200, payload: base }).code).toBe("CHECKOUT_MODE_UNKNOWN");
+  });
+
+  it("resume: id non corrispondente, live, ignoto o non aperta non restituiscono URL", () => {
+    const good = {
+      status: 200,
+      payload: { id: "cs_1", url: "https://pay.example.com/s", status: "open", livemode: false },
+    };
+    expect(checkoutResumeGate(good, "cs_1")).toEqual({ ok: true, code: "OK" });
+    expect(checkoutResumeGate(good, "cs_other").code).toBe("CHECKOUT_RESUME_ID_MISMATCH");
+    expect(
+      checkoutResumeGate({ ...good, payload: { ...good.payload, livemode: true } }, "cs_1").code,
+    ).toBe("LIVE_MODE_BLOCKED");
+    const unknown = { id: "cs_1", url: "https://pay.example.com/s", status: "open" };
+    expect(checkoutResumeGate({ status: 200, payload: unknown }, "cs_1").code).toBe(
+      "CHECKOUT_MODE_UNKNOWN",
+    );
+    expect(
+      checkoutResumeGate({ ...good, payload: { ...good.payload, status: "complete" } }, "cs_1").code,
+    ).toBe("CHECKOUT_RESUME_UNAVAILABLE");
+    // eccezione di rete ⇒ res null
+    expect(checkoutResumeGate(null, "cs_1").code).toBe("CHECKOUT_RESUME_UNAVAILABLE");
+  });
+
+  it("portal: true ⇒ LIVE_MODE_BLOCKED, ignoto ⇒ PORTAL_MODE_UNKNOWN, url invalida ⇒ PORTAL_FAILED", () => {
+    const url = "https://portal.example.com/s";
+    expect(portalSessionGate({ status: 200, payload: { url, livemode: false } })).toEqual({
+      ok: true,
+      code: "OK",
+    });
+    expect(portalSessionGate({ status: 200, payload: { url, livemode: true } }).code).toBe(
+      "LIVE_MODE_BLOCKED",
+    );
+    expect(portalSessionGate({ status: 200, payload: { url } }).code).toBe("PORTAL_MODE_UNKNOWN");
+    expect(portalSessionGate({ status: 200, payload: { url: "http://x/s", livemode: false } }).code).toBe(
+      "PORTAL_FAILED",
+    );
+    expect(portalSessionGate({ status: 402, payload: { url, livemode: false } }).code).toBe(
+      "PORTAL_FAILED",
+    );
+  });
+});
