@@ -5,6 +5,7 @@
  * limiti, capienza) vive in `catalog.ts` ed è l'unica fonte di verità.
  */
 import {
+  PRICE_ENV_NAMES,
   CATALOG,
   checkoutTarget,
   formatEuro,
@@ -480,7 +481,6 @@ export function subscriptionUpdateFromEvent(input: {
   subscriptionId: unknown;
   customerId: unknown;
   priceMap: Record<string, string>;
-}) {
 }): SubscriptionUpdate {
   if (Object.keys(input.priceMap).length < PRICE_ENV_NAMES.length)
     return { ok: false, code: "PRICES_NOT_CONFIGURED", patch: null };
