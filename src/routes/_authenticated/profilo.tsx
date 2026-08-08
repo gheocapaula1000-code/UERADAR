@@ -2,6 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/bandocore/AppShell";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
+import { getTenantContext } from "@/lib/tenant.functions";
 import type { CompanyProfile, LegalForm } from "@/lib/bandocore-types";
 import { toast } from "sonner";
 import { Building2, Save, Sparkles } from "lucide-react";
@@ -84,6 +87,10 @@ function Profilo() {
   const [morningDigest, setMorningDigest] = useState(true);
   const [urgentAlerts, setUrgentAlerts] = useState(true);
   const [inAppAlerts, setInAppAlerts] = useState(true);
+  const loadTenant = useServerFn(getTenantContext);
+  const tenantQ = useQuery({ queryKey: ["tenant-context"], queryFn: () => loadTenant() });
+  // Solo il titolare modifica impresa e P.IVA: il membro accettato lavora in sola lettura.
+  const isMember = tenantQ.data?.role === "member";
 
   useEffect(() => {
     supabase
@@ -114,6 +121,10 @@ function Profilo() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isMember) {
+      toast.error("Solo il titolare dell'impresa può modificare questi dati.");
+      return;
+    }
     setSaving(true);
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -177,7 +188,15 @@ function Profilo() {
           </div>
         </header>
 
+        {isMember ? (
+          <p className="mb-6 rounded-lg border border-border bg-muted p-3 text-sm">
+            Stai consultando i dati dell'impresa a cui sei associato. Le modifiche a ragione
+            sociale, P.IVA e dati aziendali sono riservate al titolare.
+          </p>
+        ) : null}
+
         <form onSubmit={save} className="space-y-6">
+          <fieldset disabled={isMember} className="space-y-6 border-0 p-0 m-0">
           <Section title="Identità" desc="Dati anagrafici e forma giuridica">
             <Field label="Ragione Sociale" required>
               <input
@@ -483,13 +502,14 @@ function Profilo() {
 
           <div className="flex justify-end">
             <button
-              disabled={saving}
+              disabled={saving || isMember}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110 disabled:opacity-60"
             >
               <Save className="h-4 w-4" />
               {saving ? "Salvo…" : "Salva profilo e attiva radar"}
             </button>
           </div>
+          </fieldset>
         </form>
       </div>
     </AppShell>

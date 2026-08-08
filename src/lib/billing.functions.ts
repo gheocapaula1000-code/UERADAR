@@ -18,6 +18,9 @@ import {
 export type BillingStatus = {
   ok: boolean;
   code: string;
+  role: "owner" | "member";
+  tenant_owner_id: string;
+  can_manage_billing: boolean;
   mode: "test";
   entitlement: Entitlement;
   subscription: SubscriptionSnapshot | null;
@@ -62,21 +65,27 @@ export const getBillingStatus = createServerFn({ method: "POST" })
     const env = readBillingEnv();
     const mode = assertTestMode(env.secretKey);
 
+    const { resolveTenantContext } = await import("./tenant.server");
+    const tenant = await resolveTenantContext(context.supabase, context.userId);
+
     const { data: row } = await context.supabase
       .from("ueradar_subscriptions")
       .select(SUB_COLUMNS)
-      .eq("user_id", context.userId)
+      .eq("user_id", tenant.tenant_owner_id)
       .maybeSingle();
     const snapshot = toSnapshot((row as SubRow | null) ?? null);
 
     const { count } = await context.supabase
       .from("ueradar_company_members")
       .select("id", { count: "exact", head: true })
-      .eq("owner_user_id", context.userId);
+      .eq("owner_user_id", tenant.tenant_owner_id);
 
     return {
       ok: true,
       code: mode.ok ? "OK" : mode.code,
+      role: tenant.role,
+      tenant_owner_id: tenant.tenant_owner_id,
+      can_manage_billing: tenant.can_manage_billing,
       mode: "test",
       entitlement: resolveEntitlement(snapshot, new Date().toISOString()),
       subscription: snapshot,
@@ -131,6 +140,10 @@ export const createPaymentSession = createServerFn({ method: "POST" })
     const env = readBillingEnv();
     const mode = assertTestMode(env.secretKey);
     if (!mode.ok) return { ok: false, code: mode.code };
+
+    const { resolveTenantContext } = await import("./tenant.server");
+    const tenant = await resolveTenantContext(context.supabase, context.userId);
+    if (!tenant.can_manage_billing) return { ok: false, code: "MEMBER_CANNOT_MANAGE_BILLING" };
 
     const plan = planFromInput(data.plan);
     if (!plan) return { ok: false, code: "INVALID_PLAN" };
@@ -198,6 +211,10 @@ export const createPortalSession = createServerFn({ method: "POST" })
     const mode = assertTestMode(env.secretKey);
     if (!mode.ok) return { ok: false, code: mode.code };
 
+    const { resolveTenantContext } = await import("./tenant.server");
+    const tenant = await resolveTenantContext(context.supabase, context.userId);
+    if (!tenant.can_manage_billing) return { ok: false, code: "MEMBER_CANNOT_MANAGE_BILLING" };
+
     const email = (context.claims as { email?: string } | undefined)?.email;
     const customerId = await ensureCustomer(context.userId, email);
     // Finestra oraria: chiave deterministica ma senza riusare un link scaduto.
@@ -232,10 +249,12 @@ export type CompanyMember = {
 export const listCompanyMembers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ members: CompanyMember[] }> => {
+    const { resolveTenantContext } = await import("./tenant.server");
+    const tenant = await resolveTenantContext(context.supabase, context.userId);
     const { data } = await context.supabase
       .from("ueradar_company_members")
       .select("id, email, role, status, created_at, first_name, last_name, declared_role, accepted_at")
-      .eq("owner_user_id", context.userId)
+      .eq("owner_user_id", tenant.tenant_owner_id)
       .order("created_at", { ascending: true });
     return { members: (data as CompanyMember[] | null) ?? [] };
   });
@@ -260,6 +279,10 @@ export const inviteCompanyMember = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }): Promise<{ ok: boolean; code: string }> => {
     if (!isMemberRole(data.declared_role)) return { ok: false, code: "INVALID_ROLE" };
+    const { resolveTenantContext } = await import("./tenant.server");
+    const tenant = await resolveTenantContext(context.supabase, context.userId);
+    // Solo il titolare gestisce i posti: un membro non può creare una seconda impresa.
+    if (!tenant.can_manage_company) return { ok: false, code: "MEMBER_CANNOT_MANAGE_MEMBERS" };
     const { data: row, error: subError } = await context.supabase
       .from("ueradar_subscriptions")
       .select(SUB_COLUMNS)
@@ -353,6 +376,9 @@ export const removeCompanyMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ member_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<{ ok: boolean; code: string }> => {
+    const { resolveTenantContext } = await import("./tenant.server");
+    const tenant = await resolveTenantContext(context.supabase, context.userId);
+    if (!tenant.can_manage_company) return { ok: false, code: "MEMBER_CANNOT_MANAGE_MEMBERS" };
     const { error } = await context.supabase
       .from("ueradar_company_members")
       .delete()
