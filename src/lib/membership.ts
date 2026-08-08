@@ -69,9 +69,17 @@ export type MemberSubscription = {
  * neutralizzato in modo tracciato: non deve diventare una seconda impresa.
  * Si tocca solo un trial senza abbonamento presso il provider.
  */
+export type TrialNeutralizationPatch = {
+  status: string;
+  trial_consumed: boolean;
+  trial_ends_at: string;
+};
+
 export function trialNeutralization(
   sub: MemberSubscription | null,
-): { neutralize: false; reason: string } | { neutralize: true; patch: Record<string, unknown> } {
+):
+  | { neutralize: false; reason: string }
+  | { neutralize: true; patch: TrialNeutralizationPatch } {
   if (!sub) return { neutralize: false, reason: "NO_SUBSCRIPTION" };
   if (sub.provider_subscription_id) return { neutralize: false, reason: "PROVIDER_SUBSCRIPTION" };
   if (sub.status !== "trialing") return { neutralize: false, reason: "NOT_TRIALING" };
