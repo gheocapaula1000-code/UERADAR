@@ -44,6 +44,10 @@ const FORBIDDEN: RegExp[] = [
   /quotidian[ao]/i,
   /tempi di notifica/i,
   /ti avvisiamo/i,
+  // Automatismi non dimostrabili lato prodotto.
+  /aggiorna in automatico/i,
+  /automaticamente aggiornat/i,
+  /monitoraggio continuo/i,
 ];
 
 /**
@@ -69,6 +73,10 @@ describe("copy pubblico e autenticato", () => {
   });
 
   it("non contiene claim non dimostrabili né riferimenti al fornitore tecnico", () => {
+    // La scansione legge davvero i file dell'HEAD: nessun elenco parziale.
+    expect(UI_FILES.length).toBeGreaterThan(10);
+    expect(UI_FILES).toContain("src/routes/index.tsx");
+    expect(UI_FILES).toContain("src/routes/_authenticated/dashboard.tsx");
     const hits: string[] = [];
     for (const f of UI_FILES) {
       const src = copyOnly(readFileSync(f, "utf8"));
