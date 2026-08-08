@@ -138,6 +138,12 @@ function Profilo() {
       const { error: profileError } = await supabase
         .from("company_profiles")
         .upsert(row, { onConflict: "user_id" });
+      // Il limite obiettivi della prova è applicato dal database: qui si
+      // traduce soltanto l'errore in un messaggio comprensibile.
+      if (profileError?.message?.includes("TRIAL_OBJECTIVES_LIMIT"))
+        throw new Error(
+          `Durante la prova gratuita puoi selezionare al massimo ${TRIAL_OBJECTIVES} obiettivi.`,
+        );
       if (profileError) throw profileError;
 
       const { error: preferencesError } = await supabase.from("notification_preferences").upsert(
@@ -402,7 +408,13 @@ function Profilo() {
                 className={inputCls}
               />
             </Field>
-            <Field label="Priorità di investimento">
+            <Field
+              label={
+                trialActive
+                  ? `Priorità di investimento (max ${TRIAL_OBJECTIVES} durante la prova)`
+                  : "Priorità di investimento"
+              }
+            >
               <div className="grid gap-2 sm:grid-cols-2">
                 {[
                   "DIGITALIZZAZIONE",
@@ -416,11 +428,14 @@ function Profilo() {
                   "ECONOMIA_CIRCOLARE",
                 ].map((item) => {
                   const selected = profile.investimenti_previsti?.includes(item) ?? false;
+                  const objectivesFull =
+                    !selected && (profile.investimenti_previsti?.length ?? 0) >= TRIAL_OBJECTIVES;
                   return (
                     <label key={item} className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
                         checked={selected}
+                        disabled={trialActive && objectivesFull}
                         onChange={(e) =>
                           update(
                             "investimenti_previsti",
