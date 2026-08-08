@@ -273,23 +273,32 @@ export const createPaymentSession = createServerFn({ method: "POST" })
         } catch {
           existing = null;
         }
-        const resume = checkoutResumeGate(existing);
+        const resume = checkoutResumeGate(existing, claimed.session_id);
         if (resume.ok)
           return {
             ok: true,
             url: existing?.payload?.["url"] as string,
             code: "CHECKOUT_RESUMED",
           };
+        // Fail-closed: con una prenotazione ancora viva non si crea in
+        // silenzio una seconda sessione; si riporta il motivo esatto.
+        return { ok: false, code: resume.code };
       }
       return { ok: false, code: claimed.code ?? "CHECKOUT_ALREADY_IN_PROGRESS" };
     }
 
     /** Rilascio sicuro se la sessione non nasce: la prenotazione non resta appesa. */
     async function releaseIntent() {
-      await adminClient().rpc("ueradar_release_checkout_intent", {
-        _user_id: context.userId,
-        _price_id: priceId,
-      });
+      // Un rilascio fallito non deve mascherare l'errore originario: resta
+      // fail-closed e il chiamante riporta comunque il proprio codice.
+      try {
+        await adminClient().rpc("ueradar_release_checkout_intent", {
+          _user_id: context.userId,
+          _price_id: priceId,
+        });
+      } catch {
+        /* intento lasciato in scadenza naturale */
+      }
     }
 
     let session: Awaited<ReturnType<typeof providerCall>>;
