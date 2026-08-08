@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
+  billingEventMetadata,
   canAddMember,
+  canStartNewSubscription,
+  idempotencyKey,
+  isMemberRole,
+  MEMBER_ROLES,
   isTestSecretKey,
   isValidPriceId,
   MAX_SELF_SERVICE_SEATS,
@@ -191,6 +196,124 @@ describe("sicurezza dell'integrazione di pagamento", () => {
       const src = readFileSync(file, "utf8");
       expect(src).not.toMatch(/sk_(test|live)_/);
       expect(src).not.toMatch(/STRIPE_SECRET_KEY/);
+    }
+  });
+});
+describe("gate di review Stripe TEST", () => {
+  it("usa il parametro corretto tax_id_collection[enabled] e mai la forma piatta", () => {
+    const src = readFileSync("src/lib/billing.functions.ts", "utf8");
+    expect(src).toContain('"tax_id_collection[enabled]": "true"');
+    expect(src).not.toMatch(/\btax_id_collection:\s*"true"/);
+  });
+
+  it("passa chiavi di idempotenza deterministiche a customer, checkout e portale", () => {
+    const src = readFileSync("src/lib/billing.functions.ts", "utf8");
+    for (const scope of ["customer", "checkout", "portal"]) {
+      expect(src).toContain(`idempotencyKey("${scope}"`);
+    }
+    expect(readFileSync("src/lib/billing.server.ts", "utf8")).toContain('"Idempotency-Key"');
+  });
+
+  it("genera la stessa chiave per la stessa intenzione e chiavi diverse per piani diversi", () => {
+    const a = idempotencyKey("checkout", "user-1", "business", "price_1");
+    expect(idempotencyKey("checkout", "user-1", "business", "price_1")).toBe(a);
+    expect(idempotencyKey("checkout", "user-1", "team", "price_1")).not.toBe(a);
+    expect(a.length).toBeLessThanOrEqual(255);
+  });
+
+  it("blocca una seconda sottoscrizione se ne esiste già una active o trialing", () => {
+    expect(
+      canStartNewSubscription({ status: "active", provider_subscription_id: "sub_1" }).allowed,
+    ).toBe(false);
+    expect(
+      canStartNewSubscription({ status: "trialing", provider_subscription_id: "sub_1" }).reason,
+    ).toBe("SUBSCRIPTION_ALREADY_ACTIVE");
+    expect(
+      canStartNewSubscription({ status: "canceled", provider_subscription_id: "sub_1" }).allowed,
+    ).toBe(true);
+    // Prova senza sottoscrizione presso il provider: il checkout resta possibile.
+    expect(
+      canStartNewSubscription({ status: "trialing", provider_subscription_id: null }).allowed,
+    ).toBe(true);
+    expect(canStartNewSubscription(null).allowed).toBe(true);
+  });
+
+  it("estrae solo metadati minimi dall'evento, senza dati personali", () => {
+    const meta = billingEventMetadata({
+      id: "evt_1",
+      type: "invoice.paid",
+      livemode: false,
+      data: {
+        object: {
+          id: "in_1",
+          customer: "cus_1",
+          customer_email: "mario.rossi@example.com",
+          customer_name: "Mario Rossi",
+          customer_address: { line1: "Via Roma 1" },
+        },
+      },
+    });
+    expect(meta).toEqual({
+      event_id: "evt_1",
+      event_type: "invoice.paid",
+      livemode: false,
+      object_id: "in_1",
+      provider_customer_id: "cus_1",
+    });
+    expect(JSON.stringify(meta)).not.toContain("mario.rossi@example.com");
+    expect(JSON.stringify(meta)).not.toContain("Via Roma 1");
+  });
+
+  it("il webhook non salva il payload completo e non brucia l'evento prima delle scritture", () => {
+    const src = readFileSync("src/routes/api/public/billing-webhook.ts", "utf8");
+    expect(src).not.toMatch(/payload:\s*event/);
+    expect(src).toContain('status: "processing"');
+    expect(src).toContain('status: ok ? "succeeded" : "failed"');
+    // Nessun 200 che consuma l'evento quando l'utente non è collegabile.
+    expect(src).toContain('settle("USER_NOT_FOUND", false)');
+    expect(src).not.toMatch(/Response\.json\(\{\s*ok:\s*true,\s*code:\s*"USER_NOT_FOUND"/);
+    for (const guard of [
+      "SUBSCRIPTION_WRITE_FAILED",
+      "CHECKOUT_WRITE_FAILED",
+      "INVOICE_WRITE_FAILED",
+      "SUBSCRIPTION_FETCH_FAILED",
+      "EVENT_RETRY_FAILED",
+    ]) {
+      expect(src).toContain(guard);
+    }
+  });
+
+  it("accetta solo i tre ruoli dichiarati previsti", () => {
+    expect(MEMBER_ROLES).toEqual(["dipendente", "socio", "amministratore"]);
+    expect(isMemberRole("titolare")).toBe(false);
+    expect(isMemberRole("")).toBe(false);
+    expect(isMemberRole("socio")).toBe(true);
+  });
+
+  it("richiede dati completi e attestazione per invitare un utente nominativo", () => {
+    const src = readFileSync("src/lib/billing.functions.ts", "utf8");
+    for (const field of ["first_name", "last_name", "declared_role", "owner_attestation"]) {
+      expect(src).toContain(field);
+    }
+    expect(src).toContain("z.literal(true)");
+    expect(src).toContain("owner_attested_at");
+    // Il membro accetta con il proprio account e resta legato a un solo titolare.
+    expect(src).toContain("ALREADY_MEMBER_OF_ANOTHER_COMPANY");
+    expect(src).toContain('.eq("status", "invited")');
+    expect(src).toContain('.is("member_user_id", null)');
+  });
+
+  it("non promette verifiche camerali automatiche", () => {
+    const files = [
+      "src/lib/billing.functions.ts",
+      "src/routes/_authenticated/abbonamento.tsx",
+      "src/lib/billing.ts",
+    ];
+    for (const f of files) {
+      const src = readFileSync(f, "utf8");
+      expect(src).not.toMatch(/verifica camerale automatica(?! )/i);
+      expect(src).not.toMatch(/registro imprese/i);
+      expect(src).not.toMatch(/verifichiamo automaticamente/i);
     }
   });
 });
