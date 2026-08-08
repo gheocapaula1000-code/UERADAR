@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -76,8 +76,15 @@ describe("entitlement applicato dentro la Edge Function", () => {
 
 describe("cache non raggiungibile dal browser", () => {
   it("le tabelle di cache sono revocate ai ruoli client", () => {
-    const sql = read("supabase/migrations").length ? "" : "";
-    expect(sql).toBe("");
+    const dir = join(process.cwd(), "supabase/migrations");
+    const sql = readdirSync(dir)
+      .sort()
+      .map((f) => readFileSync(join(dir, f), "utf8"))
+      .join("\n");
+    expect(sql).toMatch(/REVOKE ALL ON public\.feed_cache FROM anon, authenticated, PUBLIC/);
+    expect(sql).toMatch(
+      /REVOKE ALL ON public\.cached_hidden_bandi FROM anon, authenticated, PUBLIC/,
+    );
   });
 
   it("le server function usano il client di servizio per la cache", () => {

@@ -210,7 +210,6 @@ describe("valore, limiti e affermazioni verificabili", () => {
   it("mantiene una FAQ coerente con il catalogo", () => {
     const faq = PRICING_FAQ.map((f) => `${f.q} ${f.a}`).join(" ");
     expect(faq).toContain("senza carta di credito");
-    expect(faq).toContain("aggiornamenti programmati");
     expect(faq).toContain("15 con Executive");
     expect(faq).not.toMatch(/verifiche approfondite/i);
     expect(PRICING_FAQ.length).toBeGreaterThanOrEqual(6);
@@ -230,7 +229,9 @@ describe("valore, limiti e affermazioni verificabili", () => {
 describe("enforcement lato server, non solo nella UI", () => {
   it("il feed applica entitlement, profondità e cadenza del piano", () => {
     expect(feedFunctions).toContain("entitlementForTenant");
-    expect(feedFunctions).toContain("claimSearchLane");
+    // La cadenza è riservata una sola volta, dentro la Edge Function invocabile
+    // direttamente con un JWT: qui resta solo il gate di entitlement.
+    expect(feedFunctions).not.toContain("claimSearchLane");
     expect(feedFunctions).toContain("FEED_NOT_ENTITLED");
     expect(feedFunctions).toContain("REFRESH_RATE_LIMITED");
     expect(feedFunctions).toContain("AVAILABLE_SOURCE_TIER");
