@@ -130,11 +130,11 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Quante opportunità posso vedere?",
-    a: "Tutte quelle pertinenti al tuo profilo: il numero di opportunità mostrate non è mai limitato. I piani si distinguono per frequenza degli aggiornamenti, capienza utenti e dossier inclusi.",
+    a: "Tutte quelle pertinenti al tuo profilo: il numero di opportunità mostrate non è mai limitato. I piani si distinguono per capienza di utenti operativi e dossier inclusi.",
   },
   {
     q: "Che differenza c'è tra Professional, Business ed Executive?",
-    a: "Le fonti ufficiali consultate sono le stesse per tutti i piani self-service. I piani si distinguono per frequenza degli aggiornamenti programmati, capienza utenti e dossier inclusi: 1 dossier al mese con Professional, 5 con Business, 15 con Executive.",
+    a: "Le fonti ufficiali consultate sono le stesse per tutti i piani self-service. I piani si distinguono per capienza di utenti operativi e dossier inclusi: 1 dossier al mese con Professional, 5 con Business, 15 con Executive.",
   },
   {
     q: "Cosa significa Verificato?",

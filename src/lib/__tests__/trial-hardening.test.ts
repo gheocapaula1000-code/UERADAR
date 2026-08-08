@@ -127,7 +127,7 @@ describe("P0 entitlement su feed, refresh e cache", () => {
       feed.indexOf("export const loadCachedFeed"),
     );
     expect(refresh).toContain("entitlementForTenant");
-    expect(refresh).toContain("claimSearchLane");
+    expect(refresh).not.toContain("claimSearchLane");
   });
 
   it("le fonti sono fail-closed sul set realmente disponibile", () => {

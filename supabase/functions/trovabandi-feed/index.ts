@@ -5,6 +5,11 @@ import {
   sanitizeFeedResponse,
   type ContractRow,
 } from "../_shared/trovabandi-contract.ts";
+import {
+  edgeEntitlement,
+  laneFor,
+  type EdgeEntitlement,
+} from "../_shared/ueradar-entitlement.ts";
 
 type Row = Record<string, unknown>;
 
@@ -122,6 +127,34 @@ serve(async (req) => {
   const parsed = parseRequestBody(raw);
   if (!parsed.ok) return out(400, { ok: false, code: parsed.code });
 
+  // La Edge è invocabile direttamente con un JWT valido: tenant, entitlement e
+  // cadenza sono applicati qui e non dipendono dal gate applicativo.
+  const serviceKey = env("SUPABASE_SERVICE_ROLE_KEY");
+  if (!serviceKey) return out(503, { ok: false, code: "NOT_CONFIGURED" });
+  const service = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const { data: tenantId, error: tenantError } = await service.rpc("ueradar_tenant_owner", {
+    _user_id: user.id,
+  });
+  if (tenantError || typeof tenantId !== "string" || !tenantId)
+    return out(503, { ok: false, code: "TENANT_LOOKUP_FAILED" });
+
+  const { data: subscription, error: subscriptionError } = await service
+    .from("ueradar_subscriptions")
+    .select("status, plan_code, trial_ends_at, current_period_end")
+    .eq("user_id", tenantId)
+    .maybeSingle();
+  if (subscriptionError) return out(503, { ok: false, code: "SUBSCRIPTION_LOOKUP_FAILED" });
+
+  const entitlement: EdgeEntitlement = edgeEntitlement(
+    (subscription as Record<string, unknown> | null) ?? null,
+    new Date().toISOString(),
+  );
+  if (!entitlement.entitled)
+    return out(403, { ok: false, code: "NOT_ENTITLED", reason: entitlement.reason });
+
   const { data: profile, error: profileError } = await supabase
     .from("company_profiles")
     .select("*")
@@ -132,6 +165,25 @@ serve(async (req) => {
   if (!profile) return out(409, { ok: false, code: "PROFILE_MISSING" });
   if (!profileIsComplete(profile as Row))
     return out(409, { ok: false, code: "PROFILE_INCOMPLETE" });
+
+  // Cadenza minima del piano, riservata atomicamente a database sul tenant.
+  const { lane, minutes } = laneFor(parsed.action, entitlement.limits);
+  const period = new Date().toISOString().slice(0, 7);
+  const { data: claim, error: claimError } = await service.rpc("ueradar_claim_search_lane", {
+    _tenant: tenantId,
+    _period: period,
+    _lane: lane,
+    _min_interval_minutes: minutes,
+  });
+  if (claimError) return out(503, { ok: false, code: "CADENCE_CHECK_FAILED" });
+  const verdict = (claim ?? {}) as Record<string, unknown>;
+  if (verdict["allowed"] !== true)
+    return out(429, {
+      ok: false,
+      code: "CADENCE_LIMITED",
+      reason: verdict["code"] ?? "TOO_SOON",
+      retry_after_seconds: verdict["retry_after_seconds"] ?? 0,
+    });
 
   const minimizedProfile = matchingProfile(profile as ContractRow);
 
