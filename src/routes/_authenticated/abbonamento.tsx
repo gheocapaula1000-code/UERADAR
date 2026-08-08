@@ -149,6 +149,9 @@ function Abbonamento() {
     /.+@.+\..+/.test(form.email.trim()) &&
     form.attestation;
   const pendingInvite = invitation.data?.invite ?? null;
+  // Il membro accettato lavora sull'impresa del titolare: può leggere lo stato,
+  // non può cambiare titolare, P.IVA, piano o fatturazione.
+  const isMember = data?.role === "member";
 
   return (
     <AppShell requireEntitlement={false}>
@@ -161,6 +164,14 @@ function Abbonamento() {
             e senza PEC.
           </p>
         </header>
+
+        {isMember ? (
+          <p className="flex items-start gap-2 rounded-lg border border-border bg-muted p-3 text-sm">
+            <ShieldCheck aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+            Sei un utente nominativo dell'impresa titolare: puoi consultare i dati condivisi, ma
+            piano, fatturazione e dati dell'impresa restano gestiti dal titolare.
+          </p>
+        ) : null}
 
         <section className="rounded-2xl border border-border bg-card p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -210,7 +221,7 @@ function Abbonamento() {
             <button
               type="button"
               onClick={() => portalMutation.mutate()}
-              disabled={portalMutation.isPending || !data?.configured}
+              disabled={portalMutation.isPending || !data?.configured || isMember}
               className="tap inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium disabled:opacity-50"
             >
               <CreditCard aria-hidden="true" className="h-4 w-4" />
@@ -239,7 +250,7 @@ function Abbonamento() {
               <button
                 type="button"
                 onClick={() => payMutation.mutate(plan.id)}
-                disabled={payMutation.isPending || !data?.configured}
+                disabled={payMutation.isPending || !data?.configured || isMember}
                 className="tap mt-6 w-full rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground disabled:opacity-50"
               >
                 Attiva {plan.name}
@@ -286,6 +297,8 @@ function Abbonamento() {
             </div>
           ) : null}
 
+          {isMember ? null : (
+            <>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div>
               <label className="text-xs font-medium" htmlFor="member-first-name">
@@ -363,6 +376,8 @@ function Abbonamento() {
           >
             Invita utente
           </button>
+            </>
+          )}
           <ul className="mt-4 divide-y divide-border text-sm">
             {(team.data?.members ?? []).map((m) => (
               <li key={m.id} className="flex items-center justify-between gap-3 py-3">
@@ -375,6 +390,8 @@ function Abbonamento() {
                 </span>
                 <button
                   type="button"
+                  hidden={isMember}
+                  disabled={isMember}
                   aria-label={`Rimuovi ${m.email}`}
                   onClick={() => removeMutation.mutate(m.id)}
                   className="tap rounded-lg border border-border p-2 text-muted-foreground"
