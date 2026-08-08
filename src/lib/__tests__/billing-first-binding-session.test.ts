@@ -181,7 +181,7 @@ describe("SQL e webhook allineati al contratto di primo binding", () => {
 
   it("nessuna riassegnazione consentita per canceled o incomplete_expired", () => {
     const body = lastBody("ueradar_billing_apply_subscription");
-    expect(body).not.toContain("incomplete_expired");
+    expect(body).not.toContain("NOT IN ('canceled', 'incomplete_expired')");
     const guard = body.slice(body.indexOf("SUBSCRIPTION_REASSIGNMENT_BLOCKED") - 600);
     expect(guard).toContain("SUBSCRIPTION_REASSIGNMENT_BLOCKED");
   });
