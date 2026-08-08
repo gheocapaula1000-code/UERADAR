@@ -14,9 +14,10 @@ const files = readdirSync(DIR).sort();
 const sql = files.map((f) => readFileSync(join(DIR, f), "utf8")).join("\n");
 
 function allowedTrialSources(): string[] {
-  const checks = sql.match(/trial_source_check[\s\S]*?;/g) ?? [];
+  const checks = sql.match(/ADD CONSTRAINT ueradar_subscriptions_trial_source_check[\s\S]*?;/g) ?? [];
   const last = checks[checks.length - 1] ?? "";
-  return [...last.matchAll(/'([a-z_]+)'::text/g)].map((m) => m[1]!);
+  const inList = last.match(/trial_source IN \(([^)]*)\)/);
+  return [...(inList?.[1] ?? "").matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!);
 }
 
 function lastAppliedTrialSource(): string {
