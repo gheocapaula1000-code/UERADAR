@@ -15,8 +15,11 @@ const InputSchema = z.object({
 // - Nessun secret del Central Core viene letto qui: la server function invoca
 //   la Edge Function `trovabandi-feed` con il client user-scoped, che inoltra
 //   il JWT dell'utente. Solo la Edge Function conosce URL e chiave del Core.
-// - Persiste il feed completo in feed_cache (offline) e i bandi "sommersi"
-//   in cached_hidden_bandi, sempre sotto RLS dell'utente.
+// - Persiste il feed completo in feed_cache (offline) e le opportunità locali
+//   in cached_hidden_bandi con il client di servizio: quelle tabelle non sono
+//   raggiungibili dal browser via Data API.
+// - Cadenza e entitlement sono applicati anche dentro la Edge Function, che
+//   è invocabile direttamente con un JWT valido.
 export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => InputSchema.parse(input ?? {}))
@@ -27,8 +30,11 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
     const tenant = await resolveTenantContext(supabase, userId);
     const tenantId = tenant.tenant_owner_id;
 
-    // Enforcement server-side: entitlement, profondità e cadenza del piano.
-    const { entitlementForTenant, claimSearchLane } = await import("./usage.server");
+    // Enforcement server-side: entitlement e profondità del piano. La cadenza è
+    // riservata una sola volta, dentro la Edge Function.
+    const { entitlementForTenant } = await import("./usage.server");
+    const { cacheClient } = await import("./cache.server");
+    const cache = cacheClient();
     const nowIso = new Date().toISOString();
     const entitlement = await entitlementForTenant(supabase, tenantId, nowIso);
     if (!entitlement.entitled) throw new Error(`FEED_NOT_ENTITLED:${entitlement.reason}`);
@@ -47,15 +53,6 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
 
     try {
       if (data.force_refresh) {
-        // La corsia urgente esiste solo dove prevista dal piano, con cadenza minima.
-        const lane = await claimSearchLane(
-          tenantId,
-          entitlement.limits.urgentLaneIntervalMinutes === null ? "full" : "urgent",
-          entitlement.limits.urgentLaneIntervalMinutes ??
-            entitlement.limits.fullSearchIntervalMinutes,
-          nowIso,
-        );
-        if (!lane.allowed) throw new Error(`REFRESH_RATE_LIMITED:${lane.code}`);
         // La coda deve confermare {ok:true, queued:true}: nessun refresh "finto".
         const { data: refreshPayload, error: refreshError } = await supabase.functions.invoke(
           "trovabandi-feed",
@@ -78,7 +75,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       fetchedAt = envelope.fetched_at;
       generatedAt = envelope.generated_at;
 
-      const { data: previousRow, error: previousError } = await supabase
+      const { data: previousRow, error: previousError } = await cache
         .from("feed_cache")
         .select("payload, fetched_at")
         .eq("user_id", tenantId)
@@ -105,7 +102,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       if (cacheDecision === "reuse-previous" && previous) return previous;
       if (cacheDecision === "persist") {
         persistHiddenCache = true;
-        const { error: cacheWriteError } = await supabase.from("feed_cache").insert({
+        const { error: cacheWriteError } = await cache.from("feed_cache").insert({
           user_id: tenantId,
           payload: next as unknown as Json,
           fetched_at: fetchedAt,
@@ -115,7 +112,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
     } catch (err) {
       console.warn("[trovabandi-feed] feed failed, falling back to cache:", err);
       const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: cached, error: cacheFallbackError } = await supabase
+      const { data: cached, error: cacheFallbackError } = await cache
         .from("feed_cache")
         .select("payload, fetched_at")
         .eq("user_id", tenantId)
@@ -154,7 +151,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
         provincia: b.provincia ?? null,
         codice_istat: b.codice_istat ?? null,
       }));
-      const { error: hiddenCacheError } = await supabase
+      const { error: hiddenCacheError } = await cache
         .from("cached_hidden_bandi")
         .upsert(rows, { onConflict: "user_id,bando_id" });
       if (hiddenCacheError) throw new Error("HIDDEN_CACHE_WRITE_FAILED");
