@@ -3,14 +3,16 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   canAddMember,
+  CATALOG,
   canStartNewSubscription,
   idempotencyKey,
   isMemberRole,
+  checkoutTarget,
   isValidPriceId,
   MEMBER_ROLES,
-  PLANS,
-  planFromInput,
+  priceKey,
   resolveEntitlement,
+  validateRemotePrice,
   type Entitlement,
   type SubscriptionSnapshot,
 } from "./billing";
@@ -61,9 +63,9 @@ function toSnapshot(row: SubRow | null): SubscriptionSnapshot | null {
 export const getBillingStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<BillingStatus> => {
-    const { readBillingEnv, assertTestMode } = await import("./billing.server");
+    const { readBillingEnv, billingConfigured } = await import("./billing.server");
     const env = readBillingEnv();
-    const mode = assertTestMode(env.secretKey);
+    const mode = billingConfigured(env);
 
     const { resolveTenantContext } = await import("./tenant.server");
     const tenant = await resolveTenantContext(context.supabase, context.userId);
@@ -129,26 +131,40 @@ async function ensureCustomer(userId: string, email: string | undefined) {
   return id;
 }
 
-/** Sessione di pagamento ricorrente mensile (solo test): mai chiavi lato browser. */
+/**
+ * Sessione di pagamento (solo TEST): allowlist piano+intervallo, Price
+ * recuperato e validato dal provider prima di aprire il checkout.
+ */
 export const createPaymentSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ plan: z.enum(["business", "team"]) }).parse(input))
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        plan: z.enum(["professional", "business", "executive"]),
+        interval: z.enum(["month", "year"]).default("month"),
+      })
+      .parse(input),
+  )
   .handler(async ({ data, context }): Promise<{ ok: boolean; url?: string; code: string }> => {
-    const { readBillingEnv, assertTestMode, providerCall, adminClient } = await import(
-      "./billing.server"
-    );
+    const { readBillingEnv, billingConfigured, providerCall, adminClient, fetchRemotePrice } =
+      await import("./billing.server");
     const env = readBillingEnv();
-    const mode = assertTestMode(env.secretKey);
+    const mode = billingConfigured(env);
     if (!mode.ok) return { ok: false, code: mode.code };
 
     const { resolveTenantContext } = await import("./tenant.server");
     const tenant = await resolveTenantContext(context.supabase, context.userId);
     if (!tenant.can_manage_billing) return { ok: false, code: "MEMBER_CANNOT_MANAGE_BILLING" };
 
-    const plan = planFromInput(data.plan);
-    if (!plan) return { ok: false, code: "INVALID_PLAN" };
-    const priceId = env.priceMap[plan.id];
-    if (!priceId || !isValidPriceId(priceId)) return { ok: false, code: "PRICE_NOT_CONFIGURED" };
+    const target = checkoutTarget(data.plan, data.interval);
+    if (!target) return { ok: false, code: "INVALID_PLAN" };
+    const priceId = env.priceMap[priceKey(data.plan, data.interval)] ?? "";
+    if (!isValidPriceId(priceId)) return { ok: false, code: "PRICE_NOT_CONFIGURED" };
+
+    // Il Price remoto deve corrispondere esattamente al catalogo ed essere di test.
+    const remote = await fetchRemotePrice(priceId, env.secretKey);
+    const priceCheck = validateRemotePrice(remote, target);
+    if (!priceCheck.ok) return { ok: false, code: priceCheck.code };
 
     // Nessuna seconda sottoscrizione se ne esiste già una attiva o in prova presso il provider.
     const { data: current, error: currentError } = await context.supabase
@@ -173,21 +189,23 @@ export const createPaymentSession = createServerFn({ method: "POST" })
         customer: customerId,
         "line_items[0][price]": priceId,
         "line_items[0][quantity]": "1",
-        // Prezzi 299/599 IVA esclusa: l'imposta è calcolata dal provider.
+        // Prezzi IVA esclusa: l'imposta è calcolata dal provider in modalità test.
         "automatic_tax[enabled]": "true",
         "customer_update[address]": "auto",
         "customer_update[name]": "auto",
         "tax_id_collection[enabled]": "true",
         billing_address_collection: "required",
         "subscription_data[metadata][supabase_user_id]": context.userId,
-        "subscription_data[metadata][plan_id]": plan.id,
+        "subscription_data[metadata][plan_id]": data.plan,
+        "subscription_data[metadata][interval]": data.interval,
         "metadata[supabase_user_id]": context.userId,
-        "metadata[plan_id]": plan.id,
+        "metadata[plan_id]": data.plan,
+        "metadata[interval]": data.interval,
         client_reference_id: context.userId,
         success_url: `${env.appUrl}/abbonamento?esito=ok`,
         cancel_url: `${env.appUrl}/abbonamento?esito=annullato`,
       },
-      idempotencyKey("checkout", context.userId, plan.id, priceId),
+      idempotencyKey("checkout", context.userId, data.plan, data.interval, priceId),
     );
     const url = session.payload?.["url"];
     if (session.status !== 200 || typeof url !== "string")
@@ -195,7 +213,7 @@ export const createPaymentSession = createServerFn({ method: "POST" })
 
     const { error: priceError } = await adminClient()
       .from("ueradar_subscriptions")
-      .update({ stripe_price_id: priceId, plan_seats: PLANS[plan.id].seats })
+      .update({ stripe_price_id: priceId, plan_seats: CATALOG[data.plan].limits.seats })
       .eq("user_id", context.userId);
     if (priceError) return { ok: false, code: "SUBSCRIPTION_UPDATE_FAILED" };
 
@@ -206,9 +224,9 @@ export const createPaymentSession = createServerFn({ method: "POST" })
 export const createPortalSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ ok: boolean; url?: string; code: string }> => {
-    const { readBillingEnv, assertTestMode, providerCall } = await import("./billing.server");
+    const { readBillingEnv, billingConfigured, providerCall } = await import("./billing.server");
     const env = readBillingEnv();
-    const mode = assertTestMode(env.secretKey);
+    const mode = billingConfigured(env);
     if (!mode.ok) return { ok: false, code: mode.code };
 
     const { resolveTenantContext } = await import("./tenant.server");

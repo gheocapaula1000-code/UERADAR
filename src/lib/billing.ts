@@ -1,53 +1,43 @@
 /**
  * Logica pura di fatturazione UEradar (modalità TEST obbligatoria).
- * Nessun segreto qui: catalogo piani, stati abbonamento, entitlement fail-closed
- * e controllo utenti nominativi della stessa impresa.
+ * Nessun segreto qui: stati abbonamento, entitlement fail-closed, validazione
+ * dei prezzi remoti e controllo della capienza utenti. Il catalogo (prezzi,
+ * limiti, capienza) vive in `catalog.ts` ed è l'unica fonte di verità.
  */
-export type PlanId = "business" | "team";
+import {
+  CATALOG,
+  checkoutTarget,
+  formatEuro,
+  intervalFromCode,
+  normalizePlanCode,
+  planFromCode,
+  TRIAL_PLAN_CODE,
+  type BillingInterval,
+  type PlanDefinition,
+  type PlanId,
+  type PlanLimits,
+  type PlanPrice,
+} from "./catalog";
 
-export type PlanDefinition = {
-  id: PlanId;
-  name: string;
-  amountCents: number;
-  currency: "eur";
-  seats: number;
-  priceEnv: string;
-  planCode: string;
-};
+export type { BillingInterval, PlanDefinition, PlanId, PlanLimits, PlanPrice };
+export { CATALOG, checkoutTarget, formatEuro };
 
-export const PLANS: Record<PlanId, PlanDefinition> = {
-  business: {
-    id: "business",
-    name: "BUSINESS",
-    amountCents: 29900,
-    currency: "eur",
-    seats: 3,
-    priceEnv: "STRIPE_PRICE_BUSINESS",
-    planCode: "ueradar_business_monthly",
-  },
-  team: {
-    id: "team",
-    name: "TEAM",
-    amountCents: 59900,
-    currency: "eur",
-    seats: 10,
-    priceEnv: "STRIPE_PRICE_TEAM",
-    planCode: "ueradar_team_monthly",
-  },
-};
-
-/** Oltre 10 utenti nominativi: nessuna vendita self-service, solo trattativa privata. */
-export const MAX_SELF_SERVICE_SEATS = PLANS.team.seats;
+/** Chiave del price map server-side: piano + intervallo. */
+export function priceKey(plan: PlanId, interval: BillingInterval): string {
+  return `${plan}:${interval}`;
+}
 
 export const SUBSCRIPTION_STATES = [
   "trialing",
   "active",
   "past_due",
   "canceled",
+  "expired",
   "unpaid",
   "incomplete",
   "incomplete_expired",
   "paused",
+  "superseded_by_tenant",
 ] as const;
 export type SubscriptionState = (typeof SUBSCRIPTION_STATES)[number];
 
@@ -62,26 +52,61 @@ export function isTestSecretKey(key: string): boolean {
   return /^(sk|rk)_test_[A-Za-z0-9_]+$/.test(key.trim());
 }
 
+export function isLiveSecretKey(key: string): boolean {
+  return /^(sk|rk)_live_/.test(key.trim());
+}
+
 export function isValidPriceId(price: string): boolean {
   return /^price_[A-Za-z0-9_]+$/.test(price.trim());
 }
 
-export function planFromInput(value: unknown): PlanDefinition | null {
-  return value === "business" || value === "team" ? PLANS[value] : null;
-}
-
 export function seatsForPlanCode(planCode: unknown): number {
-  for (const plan of Object.values(PLANS)) if (plan.planCode === planCode) return plan.seats;
-  return 0;
+  return planFromCode(planCode).limits.seats;
 }
 
+export function limitsForPlanCode(planCode: unknown): PlanLimits {
+  return planFromCode(planCode).limits;
+}
+
+/** Risolve piano e intervallo a partire dal Price ID ricevuto dal provider. */
 export function planFromPriceId(
   priceId: unknown,
-  map: Partial<Record<PlanId, string>>,
-): PlanDefinition | null {
+  map: Record<string, string>,
+): { plan: PlanDefinition; price: PlanPrice } | null {
   if (typeof priceId !== "string" || !priceId) return null;
-  for (const plan of Object.values(PLANS)) if (map[plan.id] === priceId) return plan;
+  for (const plan of Object.values(CATALOG)) {
+    for (const price of Object.values(plan.prices)) {
+      if (map[priceKey(plan.id, price.interval)] === priceId) return { plan, price };
+    }
+  }
   return null;
+}
+
+/**
+ * Validazione del prezzo remoto prima di aprire una sessione: qualunque
+ * discrepanza blocca il checkout (fail-closed) e un prezzo live lo interrompe.
+ */
+export function validateRemotePrice(
+  remote: Record<string, unknown> | null,
+  expected: PlanPrice,
+): { ok: boolean; code: string } {
+  if (!remote) return { ok: false, code: "PRICE_NOT_FOUND" };
+  if (remote["livemode"] === true) return { ok: false, code: "LIVE_MODE_BLOCKED" };
+  if (remote["livemode"] !== false) return { ok: false, code: "PRICE_MODE_UNKNOWN" };
+  if (remote["active"] !== true) return { ok: false, code: "PRICE_NOT_ACTIVE" };
+  if (remote["currency"] !== "eur") return { ok: false, code: "PRICE_CURRENCY_MISMATCH" };
+  if (remote["unit_amount"] !== expected.amountCents)
+    return { ok: false, code: "PRICE_AMOUNT_MISMATCH" };
+  const recurring = remote["recurring"];
+  const interval =
+    recurring && typeof recurring === "object" && !Array.isArray(recurring)
+      ? (recurring as Record<string, unknown>)["interval"]
+      : null;
+  if (interval !== expected.interval) return { ok: false, code: "PRICE_INTERVAL_MISMATCH" };
+  const taxBehavior = remote["tax_behavior"];
+  // Prezzi IVA esclusa: il comportamento fiscale deve essere coerente.
+  if (taxBehavior !== "exclusive") return { ok: false, code: "PRICE_TAX_BEHAVIOR_MISMATCH" };
+  return { ok: true, code: "OK" };
 }
 
 export type SubscriptionSnapshot = {
@@ -96,10 +121,29 @@ export type SubscriptionSnapshot = {
 export type Entitlement = {
   entitled: boolean;
   state: "TRIAL" | "ACTIVE" | "TRIAL_EXPIRED" | "PAST_DUE" | "UNPAID" | "CANCELED" | "NONE";
+  planId: PlanId;
+  planCode: string;
+  interval: BillingInterval | null;
   seats: number;
+  limits: PlanLimits;
   requiresPayment: boolean;
   requiresPortal: boolean;
   reason: string;
+};
+
+const DENIED_LIMITS: PlanLimits = {
+  seats: 0,
+  companies: 0,
+  deepVerificationsPerMonth: 0,
+  dossiersPerMonth: 0,
+  fullSearchIntervalMinutes: Number.MAX_SAFE_INTEGER,
+  urgentLaneIntervalMinutes: null,
+  sourceTier: "core",
+  crossVerification: false,
+  changeMonitoring: false,
+  apiAccess: false,
+  exportsEnabled: false,
+  watermarkedDossier: true,
 };
 
 function denied(
@@ -110,7 +154,11 @@ function denied(
   return {
     entitled: false,
     state,
+    planId: "trial",
+    planCode: TRIAL_PLAN_CODE,
+    interval: null,
     seats: 0,
+    limits: DENIED_LIMITS,
     requiresPayment: true,
     requiresPortal: false,
     reason,
@@ -120,7 +168,7 @@ function denied(
 
 /**
  * Entitlement fail-closed: senza dati validi l'accesso è negato.
- * La prova gratuita di 7 giorni non richiede carta e vale solo fino a trial_ends_at.
+ * La prova gratuita di 7 giorni non richiede carta e vale fino a trial_ends_at.
  */
 export function resolveEntitlement(
   row: SubscriptionSnapshot | null | undefined,
@@ -131,17 +179,22 @@ export function resolveEntitlement(
   if (!Number.isFinite(now)) return denied("NONE", "INVALID_CLOCK");
 
   const status = normalizeStatus(row.status);
-  const seats = row.plan_seats > 0 ? row.plan_seats : seatsForPlanCode(row.plan_code);
+  const planCode = normalizePlanCode(row.plan_code);
   const trialEnd = row.trial_ends_at ? Date.parse(row.trial_ends_at) : Number.NaN;
   const periodEnd = row.current_period_end ? Date.parse(row.current_period_end) : Number.NaN;
 
   if (status === "trialing") {
     if (!Number.isFinite(trialEnd)) return denied("NONE", "TRIAL_WITHOUT_END");
     if (trialEnd <= now) return denied("TRIAL_EXPIRED", "TRIAL_EXPIRED");
+    // La prova è applicativa: livello Business con capienza ridotta.
     return {
       entitled: true,
       state: "TRIAL",
-      seats: seats > 0 ? seats : PLANS.business.seats,
+      planId: "trial",
+      planCode: TRIAL_PLAN_CODE,
+      interval: null,
+      seats: CATALOG.trial.limits.seats,
+      limits: CATALOG.trial.limits,
       requiresPayment: false,
       requiresPortal: false,
       reason: "TRIAL_ACTIVE",
@@ -151,11 +204,18 @@ export function resolveEntitlement(
   if (status === "active") {
     if (!Number.isFinite(periodEnd)) return denied("CANCELED", "ACTIVE_WITHOUT_PERIOD_END");
     if (periodEnd <= now) return denied("CANCELED", "PERIOD_ENDED");
-    if (seats <= 0) return denied("CANCELED", "PLAN_WITHOUT_SEATS");
+    const plan = planFromCode(planCode);
+    if (plan.id === "trial") return denied("CANCELED", "ACTIVE_WITHOUT_PLAN");
+    const seats = row.plan_seats > 0 ? row.plan_seats : plan.limits.seats;
+    if (seats <= 0 && plan.limits.seats >= 0) return denied("CANCELED", "PLAN_WITHOUT_SEATS");
     return {
       entitled: true,
       state: "ACTIVE",
+      planId: plan.id,
+      planCode,
+      interval: intervalFromCode(planCode),
       seats,
+      limits: plan.limits,
       requiresPayment: false,
       requiresPortal: false,
       reason: row.cancel_at_period_end ? "ACTIVE_CANCEL_AT_PERIOD_END" : "ACTIVE",
@@ -169,15 +229,16 @@ export function resolveEntitlement(
   return denied("CANCELED", `STATUS_${status.toUpperCase()}`);
 }
 
-/** Gli utenti nominativi reali della stessa impresa non possono superare il piano. */
+/** Gli utenti operativi della stessa impresa non possono superare la capienza. */
 export function canAddMember(currentMembers: number, entitlement: Entitlement) {
   if (!entitlement.entitled) return { allowed: false, reason: "NOT_ENTITLED" as const };
+  if (entitlement.seats < 0) return { allowed: true, reason: "OK" as const };
   if (currentMembers + 1 > entitlement.seats)
     return { allowed: false, reason: "SEATS_EXCEEDED" as const };
   return { allowed: true, reason: "OK" as const };
 }
 
-/** Ruoli dichiarati dal titolare per gli utenti nominativi. Nessuna verifica camerale automatica. */
+/** Ruoli dichiarati dal titolare per gli utenti operativi. */
 export const MEMBER_ROLES = ["dipendente", "socio", "amministratore"] as const;
 export type MemberRole = (typeof MEMBER_ROLES)[number];
 
@@ -189,10 +250,15 @@ export function isMemberRole(value: unknown): value is MemberRole {
  * Una sola sottoscrizione per utente: se ne esiste già una attiva o in prova
  * presso il provider, non si apre una seconda sessione di pagamento.
  */
-export function canStartNewSubscription(row: {
-  status?: string | null;
-  provider_subscription_id?: string | null;
-} | null | undefined): { allowed: boolean; reason: string } {
+export function canStartNewSubscription(
+  row:
+    | {
+        status?: string | null;
+        provider_subscription_id?: string | null;
+      }
+    | null
+    | undefined,
+): { allowed: boolean; reason: string } {
   const subscriptionId = row?.provider_subscription_id ?? null;
   if (!subscriptionId) return { allowed: true, reason: "NO_PROVIDER_SUBSCRIPTION" };
   const status = normalizeStatus(row?.status);
@@ -284,9 +350,9 @@ export function subscriptionUpdateFromEvent(input: {
   priceId: unknown;
   subscriptionId: unknown;
   customerId: unknown;
-  priceMap: Partial<Record<PlanId, string>>;
+  priceMap: Record<string, string>;
 }) {
-  const plan = planFromPriceId(input.priceId, input.priceMap);
+  const match = planFromPriceId(input.priceId, input.priceMap);
   const seconds = typeof input.currentPeriodEnd === "number" ? input.currentPeriodEnd : 0;
   return {
     status: normalizeStatus(input.status),
@@ -296,8 +362,8 @@ export function subscriptionUpdateFromEvent(input: {
       typeof input.subscriptionId === "string" ? input.subscriptionId : null,
     provider_customer_id: typeof input.customerId === "string" ? input.customerId : null,
     stripe_price_id: typeof input.priceId === "string" ? input.priceId : null,
-    plan_code: plan?.planCode ?? "ueradar_business_monthly",
-    plan_seats: plan?.seats ?? 0,
+    plan_code: match?.price.planCode ?? TRIAL_PLAN_CODE,
+    plan_seats: match?.plan.limits.seats ?? 0,
     cancel_at_period_end: input.cancelAtPeriodEnd === true,
     current_period_end: seconds > 0 ? new Date(seconds * 1000).toISOString() : null,
     trial_consumed: true,

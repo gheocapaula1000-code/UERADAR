@@ -8,10 +8,12 @@ import {
   isMemberRole,
   MEMBER_ROLES,
   isTestSecretKey,
+  isLiveSecretKey,
   isValidPriceId,
-  MAX_SELF_SERVICE_SEATS,
-  PLANS,
+  CATALOG,
+  priceKey,
   planFromPriceId,
+  validateRemotePrice,
   resolveEntitlement,
   subscriptionUpdateFromEvent,
   verifyWebhookSignature,
@@ -24,8 +26,8 @@ const base: SubscriptionSnapshot = {
   trial_ends_at: "2026-08-12T10:00:00.000Z",
   current_period_end: null,
   cancel_at_period_end: false,
-  plan_code: "ueradar_business_monthly",
-  plan_seats: 3,
+  plan_code: "ueradar_trial",
+  plan_seats: 1,
 };
 
 async function sign(payload: string, secret: string, timestamp: number) {
@@ -47,22 +49,57 @@ async function sign(payload: string, secret: string, timestamp: number) {
 }
 
 describe("catalogo piani UEradar", () => {
-  it("espone solo Business 299 e Team 599 con 3 e 10 utenti", () => {
-    expect(PLANS.business.amountCents).toBe(29900);
-    expect(PLANS.team.amountCents).toBe(59900);
-    expect(PLANS.business.seats).toBe(3);
-    expect(PLANS.team.seats).toBe(10);
-    expect(MAX_SELF_SERVICE_SEATS).toBe(10);
-    expect(Object.keys(PLANS)).toEqual(["business", "team"]);
+  it("espone il catalogo approvato con prezzi IVA esclusa e annuale = 10 mensilità", () => {
+    expect(CATALOG.professional.prices.month?.amountCents).toBe(49900);
+    expect(CATALOG.professional.prices.year?.amountCents).toBe(499000);
+    expect(CATALOG.business.prices.month?.amountCents).toBe(99000);
+    expect(CATALOG.business.prices.year?.amountCents).toBe(990000);
+    expect(CATALOG.executive.prices.month?.amountCents).toBe(199000);
+    expect(CATALOG.executive.prices.year?.amountCents).toBe(1990000);
+    expect(CATALOG.professional.limits.seats).toBe(2);
+    expect(CATALOG.business.limits.seats).toBe(5);
+    expect(CATALOG.executive.limits.seats).toBe(10);
+    expect(CATALOG.business.highlighted).toBe(true);
+    expect(CATALOG.enterprise.selfService).toBe(false);
+    expect(Object.keys(CATALOG.enterprise.prices)).toHaveLength(0);
   });
 
   it("accetta esclusivamente chiavi e prezzi in modalità test", () => {
     expect(isTestSecretKey("sk_test_abc123")).toBe(true);
     expect(isTestSecretKey("rk_test_abc123")).toBe(true);
     expect(isTestSecretKey("sk_live_abc123")).toBe(false);
+    expect(isLiveSecretKey("rk_live_abc123")).toBe(true);
     expect(isTestSecretKey("")).toBe(false);
     expect(isValidPriceId("price_123")).toBe(true);
     expect(isValidPriceId("plan_123")).toBe(false);
+  });
+
+  it("rifiuta un Price non coerente con il catalogo o in modalità live", () => {
+    const expected = CATALOG.business.prices.month!;
+    const good = {
+      livemode: false,
+      active: true,
+      currency: "eur",
+      unit_amount: 99000,
+      recurring: { interval: "month" },
+      tax_behavior: "exclusive",
+    };
+    expect(validateRemotePrice(good, expected).ok).toBe(true);
+    expect(validateRemotePrice({ ...good, livemode: true }, expected).code).toBe("LIVE_MODE_BLOCKED");
+    expect(validateRemotePrice({ ...good, unit_amount: 29900 }, expected).code).toBe(
+      "PRICE_AMOUNT_MISMATCH",
+    );
+    expect(validateRemotePrice({ ...good, currency: "usd" }, expected).code).toBe(
+      "PRICE_CURRENCY_MISMATCH",
+    );
+    expect(validateRemotePrice({ ...good, recurring: { interval: "year" } }, expected).code).toBe(
+      "PRICE_INTERVAL_MISMATCH",
+    );
+    expect(validateRemotePrice({ ...good, active: false }, expected).code).toBe("PRICE_NOT_ACTIVE");
+    expect(validateRemotePrice({ ...good, tax_behavior: "inclusive" }, expected).code).toBe(
+      "PRICE_TAX_BEHAVIOR_MISMATCH",
+    );
+    expect(validateRemotePrice(null, expected).code).toBe("PRICE_NOT_FOUND");
   });
 });
 
@@ -97,7 +134,7 @@ describe("entitlement fail-closed", () => {
         ...base,
         status: "active",
         current_period_end: "2026-09-08T10:00:00.000Z",
-        plan_code: "ueradar_team_monthly",
+        plan_code: "ueradar_executive_monthly",
         plan_seats: 10,
       },
       NOW,
@@ -118,7 +155,13 @@ describe("entitlement fail-closed", () => {
 describe("utenti nominativi della stessa impresa", () => {
   it("blocca oltre i posti del piano e senza entitlement", () => {
     const active = resolveEntitlement(
-      { ...base, status: "active", current_period_end: "2026-09-08T10:00:00.000Z" },
+      {
+        ...base,
+        status: "active",
+        plan_code: "ueradar_professional_monthly",
+        plan_seats: 3,
+        current_period_end: "2026-09-08T10:00:00.000Z",
+      },
       NOW,
     );
     expect(canAddMember(2, active).allowed).toBe(true);
@@ -129,8 +172,12 @@ describe("utenti nominativi della stessa impresa", () => {
 
 describe("sincronizzazione webhook", () => {
   it("mappa il prezzo sul piano corretto", () => {
-    const map = { business: "price_b", team: "price_t" };
-    expect(planFromPriceId("price_t", map)?.seats).toBe(10);
+    const map = {
+      [priceKey("business", "month")]: "price_b",
+      [priceKey("executive", "year")]: "price_t",
+    };
+    expect(planFromPriceId("price_t", map)?.plan.limits.seats).toBe(10);
+    expect(planFromPriceId("price_t", map)?.price.planCode).toBe("ueradar_executive_annual");
     expect(planFromPriceId("price_x", map)).toBeNull();
   });
 
@@ -142,7 +189,10 @@ describe("sincronizzazione webhook", () => {
       priceId: "price_t",
       subscriptionId: "sub_1",
       customerId: "cus_1",
-      priceMap: { business: "price_b", team: "price_t" },
+      priceMap: {
+        [priceKey("business", "month")]: "price_b",
+        [priceKey("executive", "year")]: "price_t",
+      },
     });
     expect(update.status).toBe("active");
     expect(update.plan_seats).toBe(10);
@@ -189,7 +239,7 @@ describe("sicurezza dell'integrazione di pagamento", () => {
 
   it("tiene le chiavi solo lato server e blocca la modalità live", () => {
     expect(server).toContain('process.env["STRIPE_SECRET_KEY"]');
-    expect(functions).toContain("assertTestMode");
+    expect(functions).toContain("billingConfigured");
     expect(functions).toContain("requireSupabaseAuth");
     expect(functions).not.toMatch(/import\.meta\.env\.VITE_STRIPE/);
     for (const file of ["src/routes/_authenticated/abbonamento.tsx"]) {

@@ -404,6 +404,69 @@ export type Database = {
         }
         Relationships: []
       }
+      ueradar_trial_registry: {
+        Row: {
+          created_at: string
+          fingerprint_type: string
+          fingerprint_value: string
+          id: string
+          started_at: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          fingerprint_type: string
+          fingerprint_value: string
+          id?: string
+          started_at?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          fingerprint_type?: string
+          fingerprint_value?: string
+          id?: string
+          started_at?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ueradar_usage_counters: {
+        Row: {
+          created_at: string
+          deep_verifications: number
+          dossiers: number
+          last_full_search_at: string | null
+          last_urgent_search_at: string | null
+          period_ym: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deep_verifications?: number
+          dossiers?: number
+          last_full_search_at?: string | null
+          last_urgent_search_at?: string | null
+          period_ym: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deep_verifications?: number
+          dossiers?: number
+          last_full_search_at?: string | null
+          last_urgent_search_at?: string | null
+          period_ym?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -411,6 +474,24 @@ export type Database = {
     Functions: {
       ueradar_accept_invite: {
         Args: { _email: string; _member_id: string; _user_id: string }
+        Returns: Json
+      }
+      ueradar_claim_search_lane: {
+        Args: {
+          _lane: string
+          _min_interval_minutes: number
+          _period: string
+          _tenant: string
+        }
+        Returns: Json
+      }
+      ueradar_consume_quota: {
+        Args: {
+          _kind: string
+          _limit: number
+          _period: string
+          _tenant: string
+        }
         Returns: Json
       }
       ueradar_current_tenant: { Args: never; Returns: string }

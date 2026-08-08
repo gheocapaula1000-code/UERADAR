@@ -203,8 +203,9 @@ describe("UI banner e footer — requisiti normativi statici", () => {
 
   it("i termini riportano prezzi, prova e billing disattivato", () => {
     const terms = readFileSync("src/routes/termini.tsx", "utf8");
-    expect(terms).toContain("€299,00");
-    expect(terms).toContain("€599,00");
+    expect(terms).toContain("€499");
+    expect(terms).toContain("€990");
+    expect(terms).toContain("€1.990");
     expect(terms).toMatch(/non richiede carta di credito/);
     expect(terms).toContain("senza PEC");
     expect(terms).toMatch(/fatturazione .*disattivata fino al collaudo/);

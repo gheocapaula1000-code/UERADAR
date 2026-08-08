@@ -1,14 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { Check, ShieldCheck, Users } from "lucide-react";
 import { BrandLogo } from "@/components/bandocore/BrandLogo";
 import { SiteFooter } from "@/components/bandocore/SiteFooter";
+import { TrialBanner, TrialStickyBar } from "@/components/bandocore/TrialBanner";
 import { PRICING_FAQ_JSONLD, seoHead } from "@/lib/seo";
 import {
   ARCHITECTURE_NOTES,
-  CUSTOM_PLAN,
+  ENTERPRISE_PLAN,
   PRICING_FAQ,
+  PRODUCT_BOUNDARIES,
   PUBLIC_PLANS,
+  TRIAL_COPY,
   TRIAL_TERMS,
+  VERIFIED_DEFINITION,
 } from "@/lib/pricing";
 
 export const Route = createFileRoute("/prezzi")({
@@ -22,9 +27,10 @@ export const Route = createFileRoute("/prezzi")({
 function Pricing() {
   // Billing tecnicamente disabilitato: nessun pagamento, nessun provider collegato.
   const billingEnabled = import.meta.env.VITE_BILLING_ENABLED === "true";
+  const [interval, setInterval] = useState<"month" | "year">("month");
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background pb-40 text-foreground md:pb-0">
       <header className="safe-x safe-top border-b border-border/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-6">
           <Link to="/" className="flex min-w-0 items-center" aria-label="UEradar.com, home">
@@ -50,28 +56,69 @@ function Pricing() {
             Provalo per 7 giorni, senza carta.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            Tutto illimitato in entrambi i piani: nessuna quota e nessun credito. Tutti i prezzi
-            sono IVA esclusa, nessun dato bancario richiesto per iniziare e nessun addebito
-            automatico al termine della prova.
+            I piani si distinguono per frequenza delle ricerche, ampiezza delle fonti ufficiali,
+            verifiche approfondite e dossier. Il numero di opportunità pertinenti mostrate non è
+            mai limitato. Tutti i prezzi sono IVA esclusa e l'annuale include 2 mesi.
           </p>
         </div>
 
-        <section className="mt-12 grid gap-6 md:grid-cols-2">
+        <div className="mx-auto mt-8 max-w-2xl">
+          <TrialBanner />
+        </div>
+
+        <div className="mt-10 flex justify-center">
+          <div
+            role="group"
+            aria-label="Periodicità di fatturazione"
+            className="inline-flex rounded-lg border border-border bg-card p-1"
+          >
+            {(["month", "year"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={interval === value}
+                onClick={() => setInterval(value)}
+                className={`tap rounded-md px-4 py-2.5 text-sm font-semibold ${
+                  interval === value
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {value === "month" ? "Mensile" : "Annuale (2 mesi inclusi)"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <section aria-label="Piani disponibili" className="mt-8 grid gap-6 lg:grid-cols-3">
           {PUBLIC_PLANS.map((plan) => (
             <div
               key={plan.id}
-              className="rounded-2xl border border-border bg-card p-6 shadow-elevated sm:p-8"
+              className={`rounded-2xl border bg-card p-6 shadow-elevated sm:p-8 ${
+                plan.highlighted ? "border-accent" : "border-border"
+              }`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <h2 className="text-2xl font-semibold">{plan.name}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">{plan.audience}</p>
                 </div>
-                <ShieldCheck aria-hidden="true" className="h-8 w-8 shrink-0 text-primary" />
+                {plan.highlighted ? (
+                  <span className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground">
+                    Più scelto
+                  </span>
+                ) : (
+                  <ShieldCheck aria-hidden="true" className="h-8 w-8 shrink-0 text-primary" />
+                )}
               </div>
               <div className="mt-6">
-                <span className="text-3xl font-bold sm:text-4xl">{plan.price}</span>
-                <span className="text-muted-foreground"> {plan.vatNote}</span>
+                <span className="text-3xl font-bold sm:text-4xl">
+                  {interval === "month" ? plan.monthly : plan.annual}
+                </span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  {interval === "month" ? plan.vatNote : plan.annualNote}
+                </span>
               </div>
               <ul className="mt-6 space-y-3 text-sm">
                 {plan.features.map((f) => (
@@ -80,13 +127,20 @@ function Pricing() {
                   </li>
                 ))}
               </ul>
+              <p className="mt-6 text-xs font-semibold uppercase tracking-wide text-accent">
+                {TRIAL_COPY.headline}
+              </p>
+              <p className="text-xs uppercase text-muted-foreground">{TRIAL_COPY.noCard}</p>
               <Link
                 to="/auth"
-                className="tap mt-8 flex items-center justify-center rounded-lg bg-primary px-5 py-3 text-center font-semibold text-primary-foreground shadow-glow"
+                className="tap mt-4 flex items-center justify-center rounded-lg bg-primary px-5 py-3 text-center font-bold text-primary-foreground shadow-glow"
               >
-                Inizia la prova gratuita
+                {TRIAL_COPY.cta}
               </Link>
               <p className="mt-3 text-center text-xs text-muted-foreground">
+                {TRIAL_COPY.ctaNote}
+              </p>
+              <p className="mt-1 text-center text-xs text-muted-foreground">
                 {billingEnabled
                   ? "L'abbonamento si attiva solo con conferma esplicita."
                   : "Gli addebiti sono disabilitati: la prova non richiede pagamento."}
@@ -100,18 +154,28 @@ function Pricing() {
             <Users aria-hidden="true" className="mt-1 hidden h-7 w-7 shrink-0 text-accent sm:block" />
             <div className="min-w-0">
               <h2 className="text-xl font-semibold">
-                {CUSTOM_PLAN.name} — {CUSTOM_PLAN.headline}
+                {ENTERPRISE_PLAN.name} — {ENTERPRISE_PLAN.headline}
               </h2>
-              <p className="mt-2 text-sm text-muted-foreground">{CUSTOM_PLAN.description}</p>
+              <p className="mt-1 text-sm">
+                <span className="text-2xl font-bold">{ENTERPRISE_PLAN.price}</span>{" "}
+                <span className="text-muted-foreground">{ENTERPRISE_PLAN.vatNote}</span>
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">{ENTERPRISE_PLAN.description}</p>
+              <ul className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+                {ENTERPRISE_PLAN.features.map((f) => (
+                  <li key={f}>· {f}</li>
+                ))}
+              </ul>
               <p className="mt-3 text-sm">
-                {CUSTOM_PLAN.cta}: <span className="wrap-anywhere font-medium">{CUSTOM_PLAN.contact}</span>
+                {ENTERPRISE_PLAN.cta}:{" "}
+                <span className="wrap-anywhere font-medium">{ENTERPRISE_PLAN.contact}</span>
               </p>
             </div>
           </div>
         </section>
 
         <section className="mt-12 rounded-2xl border border-primary/30 bg-card p-6 sm:p-8">
-          <h2 className="text-lg font-semibold">Condizioni identiche per entrambi i piani</h2>
+          <h2 className="text-lg font-semibold">La prova gratuita, senza sorprese</h2>
           <ul className="mt-4 grid gap-3 text-sm text-muted-foreground md:grid-cols-2">
             {TRIAL_TERMS.map((t) => (
               <li key={t} className="flex items-start gap-2">
@@ -121,12 +185,29 @@ function Pricing() {
           </ul>
         </section>
 
+        <section className="mt-12 grid gap-6 md:grid-cols-2">
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <h2 className="text-lg font-semibold">Quando una opportunità è "Verificata"</h2>
+            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+              {VERIFIED_DEFINITION.map((v) => (
+                <li key={v} className="flex items-start gap-2">
+                  <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {v}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <h2 className="text-lg font-semibold">Cosa UEradar non fa</h2>
+            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+              {PRODUCT_BOUNDARIES.map((b) => (
+                <li key={b}>· {b}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
         <section className="mt-12">
-          <h2 className="text-2xl font-bold">Come sosteniamo l'illimitato</h2>
-          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-            Nota tecnica sull'architettura del motore lato server, coerente con il backend
-            esistente.
-          </p>
+          <h2 className="text-2xl font-bold">Come funziona il motore</h2>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {ARCHITECTURE_NOTES.map((n) => (
               <div key={n.t} className="rounded-xl border border-border bg-card p-5">
@@ -148,10 +229,10 @@ function Pricing() {
             ))}
           </div>
         </section>
-
       </main>
 
       <SiteFooter />
+      <TrialStickyBar />
     </div>
   );
 }

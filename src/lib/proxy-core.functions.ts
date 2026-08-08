@@ -26,7 +26,14 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
     // Tutte le letture/scritture di cache sono confinate all'impresa risolta.
     const tenant = await resolveTenantContext(supabase, userId);
     const tenantId = tenant.tenant_owner_id;
-    const deepSearch = data.deep_search ?? true;
+
+    // Enforcement server-side: entitlement, profondità e cadenza del piano.
+    const { entitlementForTenant, claimSearchLane } = await import("./usage.server");
+    const nowIso = new Date().toISOString();
+    const entitlement = await entitlementForTenant(supabase, tenantId, nowIso);
+    if (!entitlement.entitled) throw new Error(`FEED_NOT_ENTITLED:${entitlement.reason}`);
+    // Le fonti locali/di nicchia (deep search) richiedono il livello esteso.
+    const deepSearch = (data.deep_search ?? true) && entitlement.limits.sourceTier !== "core";
 
     let bandi: Bando[] | null = null;
     let fetchedAt = new Date().toISOString();
@@ -36,6 +43,15 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
 
     try {
       if (data.force_refresh) {
+        // La corsia urgente esiste solo dove prevista dal piano, con cadenza minima.
+        const lane = await claimSearchLane(
+          tenantId,
+          entitlement.limits.urgentLaneIntervalMinutes === null ? "full" : "urgent",
+          entitlement.limits.urgentLaneIntervalMinutes ??
+            entitlement.limits.fullSearchIntervalMinutes,
+          nowIso,
+        );
+        if (!lane.allowed) throw new Error(`REFRESH_RATE_LIMITED:${lane.code}`);
         // La coda deve confermare {ok:true, queued:true}: nessun refresh "finto".
         const { data: refreshPayload, error: refreshError } = await supabase.functions.invoke(
           "trovabandi-feed",
