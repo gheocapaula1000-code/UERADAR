@@ -250,7 +250,7 @@ export const createPaymentSession = createServerFn({ method: "POST" })
         _user_id: context.userId,
         _price_id: priceId,
         _plan_code: target.planCode,
-        _ttl_seconds: 1800,
+        _ttl_seconds: CHECKOUT_TTL_SECONDS,
       },
     );
     if (intentError) return { ok: false, code: "CHECKOUT_INTENT_UNAVAILABLE" };
@@ -320,6 +320,8 @@ export const createPaymentSession = createServerFn({ method: "POST" })
         "subscription_data[metadata][supabase_user_id]": context.userId,
         "subscription_data[metadata][plan_id]": data.plan,
         "subscription_data[metadata][interval]": data.interval,
+        // Finestra della sessione allineata al TTL della prenotazione.
+        expires_at: String(Math.floor(Date.now() / 1000) + CHECKOUT_TTL_SECONDS),
         "metadata[supabase_user_id]": context.userId,
         "metadata[plan_id]": data.plan,
         "metadata[interval]": data.interval,
@@ -342,14 +344,21 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       return { ok: false, code: sessionGate.code };
     }
 
-    // Sessione registrata sulla prenotazione: abilita solo la ripresa idempotente.
-    {
-      await adminClient().rpc("ueradar_attach_checkout_session", {
+    // Sessione registrata sulla prenotazione: senza conferma esplicita non si
+    // restituisce alcun URL e non si crea una seconda sessione. L'intento resta
+    // in vita per una ripresa idempotente o la scadenza naturale.
+    const { data: attached, error: attachError } = await adminClient().rpc(
+      "ueradar_attach_checkout_session",
+      {
         _user_id: context.userId,
         _price_id: priceId,
         _session_id: session.payload?.["id"] as string,
-      });
-    }
+      },
+    );
+    if (attachError) return { ok: false, code: "CHECKOUT_SESSION_ATTACH_FAILED" };
+    const attachResult = (attached ?? {}) as { ok?: boolean; code?: string };
+    if (!attachResult.ok)
+      return { ok: false, code: attachResult.code ?? "CHECKOUT_SESSION_ATTACH_FAILED" };
 
     const { error: priceError } = await adminClient()
       .from("ueradar_subscriptions")
