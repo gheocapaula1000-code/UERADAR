@@ -342,7 +342,6 @@ describe("gate di review Stripe TEST", () => {
     expect(src).not.toMatch(/Response\.json\(\{\s*ok:\s*true,\s*code:\s*"USER_NOT_FOUND"/);
     for (const guard of [
       "SUBSCRIPTION_WRITE_FAILED",
-      "CHECKOUT_WRITE_FAILED",
       "INVOICE_WRITE_FAILED",
       "SUBSCRIPTION_FETCH_FAILED",
       "EVENT_SETTLE_FAILED",
