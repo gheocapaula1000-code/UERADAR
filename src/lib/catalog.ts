@@ -16,8 +16,8 @@ export type BillingInterval = "month" | "year";
  * dichiara o riceve una copertura diversa (fail-closed).
  */
 export const SOURCE_TIERS = {
-  core: "Fonti ufficiali pubbliche disponibili nel motore",
-  extended: "Fonti ufficiali pubbliche disponibili nel motore",
+  core: "Fonti ufficiali disponibili",
+  extended: "Fonti ufficiali disponibili",
   dedicated: "Fonti e integrazioni definite da contratto",
 } as const;
 
@@ -34,7 +34,10 @@ export type PlanLimits = {
   companies: number;
   /** Obiettivi di investimento selezionabili nel profilo. -1 = nessun limite. */
   objectives: number;
-  /** Verifiche approfondite incluse ogni mese. -1 = definito da contratto. */
+  /**
+   * Requisito interno futuro, NON esposto e NON vendibile: nessun endpoint
+   * consuma oggi questa quota, quindi non compare in copy né in entitlement.
+   */
   deepVerificationsPerMonth: number;
   /** Dossier candidatura preparabili ogni mese. -1 = definito da contratto. */
   dossiersPerMonth: number;
@@ -98,9 +101,9 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       watermarkedDossier: true,
     },
     highlights: [
-      "Livello Business per 7 giorni",
-      "1 impresa, 1 utente, 2 obiettivi",
-      "1 anteprima dossier filigranata",
+      "7 giorni, nessuna carta e nessun addebito",
+      "1 impresa, 1 titolare, massimo 2 obiettivi",
+      "1 dossier in versione filigranata",
       NO_LIMITS_NOTE,
     ],
   },
@@ -140,7 +143,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       watermarkedDossier: false,
     },
     highlights: [
-      "Aggiornamenti programmati sul profilo impresa",
+      "Aggiornamento catalogo in corso sul profilo impresa",
       SOURCE_TIERS[AVAILABLE_SOURCE_TIER],
       "Checklist domanda e 1 dossier al mese",
       "2 utenti operativi (capienza tecnica)",
@@ -183,7 +186,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       watermarkedDossier: false,
     },
     highlights: [
-      "Aggiornamenti programmati sul profilo impresa",
+      "Aggiornamento catalogo in corso sul profilo impresa",
       SOURCE_TIERS[AVAILABLE_SOURCE_TIER],
       "5 dossier al mese",
       "5 utenti operativi (capienza tecnica)",
@@ -226,7 +229,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       watermarkedDossier: false,
     },
     highlights: [
-      "Aggiornamenti programmati sul profilo impresa",
+      "Aggiornamento catalogo in corso sul profilo impresa",
       SOURCE_TIERS[AVAILABLE_SOURCE_TIER],
       "15 dossier al mese",
       "10 utenti operativi (capienza tecnica)",

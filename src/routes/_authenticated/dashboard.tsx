@@ -230,8 +230,8 @@ function Dashboard() {
               <Radar className="h-7 w-7 text-accent" /> Radar Bandi
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Opportunità da fonti ufficiali nazionali, territoriali e UE configurate — con
-              riferimenti ufficiali e compatibilità motivata sul tuo profilo.
+              Risultati con fonte e dati presenti, dalle fonti ufficiali disponibili, ordinati
+              sul profilo della tua impresa.
               {query.data?.fetched_at && (
                 <span className="ml-2 text-xs">
                   · Aggiornato {new Date(query.data.fetched_at).toLocaleString("it-IT")}
@@ -269,7 +269,7 @@ function Dashboard() {
                   <Bell className="h-5 w-5 text-primary" /> Novità di oggi
                 </h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Preparate dagli aggiornamenti programmati del servizio.
+                  Elementi rilevati dall'ultimo aggiornamento del catalogo.
                 </p>
               </div>
               <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
@@ -310,7 +310,7 @@ function Dashboard() {
           {[
             { l: "Bandi attivi", v: query.isLoading ? "—" : stats.totale, c: "text-primary" },
             {
-              l: "Fonti locali/specialistiche",
+              l: "Fonti locali",
               v: query.isLoading ? "—" : stats.hidden,
               c: "text-accent",
             },
@@ -404,7 +404,7 @@ function Dashboard() {
               }`}
             >
               <Radar className="h-3.5 w-3.5" />
-              Solo fonti locali e specialistiche
+              Solo fonti locali
             </button>
           </div>
 

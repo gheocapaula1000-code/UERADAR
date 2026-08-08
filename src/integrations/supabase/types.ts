@@ -256,6 +256,8 @@ export type Database = {
           event_created_at: string | null
           event_id: string
           event_type: string
+          lease_expires_at: string | null
+          lease_token: string | null
           livemode: boolean
           object_id: string | null
           processed_at: string | null
@@ -270,6 +272,8 @@ export type Database = {
           event_created_at?: string | null
           event_id: string
           event_type: string
+          lease_expires_at?: string | null
+          lease_token?: string | null
           livemode?: boolean
           object_id?: string | null
           processed_at?: string | null
@@ -284,6 +288,8 @@ export type Database = {
           event_created_at?: string | null
           event_id?: string
           event_type?: string
+          lease_expires_at?: string | null
+          lease_token?: string | null
           livemode?: boolean
           object_id?: string | null
           processed_at?: string | null
@@ -513,6 +519,40 @@ export type Database = {
     Functions: {
       ueradar_accept_invite: {
         Args: { _email: string; _member_id: string; _user_id: string }
+        Returns: Json
+      }
+      ueradar_billing_apply_invoice: {
+        Args: {
+          _event_created_at: string
+          _invoice_url: string
+          _subscription_id: string
+          _tax_id: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      ueradar_billing_apply_subscription: {
+        Args: { _event_created_at: string; _patch: Json; _user_id: string }
+        Returns: Json
+      }
+      ueradar_billing_claim_event: {
+        Args: {
+          _customer: string
+          _event_created_at: string
+          _event_id: string
+          _event_type: string
+          _lease_seconds: number
+          _object_id: string
+        }
+        Returns: Json
+      }
+      ueradar_billing_settle_event: {
+        Args: {
+          _code: string
+          _event_id: string
+          _lease_token: string
+          _ok: boolean
+        }
         Returns: Json
       }
       ueradar_claim_search_lane: {

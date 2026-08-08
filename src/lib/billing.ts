@@ -504,3 +504,74 @@ export function subscriptionUpdateFromEvent(input: {
   };
   return { ok: true, code: "OK", patch };
 }
+
+/**
+ * Validazione della Subscription canonica recuperata dal provider.
+ * Lo stato dell'abbonamento locale deriva SOLO da questo oggetto: nessun
+ * evento (fattura compresa) può impostare direttamente attivo o insoluto.
+ */
+export function canonicalSubscriptionGuard(input: {
+  subscription: Record<string, unknown> | null;
+  expectedSubscriptionId: unknown;
+  expectedCustomerId: unknown;
+  linkedCustomerId: unknown;
+  priceMap: Record<string, string>;
+}): { ok: boolean; code: string } {
+  const sub = input.subscription;
+  if (!sub) return { ok: false, code: "SUBSCRIPTION_FETCH_FAILED" };
+  // Nessuna tolleranza sulla modalità: solo oggetti esplicitamente di test.
+  if (sub["livemode"] === true) return { ok: false, code: "LIVE_MODE_BLOCKED" };
+  if (sub["livemode"] !== false) return { ok: false, code: "SUBSCRIPTION_MODE_UNKNOWN" };
+
+  const id = typeof sub["id"] === "string" ? sub["id"] : "";
+  if (!id) return { ok: false, code: "SUBSCRIPTION_WITHOUT_ID" };
+  if (typeof input.expectedSubscriptionId === "string" && input.expectedSubscriptionId && input.expectedSubscriptionId !== id)
+    return { ok: false, code: "SUBSCRIPTION_MISMATCH" };
+
+  const customer = typeof sub["customer"] === "string" ? sub["customer"] : "";
+  if (!customer) return { ok: false, code: "CUSTOMER_MISSING" };
+  if (typeof input.expectedCustomerId === "string" && input.expectedCustomerId && input.expectedCustomerId !== customer)
+    return { ok: false, code: "CUSTOMER_MISMATCH" };
+  // Legame con l'utente/tenant: il customer già collegato non può cambiare.
+  if (typeof input.linkedCustomerId === "string" && input.linkedCustomerId && input.linkedCustomerId !== customer)
+    return { ok: false, code: "CUSTOMER_NOT_LINKED_TO_USER" };
+
+  if (!planFromPriceId(canonicalPriceId(sub), input.priceMap))
+    return { ok: false, code: "PRICE_NOT_ALLOWLISTED" };
+  return { ok: true, code: "OK" };
+}
+
+/** Price della prima riga della Subscription canonica. */
+export function canonicalPriceId(sub: Record<string, unknown>): string | null {
+  const items = sub["items"];
+  const data =
+    items && typeof items === "object" && Array.isArray((items as Record<string, unknown>)["data"])
+      ? ((items as Record<string, unknown>)["data"] as unknown[])
+      : [];
+  const first = data[0];
+  const price =
+    first && typeof first === "object" ? (first as Record<string, unknown>)["price"] : null;
+  const id = price && typeof price === "object" ? (price as Record<string, unknown>)["id"] : null;
+  return typeof id === "string" ? id : null;
+}
+
+/**
+ * Ordine applicabile lato client del webhook (la decisione definitiva resta
+ * nella RPC atomica): un evento più vecchio non scrive e, a parità di
+ * istante, un abbonamento annullato non torna attivo.
+ */
+export function orderingDecision(input: {
+  eventCreatedAt: string;
+  lastAppliedAt: string | null;
+  currentStatus: string | null;
+  nextStatus: string;
+}): { ok: boolean; code: string } {
+  if (!input.lastAppliedAt) return { ok: true, code: "OK" };
+  const prev = Date.parse(input.lastAppliedAt);
+  const now = Date.parse(input.eventCreatedAt);
+  if (!Number.isFinite(prev) || !Number.isFinite(now)) return { ok: true, code: "OK" };
+  if (now < prev) return { ok: false, code: "EVENT_OUT_OF_ORDER" };
+  if (now === prev && normalizeStatus(input.currentStatus) === "canceled" && input.nextStatus !== "canceled")
+    return { ok: false, code: "CANCELED_NOT_REACTIVATED" };
+  return { ok: true, code: "OK" };
+}

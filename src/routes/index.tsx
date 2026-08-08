@@ -111,7 +111,7 @@ function Landing() {
             <div className="mt-10 grid max-w-xl grid-cols-1 gap-6 sm:grid-cols-3">
               {[
                 { k: "Italia + UE", v: "Copertura separata" },
-                { k: "Fonti ufficiali", v: "Nazionali, territoriali e UE" },
+                { k: "Fonti ufficiali", v: "Disponibili nel servizio" },
                 { k: "Risultati motivati", v: "Ordinati sul tuo profilo" },
               ].map((s) => (
                 <div key={s.v}>
@@ -141,13 +141,13 @@ function Landing() {
             },
             {
               icon: Radar,
-              t: "2. Ricerca automatica",
-              d: "La raccolta automatica consulta le fonti ufficiali nazionali, territoriali e UE configurate, usando i segnali del tuo profilo.",
+              t: "2. Ricerca sulle fonti ufficiali",
+              d: "La ricerca consulta le fonti ufficiali disponibili nel servizio, usando i segnali del profilo della tua impresa.",
             },
             {
               icon: Target,
               t: "3. Compatibilità motivata",
-              d: "Ogni risultato spiega requisiti confermati, punti da verificare, scadenza e fonte ufficiale.",
+              d: "Ogni risultato mostra requisiti confermati, punti da verificare, scadenza e fonte ufficiale presente.",
             },
           ].map((f) => (
             <div
