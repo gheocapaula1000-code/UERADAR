@@ -134,19 +134,24 @@ function BandoDetail() {
 
   // Se il motore ha restituito la mappatura del PDF nativo della PA,
   // usa quella per generare un testo copiabile allineato al modulo ufficiale.
-  const instanceText =
-    bando.pdf_field_mapping && bando.pdf_field_mapping.length > 0
+  // La bozza segue lo stesso consumo server-side del dossier: senza claim
+  // non esiste alcun testo da copiare, scaricare o esportare.
+  const instanceText = !dossierOpen
+    ? ""
+    : bando.pdf_field_mapping && bando.pdf_field_mapping.length > 0
       ? buildInstanceFromPdfMapping(bando, profile)
       : buildInstanceText(bando, profile);
 
   const protocolloPec = bando.ufficio_protocollo_pec ?? bando.pec;
 
   const copyInstance = async () => {
+    if (!dossierOpen) return;
     await navigator.clipboard.writeText(instanceText);
     toast.success("Testo copiato negli appunti");
   };
 
   const downloadTxt = () => {
+    if (!dossierOpen) return;
     const blob = new Blob([instanceText], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -537,7 +542,12 @@ function BandoDetail() {
                 pronta alla firma. Controlla dati, requisiti, modulistica e scadenze sulla fonte
                 ufficiale del bando prima di qualsiasi utilizzo.
               </p>
-              {profile ? (
+              {!dossierOpen ? (
+                <p className="text-sm text-muted-foreground">
+                  Genera prima il dossier candidatura: la bozza precompilata fa parte dello stesso
+                  documento.
+                </p>
+              ) : profile ? (
                 <pre className="whitespace-pre-wrap text-xs bg-background/50 rounded-lg p-4 max-h-80 overflow-y-auto font-mono">
                   {instanceText}
                 </pre>
@@ -550,14 +560,14 @@ function BandoDetail() {
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   onClick={copyInstance}
-                  disabled={!profile}
+                  disabled={!profile || !dossierOpen}
                   className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
                 >
                   <Copy className="h-4 w-4" /> Copia testo
                 </button>
                 <button
                   onClick={downloadTxt}
-                  disabled={!profile}
+                  disabled={!profile || !dossierOpen}
                   className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium disabled:opacity-50"
                 >
                   <Download className="h-4 w-4" /> Scarica .txt
