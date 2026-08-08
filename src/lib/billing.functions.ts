@@ -36,6 +36,11 @@ export type BillingStatus = {
   configured: boolean;
   /** Checkout TEST realmente disponibile per questo utente (flag QA + allowlist). */
   checkout_available: boolean;
+  /**
+   * Portale disponibile solo se esiste già un cliente presso il provider:
+   * durante la prova non viene creata alcuna anagrafica di pagamento.
+   */
+  portal_available: boolean;
 };
 
 const SUB_COLUMNS =
@@ -52,6 +57,16 @@ type SubRow = {
   latest_invoice_url: string | null;
   tax_id: string | null;
 };
+
+/** Il portale è utile solo con un'anagrafica cliente già esistente. */
+export function portalAvailable(
+  row: { provider_customer_id: string | null } | null,
+  configured: boolean,
+  canManageBilling: boolean,
+): boolean {
+  const customer = row?.provider_customer_id?.trim() ?? "";
+  return configured && canManageBilling && customer.startsWith("cus_");
+}
 
 function toSnapshot(row: SubRow | null): SubscriptionSnapshot | null {
   if (!row) return null;
@@ -108,6 +123,11 @@ export const getBillingStatus = createServerFn({ method: "POST" })
       tax_id: (row as SubRow | null)?.tax_id ?? null,
       configured: mode.ok,
       checkout_available: mode.ok && qa.ok,
+      portal_available: portalAvailable(
+        (row as SubRow | null) ?? null,
+        mode.ok,
+        tenant.can_manage_billing,
+      ),
     };
   });
 
@@ -249,11 +269,22 @@ export const createPaymentSession = createServerFn({ method: "POST" })
 export const createPortalSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ ok: boolean; url?: string; code: string }> => {
-    const { readBillingEnv, billingConfigured, providerCall, fetchPortalConfiguration } =
-      await import("./billing.server");
+    const {
+      readBillingEnv,
+      billingConfigured,
+      providerCall,
+      fetchPortalConfiguration,
+      readCheckoutQa,
+      checkoutQaAllowed,
+    } = await import("./billing.server");
     const env = readBillingEnv();
     const mode = billingConfigured(env);
     if (!mode.ok) return { ok: false, code: mode.code };
+
+    // Stesso gate QA del checkout: in TEST il portale non è aperto al pubblico.
+    const email = (context.claims as { email?: string } | undefined)?.email;
+    const qa = checkoutQaAllowed(readCheckoutQa(), email);
+    if (!qa.ok) return { ok: false, code: qa.code };
 
     // La configurazione Portal viene verificata presso il provider, non assunta.
     const portal = await fetchPortalConfiguration(env.portalConfiguration, env.secretKey);
@@ -263,8 +294,19 @@ export const createPortalSession = createServerFn({ method: "POST" })
     const tenant = await resolveTenantContext(context.supabase, context.userId);
     if (!tenant.can_manage_billing) return { ok: false, code: "MEMBER_CANNOT_MANAGE_BILLING" };
 
-    const email = (context.claims as { email?: string } | undefined)?.email;
-    const customerId = await ensureCustomer(context.userId, email);
+    // Nessuna creazione di anagrafica cliente qui: il portale serve solo a chi
+    // ha già un rapporto di pagamento attivo presso il provider.
+    const { data: subRow, error: subError } = await context.supabase
+      .from("ueradar_subscriptions")
+      .select("provider_customer_id")
+      .eq("user_id", tenant.tenant_owner_id)
+      .maybeSingle();
+    if (subError) return { ok: false, code: "SUBSCRIPTION_LOOKUP_FAILED" };
+    const customerId =
+      (subRow as { provider_customer_id: string | null } | null)?.provider_customer_id?.trim() ??
+      "";
+    if (!customerId.startsWith("cus_")) return { ok: false, code: "PORTAL_NOT_AVAILABLE" };
+
     // Finestra oraria: chiave deterministica ma senza riusare un link scaduto.
     const window = Math.floor(Date.now() / 3_600_000);
     const session = await providerCall(

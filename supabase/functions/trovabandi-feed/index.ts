@@ -155,10 +155,12 @@ serve(async (req) => {
   if (!entitlement.entitled)
     return out(403, { ok: false, code: "NOT_ENTITLED", reason: entitlement.reason });
 
-  const { data: profile, error: profileError } = await supabase
+  // Il profilo appartiene all'impresa (tenant owner): un membro accettato
+  // legge quello del titolare, non il proprio (che non esiste).
+  const { data: profile, error: profileError } = await service
     .from("company_profiles")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", tenantId)
     .maybeSingle();
 
   if (profileError) return out(503, { ok: false, code: "PROFILE_LOOKUP_FAILED" });
@@ -166,31 +168,43 @@ serve(async (req) => {
   if (!profileIsComplete(profile as Row))
     return out(409, { ok: false, code: "PROFILE_INCOMPLETE" });
 
-  // Cadenza minima del piano, riservata atomicamente a database sul tenant.
-  const { lane, minutes } = laneFor(parsed.action, entitlement.limits);
-  const period = new Date().toISOString().slice(0, 7);
-  const { data: claim, error: claimError } = await service.rpc("ueradar_claim_search_lane", {
-    _tenant: tenantId,
-    _period: period,
-    _lane: lane,
-    _min_interval_minutes: minutes,
-  });
-  if (claimError) return out(503, { ok: false, code: "CADENCE_CHECK_FAILED" });
-  const verdict = (claim ?? {}) as Record<string, unknown>;
-  if (verdict["allowed"] !== true)
-    return out(429, {
-      ok: false,
-      code: "CADENCE_LIMITED",
-      reason: verdict["code"] ?? "TOO_SOON",
-      retry_after_seconds: verdict["retry_after_seconds"] ?? 0,
-    });
-
   const minimizedProfile = matchingProfile(profile as ContractRow);
 
   if (parsed.action === "request_refresh") {
+    // Solo l'azione che innesca davvero una ricerca consuma la cadenza:
+    // la lettura del feed non brucia l'intervallo del piano.
+    const { lane, minutes } = laneFor(parsed.action, entitlement.limits);
+    const period = new Date().toISOString().slice(0, 7);
+    const { data: claim, error: claimError } = await service.rpc("ueradar_claim_search_lane", {
+      _tenant: tenantId,
+      _period: period,
+      _lane: lane,
+      _min_interval_minutes: minutes,
+    });
+    if (claimError) return out(503, { ok: false, code: "CADENCE_CHECK_FAILED" });
+    const verdict = (claim ?? {}) as Record<string, unknown>;
+    if (verdict["allowed"] !== true)
+      return out(429, {
+        ok: false,
+        code: "CADENCE_LIMITED",
+        reason: verdict["code"] ?? "TOO_SOON",
+        retry_after_seconds: verdict["retry_after_seconds"] ?? 0,
+      });
+
     const res = await callCore("request_refresh", { profile: minimizedProfile });
-    const verdict = evaluateRefreshResponse(res.body, res.status);
-    if (!verdict.queued) return out(502, { ok: false, code: "UPSTREAM_UNAVAILABLE" });
+    const outcome = evaluateRefreshResponse(res.body, res.status);
+    if (!outcome.queued) {
+      // Coda non confermata: la prenotazione viene rilasciata, così l'utente
+      // non resta bloccato dall'intervallo per una richiesta mai partita.
+      await service.rpc("ueradar_release_search_lane", {
+        _tenant: tenantId,
+        _period: period,
+        _lane: lane,
+        _claimed_at: verdict["claimed_at"] ?? null,
+        _previous_at: verdict["previous_at"] ?? null,
+      });
+      return out(502, { ok: false, code: "UPSTREAM_UNAVAILABLE" });
+    }
     return out(202, { ok: true, queued: true });
   }
 
