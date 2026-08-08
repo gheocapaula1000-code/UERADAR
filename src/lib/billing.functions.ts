@@ -409,19 +409,27 @@ export const createPortalSession = createServerFn({ method: "POST" })
 
     // Finestra oraria: chiave deterministica ma senza riusare un link scaduto.
     const window = Math.floor(Date.now() / 3_600_000);
-    const session = await providerCall(
-      "billing_portal/sessions",
-      env.secretKey,
-      {
-        customer: customerId,
-        configuration: env.portalConfiguration,
-        return_url: `${env.appUrl}/abbonamento`,
-      },
-      idempotencyKey("portal", context.userId, window),
-    );
-    const url = session.payload?.["url"];
-    if (session.status !== 200 || typeof url !== "string")
+    let session: Awaited<ReturnType<typeof providerCall>>;
+    try {
+      session = await providerCall(
+        "billing_portal/sessions",
+        env.secretKey,
+        {
+          customer: customerId,
+          configuration: env.portalConfiguration,
+          return_url: `${env.appUrl}/abbonamento`,
+        },
+        idempotencyKey("portal", context.userId, window),
+      );
+    } catch {
       return { ok: false, code: "PORTAL_FAILED" };
+    }
+    const url = session.payload?.["url"];
+    if (session.status !== 200 || !isProviderUrl(url))
+      return { ok: false, code: "PORTAL_FAILED" };
+    // Post-write fail-closed: nessun link restituito senza livemode false.
+    const portalMode = testModeVerdict(session.payload, "PORTAL_MODE_UNKNOWN");
+    if (!portalMode.ok) return { ok: false, code: portalMode.code };
     return { ok: true, url, code: "OK" };
   });
 
