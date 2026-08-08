@@ -48,6 +48,15 @@ async function sign(payload: string, secret: string, timestamp: number) {
     .join("");
 }
 
+/** Configurazione Price TEST completa: il webhook non mappa nulla senza. */
+function fullPriceMap(overrides: Record<string, string> = {}): Record<string, string> {
+  const base: Record<string, string> = {};
+  for (const plan of ["professional", "business", "executive"] as const)
+    for (const interval of ["month", "year"] as const)
+      base[priceKey(plan, interval)] = `price_${plan}_${interval}`;
+  return { ...base, ...overrides };
+}
+
 describe("catalogo piani UEradar", () => {
   it("espone il catalogo approvato con prezzi IVA esclusa e annuale = 10 mensilità", () => {
     expect(CATALOG.professional.prices.month?.amountCents).toBe(49900);
@@ -190,16 +199,15 @@ describe("sincronizzazione webhook", () => {
       priceId: "price_t",
       subscriptionId: "sub_1",
       customerId: "cus_1",
-      priceMap: {
-        [priceKey("business", "month")]: "price_b",
-        [priceKey("executive", "year")]: "price_t",
-      },
+      priceMap: fullPriceMap({ [priceKey("executive", "year")]: "price_t" }),
     });
-    expect(update.status).toBe("active");
-    expect(update.plan_seats).toBe(10);
-    expect(update.cancel_at_period_end).toBe(true);
-    expect(update.billing_mode).toBe("test");
-    expect(update.current_period_end).toBe(new Date(1790000000 * 1000).toISOString());
+    expect(update.ok).toBe(true);
+    const patch = update.patch!;
+    expect(patch.status).toBe("active");
+    expect(patch.plan_seats).toBe(10);
+    expect(patch.cancel_at_period_end).toBe(true);
+    expect(patch.billing_mode).toBe("test");
+    expect(patch.current_period_end).toBe(new Date(1790000000 * 1000).toISOString());
   });
 
   it("verifica la firma e rifiuta firme errate, scadute o segreti non validi", async () => {

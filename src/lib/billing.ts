@@ -148,6 +148,7 @@ export type Entitlement = {
 const DENIED_LIMITS: PlanLimits = {
   seats: 0,
   companies: 0,
+  objectives: 0,
   deepVerificationsPerMonth: 0,
   dossiersPerMonth: 0,
   fullSearchIntervalMinutes: Number.MAX_SAFE_INTEGER,
