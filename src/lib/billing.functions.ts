@@ -34,6 +34,8 @@ export type BillingStatus = {
   latest_invoice_url: string | null;
   tax_id: string | null;
   configured: boolean;
+  /** Checkout TEST realmente disponibile per questo utente (flag QA + allowlist). */
+  checkout_available: boolean;
 };
 
 const SUB_COLUMNS =
@@ -67,9 +69,15 @@ function toSnapshot(row: SubRow | null): SubscriptionSnapshot | null {
 export const getBillingStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<BillingStatus> => {
-    const { readBillingEnv, billingConfigured } = await import("./billing.server");
+    const { readBillingEnv, billingConfigured, readCheckoutQa, checkoutQaAllowed } = await import(
+      "./billing.server"
+    );
     const env = readBillingEnv();
     const mode = billingConfigured(env);
+    const qa = checkoutQaAllowed(
+      readCheckoutQa(),
+      (context.claims as { email?: string } | undefined)?.email,
+    );
 
     const { resolveTenantContext } = await import("./tenant.server");
     const tenant = await resolveTenantContext(context.supabase, context.userId);
@@ -99,6 +107,7 @@ export const getBillingStatus = createServerFn({ method: "POST" })
       latest_invoice_url: (row as SubRow | null)?.latest_invoice_url ?? null,
       tax_id: (row as SubRow | null)?.tax_id ?? null,
       configured: mode.ok,
+      checkout_available: mode.ok && qa.ok,
     };
   });
 
@@ -150,11 +159,24 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }): Promise<{ ok: boolean; url?: string; code: string }> => {
-    const { readBillingEnv, billingConfigured, providerCall, adminClient, fetchRemotePrice } =
-      await import("./billing.server");
+    const {
+      readBillingEnv,
+      billingConfigured,
+      providerCall,
+      adminClient,
+      fetchRemotePrice,
+      readCheckoutQa,
+      checkoutQaAllowed,
+    } = await import("./billing.server");
     const env = readBillingEnv();
     const mode = billingConfigured(env);
     if (!mode.ok) return { ok: false, code: mode.code };
+
+    // La presenza dei segreti Sandbox non apre il checkout: serve il flag QA
+    // esplicito e l'indirizzo dell'utente nella allowlist.
+    const email = (context.claims as { email?: string } | undefined)?.email;
+    const qa = checkoutQaAllowed(readCheckoutQa(), email);
+    if (!qa.ok) return { ok: false, code: qa.code };
 
     const { resolveTenantContext } = await import("./tenant.server");
     const tenant = await resolveTenantContext(context.supabase, context.userId);
@@ -182,7 +204,6 @@ export const createPaymentSession = createServerFn({ method: "POST" })
     );
     if (!guard.allowed) return { ok: false, code: guard.reason };
 
-    const email = (context.claims as { email?: string } | undefined)?.email;
     const customerId = await ensureCustomer(context.userId, email);
 
     const session = await providerCall(
