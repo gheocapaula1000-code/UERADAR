@@ -13,7 +13,6 @@ describe("onboarding di un account pending", () => {
         status: "pending",
         plan_code: "ueradar_trial",
         plan_seats: 1,
-        trial_started_at: null,
         trial_ends_at: null,
         current_period_end: null,
         provider: null,
