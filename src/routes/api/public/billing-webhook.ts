@@ -196,23 +196,9 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           });
           if (!guard.ok) return { ok: false, code: guard.code, skippable: false };
 
-          // Primo collegamento: deve corrispondere alla prenotazione di
-          // checkout (QA-only), altrimenti nessun binding viene creato.
-          if (!record?.provider_subscription_id) {
-            const { data: intentData, error: intentError } = await admin.rpc(
-              "ueradar_consume_checkout_intent",
-              { _user_id: userId, _price_id: canonicalPriceId(sub) ?? "" },
-            );
-            if (intentError)
-              return { ok: false, code: "CHECKOUT_INTENT_UNAVAILABLE", skippable: false };
-            const intent = (intentData ?? {}) as { ok?: boolean; code?: string };
-            if (!intent.ok)
-              return {
-                ok: false,
-                code: intent.code ?? "CHECKOUT_INTENT_MISSING",
-                skippable: false,
-              };
-          }
+          // Il primo collegamento e' arbitrato dal DB: verifica prenotazione,
+          // binding, apply e consumo avvengono nella stessa transazione RPC.
+          // Nessun consumo anticipato: un apply fallito resta ritentabile.
 
           const mapped = subscriptionUpdateFromEvent({
             status: sub["status"],
