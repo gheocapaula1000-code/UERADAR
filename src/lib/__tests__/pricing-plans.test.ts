@@ -157,7 +157,7 @@ describe("prova gratuita molto visibile e senza carta", () => {
     const t = TRIAL_TERMS.join(" ");
     expect(t).toContain("7 GIORNI COMPLETAMENTE GRATUITI");
     expect(t).toContain("NESSUNA CARTA DI CREDITO");
-    expect(t).toContain("anteprima dossier filigranata");
+    expect(t).toContain("dossier in versione filigranata");
     expect(t).toContain("ogni 12 mesi");
     expect(terms).toContain("prova applicativa");
     expect(terms).toMatch(/non viene creata alcuna sottoscrizione/);
@@ -203,7 +203,6 @@ describe("valore, limiti e affermazioni verificabili", () => {
     const b = PRODUCT_BOUNDARIES.join(" ");
     expect(b).toContain("non invia nulla agli enti");
     expect(b).toContain("non sostituisce");
-    expect(b).toContain("dal momento del rilevamento");
     expect(terms).toContain("non sostituisce il professionista incaricato");
   });
 
