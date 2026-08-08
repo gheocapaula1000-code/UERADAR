@@ -238,8 +238,38 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       },
     );
     if (intentError) return { ok: false, code: "CHECKOUT_INTENT_UNAVAILABLE" };
-    const claimed = (intent ?? {}) as { ok?: boolean; code?: string };
-    if (!claimed.ok) return { ok: false, code: claimed.code ?? "CHECKOUT_ALREADY_IN_PROGRESS" };
+    const claimed = (intent ?? {}) as {
+      ok?: boolean;
+      code?: string;
+      session_id?: string | null;
+      price_id?: string | null;
+    };
+    if (!claimed.ok) {
+      // Ripresa idempotente: una prenotazione viva con sessione gia'
+      // registrata riusa quella sessione. Mai crearne una seconda.
+      if (claimed.code === "CHECKOUT_ALREADY_IN_PROGRESS" && claimed.session_id) {
+        const existing = await providerCall(
+          `checkout/sessions/${encodeURIComponent(claimed.session_id)}`,
+          env.secretKey,
+        );
+        const existingUrl = existing.payload?.["url"];
+        if (
+          existing.status === 200 &&
+          existing.payload?.["status"] === "open" &&
+          typeof existingUrl === "string"
+        )
+          return { ok: true, url: existingUrl, code: "CHECKOUT_RESUMED" };
+      }
+      return { ok: false, code: claimed.code ?? "CHECKOUT_ALREADY_IN_PROGRESS" };
+    }
+
+    /** Rilascio sicuro se la sessione non nasce: la prenotazione non resta appesa. */
+    async function releaseIntent() {
+      await adminClient().rpc("ueradar_release_checkout_intent", {
+        _user_id: context.userId,
+        _price_id: priceId,
+      });
+    }
 
     const session = await providerCall(
       "checkout/sessions",
@@ -268,8 +298,20 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       idempotencyKey("checkout", context.userId, data.plan, data.interval, priceId),
     );
     const url = session.payload?.["url"];
-    if (session.status !== 200 || typeof url !== "string")
+    if (session.status !== 200 || typeof url !== "string") {
+      await releaseIntent();
       return { ok: false, code: "PAYMENT_SESSION_FAILED" };
+    }
+
+    // Sessione registrata sulla prenotazione: abilita solo la ripresa idempotente.
+    const sessionId = session.payload?.["id"];
+    if (typeof sessionId === "string" && sessionId) {
+      await adminClient().rpc("ueradar_attach_checkout_session", {
+        _user_id: context.userId,
+        _price_id: priceId,
+        _session_id: sessionId,
+      });
+    }
 
     const { error: priceError } = await adminClient()
       .from("ueradar_subscriptions")

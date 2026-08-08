@@ -174,7 +174,10 @@ const SQL = readdirSync("supabase/migrations")
 
 function lastFunctionBody(name: string) {
   const start = SQL.lastIndexOf(`CREATE OR REPLACE FUNCTION public.${name}`);
-  return SQL.slice(start, SQL.indexOf("$function$;", start) + 11);
+  const ends = ["$function$;", "$$;"]
+    .map((t) => SQL.indexOf(t, start))
+    .filter((i) => i > -1);
+  return SQL.slice(start, Math.min(...ends) + 3);
 }
 
 describe("SQL allineato al modello", () => {

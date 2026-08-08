@@ -53,6 +53,30 @@ describe("forma canonica della subscription", () => {
     ).toBe("SUBSCRIPTION_QUANTITY_INVALID");
   });
 
+  it("accetta solo il numero 1: assente, null, stringa o 0 sono rifiutati", () => {
+    const { quantity: _omit, ...noQuantity } = ITEM;
+    const cases: Array<Record<string, unknown>> = [
+      noQuantity,
+      { ...ITEM, quantity: null },
+      { ...ITEM, quantity: "1" },
+      { ...ITEM, quantity: 0 },
+      { ...ITEM, quantity: 1.5 },
+      { ...ITEM, quantity: true },
+      { ...ITEM, quantity: Number.NaN },
+    ];
+    for (const item of cases)
+      expect(
+        canonicalSubscriptionGuard({ ...base, subscription: sub({ items: { data: [item] } }) })
+          .code,
+      ).toBe("SUBSCRIPTION_QUANTITY_INVALID");
+    expect(
+      canonicalSubscriptionGuard({
+        ...base,
+        subscription: sub({ items: { data: [{ ...ITEM, quantity: 1 }] } }),
+      }).ok,
+    ).toBe(true);
+  });
+
   it("rifiuta price non ricorrente o non attivo", () => {
     expect(
       canonicalSubscriptionGuard({
@@ -105,8 +129,9 @@ describe("webhook: errori di lettura bloccano l'evento", () => {
     expect(ROUTE).toContain("USER_LOOKUP_FAILED");
   });
 
-  it("il primo collegamento consuma la prenotazione di checkout", () => {
-    expect(ROUTE).toContain("ueradar_consume_checkout_intent");
+  it("il primo collegamento delega intento e consumo alla RPC atomica", () => {
+    expect(ROUTE).not.toContain("ueradar_consume_checkout_intent");
+    expect(ROUTE).toContain("ueradar_billing_apply_subscription");
   });
 });
 

@@ -549,8 +549,9 @@ export function canonicalSubscriptionGuard(input: {
   const items = subscriptionItems(sub);
   if (items.length !== 1) return { ok: false, code: "SUBSCRIPTION_ITEM_COUNT_INVALID" };
   const item = items[0] as Record<string, unknown>;
+  // Quantita': esattamente il numero 1. Assente, null, "1", 0 o altro = rifiuto.
   const quantity = item["quantity"];
-  if (quantity !== undefined && quantity !== null && quantity !== 1)
+  if (typeof quantity !== "number" || quantity !== 1)
     return { ok: false, code: "SUBSCRIPTION_QUANTITY_INVALID" };
   const price = item["price"];
   const priceObj = price && typeof price === "object" ? (price as Record<string, unknown>) : null;
