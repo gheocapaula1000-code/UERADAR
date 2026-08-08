@@ -216,7 +216,7 @@ function Landing() {
             Tre piani self-service, IVA esclusa.
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Cambia la frequenza delle ricerche, l'ampiezza delle fonti ufficiali, le verifiche
+            Cambia la capienza di utenti operativi, i dossier inclusi e le verifiche
             approfondite e i dossier inclusi. Le opportunità pertinenti mostrate non sono mai
             limitate. Annuale con 2 mesi inclusi.
           </p>

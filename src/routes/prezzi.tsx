@@ -56,7 +56,7 @@ function Pricing() {
             Provalo per 7 giorni, senza carta.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            I piani si distinguono per frequenza degli aggiornamenti programmati, capienza di
+            I piani si distinguono per capienza di
             utenti operativi (titolare incluso) e dossier inclusi. Il numero di opportunità
             pertinenti mostrate non è mai limitato. Tutti i prezzi sono IVA esclusa e l'annuale include 2 mesi.
           </p>
