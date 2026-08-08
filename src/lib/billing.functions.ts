@@ -261,8 +261,8 @@ export const listCompanyMembers = createServerFn({ method: "POST" })
 
 /**
  * Invito di un utente nominativo: nome, cognome, ruolo dichiarato, email nominativa
- * e attestazione del titolare. L'appartenenza all'impresa è dichiarata dal titolare;
- * non esiste alcuna verifica camerale automatica.
+ * e attestazione del titolare. Scrittura server-only con client di servizio dopo
+ * autenticazione e verifica del ruolo di titolare: owner_user_id non è mai un input.
  */
 export const inviteCompanyMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -282,7 +282,8 @@ export const inviteCompanyMember = createServerFn({ method: "POST" })
     const { resolveTenantContext } = await import("./tenant.server");
     const tenant = await resolveTenantContext(context.supabase, context.userId);
     // Solo il titolare gestisce i posti: un membro non può creare una seconda impresa.
-    if (!tenant.can_manage_company) return { ok: false, code: "MEMBER_CANNOT_MANAGE_MEMBERS" };
+    if (!tenant.can_manage_company || tenant.tenant_owner_id !== context.userId)
+      return { ok: false, code: "MEMBER_CANNOT_MANAGE_MEMBERS" };
     const { data: row, error: subError } = await context.supabase
       .from("ueradar_subscriptions")
       .select(SUB_COLUMNS)
@@ -302,84 +303,173 @@ export const inviteCompanyMember = createServerFn({ method: "POST" })
     const decision = canAddMember(count ?? 0, entitlement);
     if (!decision.allowed) return { ok: false, code: decision.reason };
 
-    const email = data.email.trim().toLowerCase();
-    const ownerEmail = (context.claims as { email?: string } | undefined)?.email
-      ?.trim()
-      .toLowerCase();
+    const { normalizeEmail, isUniqueViolation } = await import("./membership");
+    const email = normalizeEmail(data.email);
+    const ownerEmail = normalizeEmail((context.claims as { email?: string } | undefined)?.email);
     if (ownerEmail && ownerEmail === email) return { ok: false, code: "OWNER_ALREADY_COUNTED" };
 
-    const { error } = await context.supabase.from("ueradar_company_members").insert({
-      owner_user_id: context.userId,
-      email,
-      first_name: data.first_name.trim(),
-      last_name: data.last_name.trim(),
-      declared_role: data.declared_role,
-      owner_attested_at: new Date().toISOString(),
-      role: "member",
-      status: "invited",
-    });
-    if (error) return { ok: false, code: "MEMBER_ALREADY_PRESENT" };
+    const { adminClient } = await import("./billing.server");
+    const { error } = await adminClient()
+      .from("ueradar_company_members")
+      .insert({
+        owner_user_id: context.userId,
+        email,
+        first_name: data.first_name.trim(),
+        last_name: data.last_name.trim(),
+        declared_role: data.declared_role,
+        owner_attested_at: new Date().toISOString(),
+        role: "member",
+        status: "invited",
+      });
+    if (error)
+      return {
+        ok: false,
+        code: isUniqueViolation(error) ? "MEMBER_ALREADY_PRESENT" : "MEMBER_INVITE_FAILED",
+      };
     return { ok: true, code: "OK" };
   });
 
-/** Invito pendente destinato all'utente autenticato (match sull'email dell'account). */
+/** Invito pendente destinato all'utente autenticato (match sull'email del token). */
 export const getPendingInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(
     async ({
       context,
-    }): Promise<{ invite: { id: string; first_name: string | null; last_name: string | null; declared_role: string | null } | null }> => {
-      const { data } = await context.supabase
+    }): Promise<{
+      invite: {
+        id: string;
+        first_name: string | null;
+        last_name: string | null;
+        declared_role: string | null;
+      } | null;
+    }> => {
+      const { normalizeEmail } = await import("./membership");
+      const email = normalizeEmail((context.claims as { email?: string } | undefined)?.email);
+      if (!email) return { invite: null };
+      const { adminClient } = await import("./billing.server");
+      const { data } = await adminClient()
         .from("ueradar_company_members")
-        .select("id, first_name, last_name, declared_role")
+        .select("id, first_name, last_name, declared_role, email, owner_user_id")
         .eq("status", "invited")
         .is("member_user_id", null)
+        .eq("email", email)
+        .neq("owner_user_id", context.userId)
         .limit(1)
         .maybeSingle();
-      return { invite: (data as never) ?? null };
+      if (!data) return { invite: null };
+      const row = data as {
+        id: string;
+        first_name: string | null;
+        last_name: string | null;
+        declared_role: string | null;
+      };
+      return {
+        invite: {
+          id: row.id,
+          first_name: row.first_name,
+          last_name: row.last_name,
+          declared_role: row.declared_role,
+        },
+      };
     },
   );
 
 /**
- * Accettazione dell'invito con il proprio account: l'utente resta legato
- * a un solo titolare e non può essere associato a un'altra impresa.
+ * Accettazione dell'invito: server-only con client di servizio. Selezione per id +
+ * email del token + stato invitato + nessun utente collegato; update atomico che
+ * imposta soltanto member_user_id, status e accepted_at (owner, email, nomi e ruolo
+ * restano immutabili). L'utente resta legato a una sola impresa.
  */
 export const acceptCompanyInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ member_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<{ ok: boolean; code: string }> => {
-    const { count, error: existingError } = await context.supabase
+    const { normalizeEmail, canAcceptInvite, buildAcceptUpdate, isUniqueViolation, trialNeutralization } =
+      await import("./membership");
+    const email = normalizeEmail((context.claims as { email?: string } | undefined)?.email);
+    if (!email) return { ok: false, code: "EMAIL_NOT_VERIFIABLE" };
+
+    const { adminClient } = await import("./billing.server");
+    const admin = adminClient();
+
+    const { count, error: existingError } = await admin
       .from("ueradar_company_members")
       .select("id", { count: "exact", head: true })
       .eq("member_user_id", context.userId);
     if (existingError) return { ok: false, code: "MEMBERSHIP_LOOKUP_FAILED" };
     if ((count ?? 0) > 0) return { ok: false, code: "ALREADY_MEMBER_OF_ANOTHER_COMPANY" };
 
-    const { data: updated, error } = await context.supabase
+    const { data: row, error: rowError } = await admin
       .from("ueradar_company_members")
-      .update({
-        member_user_id: context.userId,
-        status: "accepted",
-        accepted_at: new Date().toISOString(),
-      })
+      .select("id, owner_user_id, email, status, member_user_id")
+      .eq("id", data.member_id)
+      .eq("email", email)
+      .eq("status", "invited")
+      .is("member_user_id", null)
+      .maybeSingle();
+    if (rowError) return { ok: false, code: "INVITE_LOOKUP_FAILED" };
+    const decision = canAcceptInvite(
+      (row as {
+        id: string;
+        owner_user_id: string;
+        email: string;
+        status: string | null;
+        member_user_id: string | null;
+      } | null) ?? null,
+      context.userId,
+      email,
+    );
+    if (!decision.ok) return { ok: false, code: decision.code };
+
+    const { data: updated, error } = await admin
+      .from("ueradar_company_members")
+      .update(buildAcceptUpdate(context.userId, new Date().toISOString()))
       .eq("id", data.member_id)
       .eq("status", "invited")
       .is("member_user_id", null)
       .select("id")
       .maybeSingle();
-    if (error) return { ok: false, code: "INVITE_ACCEPT_FAILED" };
+    if (error)
+      return {
+        ok: false,
+        code: isUniqueViolation(error) ? "ALREADY_MEMBER" : "INVITE_ACCEPT_FAILED",
+      };
     if (!updated) return { ok: false, code: "INVITE_NOT_AVAILABLE" };
+
+    // Il membro non deve portarsi dietro un trial personale come seconda impresa.
+    const { data: ownSub } = await admin
+      .from("ueradar_subscriptions")
+      .select("status, provider_subscription_id, trial_consumed")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    const neutralization = trialNeutralization(
+      (ownSub as {
+        status: string | null;
+        provider_subscription_id: string | null;
+        trial_consumed: boolean | null;
+      } | null) ?? null,
+    );
+    if (neutralization.neutralize) {
+      await admin
+        .from("ueradar_subscriptions")
+        .update(neutralization.patch)
+        .eq("user_id", context.userId)
+        .is("provider_subscription_id", null);
+    }
     return { ok: true, code: "OK" };
   });
 
+/** Rimozione di un posto: server-only, consentita solo al titolare del tenant. */
 export const removeCompanyMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ member_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<{ ok: boolean; code: string }> => {
     const { resolveTenantContext } = await import("./tenant.server");
     const tenant = await resolveTenantContext(context.supabase, context.userId);
-    if (!tenant.can_manage_company) return { ok: false, code: "MEMBER_CANNOT_MANAGE_MEMBERS" };
-    const { error } = await context.supabase
+    if (!tenant.can_manage_company || tenant.tenant_owner_id !== context.userId)
+      return { ok: false, code: "MEMBER_CANNOT_MANAGE_MEMBERS" };
+    const { adminClient } = await import("./billing.server");
+    const { error } = await adminClient()
       .from("ueradar_company_members")
       .delete()
       .eq("owner_user_id", context.userId)
