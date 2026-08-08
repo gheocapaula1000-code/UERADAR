@@ -208,7 +208,7 @@ describe("SQL e webhook allineati al contratto di primo binding", () => {
   it("attach non confermato: nessun URL restituito e nessuna seconda sessione", () => {
     expect(FNS).toContain("CHECKOUT_SESSION_ATTACH_FAILED");
     const i = FNS.indexOf("ueradar_attach_checkout_session");
-    const tail = FNS.slice(i, i + 900);
+    const tail = FNS.slice(i, i + 1_500);
     expect(tail).toContain("attachError");
     expect(tail).toContain("attachResult.ok");
     expect(tail.indexOf("CHECKOUT_SESSION_ATTACH_FAILED")).toBeLessThan(tail.indexOf("return { ok: true, url"));

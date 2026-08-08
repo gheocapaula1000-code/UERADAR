@@ -57,17 +57,32 @@ describe("post-write fail-closed: livemode", () => {
 
   it("checkoutSessionGate: id cs_, url https e livemode false", () => {
     expect(
-      checkoutSessionGate({ status: 200, payload: { id: "cs_1", url: URL_OK, livemode: false } }),
+      checkoutSessionGate({
+        status: 200,
+        payload: { id: "cs_1", url: URL_OK, status: "open", livemode: false },
+      }),
     ).toEqual({ ok: true, code: "OK" });
     expect(
-      checkoutSessionGate({ status: 200, payload: { id: "cs_1", url: URL_OK, livemode: true } }).code,
+      checkoutSessionGate({
+        status: 200,
+        payload: { id: "cs_1", url: URL_OK, status: "open", livemode: true },
+      }).code,
     ).toBe("LIVE_MODE_BLOCKED");
-    expect(checkoutSessionGate({ status: 200, payload: { id: "cs_1", url: URL_OK } }).code).toBe(
-      "CHECKOUT_MODE_UNKNOWN",
-    );
     expect(
-      checkoutSessionGate({ status: 200, payload: { id: "cs_1", url: "ftp://x", livemode: false } })
+      checkoutSessionGate({ status: 200, payload: { id: "cs_1", url: URL_OK, status: "open" } })
         .code,
+    ).toBe("CHECKOUT_MODE_UNKNOWN");
+    expect(
+      checkoutSessionGate({
+        status: 200,
+        payload: { id: "cs_1", url: "ftp://x", status: "open", livemode: false },
+      }).code,
+    ).toBe("PAYMENT_SESSION_FAILED");
+    expect(
+      checkoutSessionGate({
+        status: 200,
+        payload: { id: "cs_1", url: URL_OK, status: "expired", livemode: false },
+      }).code,
     ).toBe("PAYMENT_SESSION_FAILED");
   });
 
@@ -136,19 +151,22 @@ describe("post-write behaviour: true vs unknown vs false", () => {
   it("checkout: url non https o malformata non passa il gate", () => {
     for (const url of ["http://x.dev/s", "javascript:alert(1)", "/relative", "", 42, null]) {
       expect(
-        checkoutSessionGate({ status: 200, payload: { id: "cs_1", url, livemode: false } }).code,
+        checkoutSessionGate({
+          status: 200,
+          payload: { id: "cs_1", url, status: "open", livemode: false },
+        }).code,
       ).toBe("PAYMENT_SESSION_FAILED");
     }
     expect(
       checkoutSessionGate({
         status: 200,
-        payload: { id: "cs_1", url: "https://pay.example.com/s", livemode: false },
+        payload: { id: "cs_1", url: "https://pay.example.com/s", status: "open", livemode: false },
       }),
     ).toEqual({ ok: true, code: "OK" });
   });
 
   it("checkout: true ⇒ LIVE_MODE_BLOCKED, ignoto ⇒ CHECKOUT_MODE_UNKNOWN", () => {
-    const base = { id: "cs_1", url: "https://pay.example.com/s" };
+    const base = { id: "cs_1", url: "https://pay.example.com/s", status: "open" };
     expect(checkoutSessionGate({ status: 200, payload: { ...base, livemode: true } }).code).toBe(
       "LIVE_MODE_BLOCKED",
     );

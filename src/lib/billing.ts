@@ -165,7 +165,8 @@ export function checkoutSessionGate(
   if (
     res.status !== 200 ||
     !isProviderObjectId(res.payload?.["id"], "cs_") ||
-    !isProviderUrl(res.payload?.["url"])
+    !isProviderUrl(res.payload?.["url"]) ||
+    res.payload?.["status"] !== "open"
   )
     return { ok: false, code: "PAYMENT_SESSION_FAILED" };
   return modeVerdict(res.payload, expected, "CHECKOUT_MODE_UNKNOWN");

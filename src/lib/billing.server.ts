@@ -5,6 +5,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { PRICE_ENV_NAMES } from "./catalog";
 import {
   CATALOG,
   expectedLivemode,
@@ -131,7 +132,14 @@ export function billingConfigured(env: BillingEnv): { ok: boolean; code: string 
     return { ok: false, code: "BILLING_KEY_MODE_MISMATCH" };
   if (env.mode === "live" && !isLiveSecretKey(env.secretKey))
     return { ok: false, code: "BILLING_KEY_MODE_MISMATCH" };
-  if (env.missingPriceEnvs.length > 0) return { ok: false, code: "PRICES_NOT_CONFIGURED" };
+  const configuredPriceIds = Object.values(env.priceMap);
+  if (
+    env.missingPriceEnvs.length > 0 ||
+    configuredPriceIds.length !== PRICE_ENV_NAMES.length
+  )
+    return { ok: false, code: "PRICES_NOT_CONFIGURED" };
+  if (new Set(configuredPriceIds).size !== configuredPriceIds.length)
+    return { ok: false, code: "PRICE_IDS_NOT_UNIQUE" };
   if (!env.webhookSecret.startsWith("whsec_")) return { ok: false, code: "WEBHOOK_NOT_CONFIGURED" };
   if (!isPortalConfigurationId(env.portalConfiguration))
     return { ok: false, code: "PORTAL_NOT_CONFIGURED" };

@@ -104,17 +104,53 @@ export const getBillingStatus = createServerFn({ method: "POST" })
     const { resolveTenantContext } = await import("./tenant.server");
     const tenant = await resolveTenantContext(context.supabase, context.userId);
 
-    const { data: row } = await context.supabase
+    const { data: row, error: subscriptionError } = await context.supabase
       .from("ueradar_subscriptions")
       .select(SUB_COLUMNS)
       .eq("user_id", tenant.tenant_owner_id)
       .maybeSingle();
+    if (subscriptionError) {
+      return {
+        ok: false,
+        code: "SUBSCRIPTION_LOOKUP_FAILED",
+        role: tenant.role,
+        tenant_owner_id: tenant.tenant_owner_id,
+        can_manage_billing: tenant.can_manage_billing,
+        mode: env.mode ?? "disabled",
+        entitlement: resolveEntitlement(null, new Date().toISOString()),
+        subscription: null,
+        members_count: 0,
+        latest_invoice_url: null,
+        tax_id: null,
+        configured: mode.ok,
+        checkout_available: false,
+        portal_available: false,
+      };
+    }
     const snapshot = toSnapshot((row as SubRow | null) ?? null);
 
-    const { count } = await context.supabase
+    const { count, error: membersError } = await context.supabase
       .from("ueradar_company_members")
       .select("id", { count: "exact", head: true })
       .eq("owner_user_id", tenant.tenant_owner_id);
+    if (membersError) {
+      return {
+        ok: false,
+        code: "MEMBERS_LOOKUP_FAILED",
+        role: tenant.role,
+        tenant_owner_id: tenant.tenant_owner_id,
+        can_manage_billing: tenant.can_manage_billing,
+        mode: env.mode ?? "disabled",
+        entitlement: resolveEntitlement(null, new Date().toISOString()),
+        subscription: null,
+        members_count: 0,
+        latest_invoice_url: null,
+        tax_id: null,
+        configured: mode.ok,
+        checkout_available: false,
+        portal_available: false,
+      };
+    }
 
     return {
       ok: true,
@@ -180,11 +216,14 @@ async function ensureCustomer(userId: string, email: string | undefined) {
   const customerGate = customerCreationGate(created, env.expectedLivemode);
   if (!customerGate.ok) throw new Error(customerGate.code);
   const id = created.payload?.["id"] as string;
-  const { error: linkError } = await admin
+  const { data: linked, error: linkError } = await admin
     .from("ueradar_subscriptions")
     .update({ provider: "stripe", provider_customer_id: id, billing_mode: env.mode })
-    .eq("user_id", userId);
-  if (linkError) throw new Error("CUSTOMER_LINK_FAILED");
+    .eq("user_id", userId)
+    .select("user_id")
+    .single();
+  if (linkError || !linked || (linked as { user_id?: string }).user_id !== userId)
+    throw new Error("CUSTOMER_LINK_FAILED");
   return id;
 }
 
@@ -396,15 +435,22 @@ export const createPaymentSession = createServerFn({ method: "POST" })
     if (!attachResult.ok)
       return { ok: false, code: attachResult.code ?? "CHECKOUT_SESSION_ATTACH_FAILED" };
 
-    const { error: priceError } = await adminClient()
+    const { data: priceLinked, error: priceError } = await adminClient()
       .from("ueradar_subscriptions")
       .update({
         stripe_price_id: priceId,
         plan_seats: CATALOG[data.plan].limits.seats,
         billing_mode: env.mode,
       })
-      .eq("user_id", context.userId);
-    if (priceError) return { ok: false, code: "SUBSCRIPTION_UPDATE_FAILED" };
+      .eq("user_id", context.userId)
+      .select("user_id")
+      .single();
+    if (
+      priceError ||
+      !priceLinked ||
+      (priceLinked as { user_id?: string }).user_id !== context.userId
+    )
+      return { ok: false, code: "SUBSCRIPTION_UPDATE_FAILED" };
 
     return { ok: true, url: session.payload?.["url"] as string, code: "OK" };
   });

@@ -117,6 +117,16 @@ describe("isolamento Stripe TEST/LIVE", () => {
     ).toBe("BILLING_KEY_MODE_MISMATCH");
   });
 
+  it("richiede sei Price ID distinti", () => {
+    const duplicated = Object.fromEntries(
+      PRICE_ENV_NAMES.map((_, i) => [`p:${i}`, i < 2 ? "price_duplicate" : `price_${i}`]),
+    );
+    expect(billingConfigured(env({ priceMap: duplicated })).code).toBe("PRICE_IDS_NOT_UNIQUE");
+    expect(billingConfigured(env({ priceMap: { "p:0": "price_only" } })).code).toBe(
+      "PRICES_NOT_CONFIGURED",
+    );
+  });
+
   it("il verdetto richiede un booleano identico al contesto", () => {
     expect(modeVerdict({ livemode: false }, false, "UNKNOWN").ok).toBe(true);
     expect(modeVerdict({ livemode: true }, true, "UNKNOWN").ok).toBe(true);
@@ -132,7 +142,12 @@ describe("isolamento Stripe TEST/LIVE", () => {
       checkoutSessionGate(
         {
           status: 200,
-          payload: { id: "cs_live_1", url: "https://checkout.stripe.com/x", livemode: true },
+          payload: {
+            id: "cs_live_1",
+            url: "https://checkout.stripe.com/x",
+            status: "open",
+            livemode: true,
+          },
         },
         true,
       ).ok,
@@ -167,7 +182,12 @@ describe("isolamento Stripe TEST/LIVE", () => {
       checkoutSessionGate(
         {
           status: 200,
-          payload: { id: "cs_test_1", url: "https://checkout.stripe.com/x", livemode: false },
+          payload: {
+            id: "cs_test_1",
+            url: "https://checkout.stripe.com/x",
+            status: "open",
+            livemode: false,
+          },
         },
         true,
       ).code,
