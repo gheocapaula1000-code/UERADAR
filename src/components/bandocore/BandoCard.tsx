@@ -102,15 +102,15 @@ export function BandoCard({ bando }: { bando: Bando }) {
           {bando.is_hidden && (
             <span
               className="inline-flex items-center gap-1 rounded-full border border-accent/50 bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent"
-              title="Individuato tra fonti locali e specialistiche configurate"
+              title="Fonte ufficiale di ambito locale"
             >
-              <Radar className="h-3 w-3" /> Fonte locale/specialistica
+              <Radar className="h-3 w-3" /> Fonte locale
             </span>
           )}
           {(bando.rarity_score ?? 0) >= 4 && (
             <span
               className="inline-flex items-center gap-1 rounded-full border border-accent/50 bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent"
-              title={`Fonte specialistica: ${bando.source_kind ?? "documento ufficiale"}`}
+              title={`Fonte: ${bando.source_kind ?? "documento ufficiale"}`}
             >
               <FileSearch className="h-3 w-3" /> Poco diffuso
             </span>

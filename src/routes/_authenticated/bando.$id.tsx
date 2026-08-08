@@ -185,7 +185,7 @@ function BandoDetail() {
               </span>
               {bando.is_hidden && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-accent/50 bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-accent">
-                  <Radar className="h-3 w-3" /> Fonte locale/specialistica
+                  <Radar className="h-3 w-3" /> Fonte locale
                 </span>
               )}
               {bando.match && (

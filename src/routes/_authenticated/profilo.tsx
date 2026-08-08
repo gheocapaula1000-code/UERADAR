@@ -509,18 +509,18 @@ function Profilo() {
           </Section>
 
           <Section
-            title="Avvisi automatici"
-            desc="Le novità vengono preparate dagli aggiornamenti programmati del servizio"
+            title="Preferenze di avviso"
+            desc="Le preferenze vengono registrate ora; nessun invio automatico è attivo finché il servizio non lo dichiara"
           >
             <ToggleField
               label="Notifiche nell'app"
-              description="Mostra le nuove opportunità nel centro notifiche."
+              description="Mostra nel centro notifiche gli elementi rilevati dall'ultimo aggiornamento del catalogo."
               checked={inAppAlerts}
               onChange={setInAppAlerts}
             />
             <ToggleField
-              label="Novità periodiche"
-              description="Segnala i nuovi bandi compatibili con il profilo."
+              label="Nuove opportunità compatibili"
+              description="Preferenza registrata: evidenzia le opportunità compatibili con il profilo."
               checked={morningDigest}
               onChange={setMorningDigest}
             />
@@ -532,13 +532,13 @@ function Profilo() {
             />
             <ToggleField
               label="Invio anche via email"
-              description="Invia all'email referente le notifiche abilitate sopra."
+              description="Preferenza registrata per l'email referente. L'invio via email non è ancora attivo."
               checked={emailAlerts}
               onChange={setEmailAlerts}
             />
             {!profile.email_referente && emailAlerts && (
               <p className="col-span-full text-xs text-warning">
-                Inserisci l'email referente per ricevere il digest.
+                Inserisci l'email referente per registrare questa preferenza.
               </p>
             )}
           </Section>
