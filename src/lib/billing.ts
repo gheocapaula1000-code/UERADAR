@@ -88,6 +88,17 @@ export function planFromPriceId(
  * Validazione del prezzo remoto prima di aprire una sessione: qualunque
  * discrepanza blocca il checkout (fail-closed) e un prezzo live lo interrompe.
  */
+
+/**
+ * Difesa post-write: qualunque oggetto creato presso il provider (Customer,
+ * Checkout Session) è accettato solo se dichiara esplicitamente livemode
+ * false. Assente, null, "false" testuale o true ⇒ fail-closed.
+ */
+export function isTestModeObject(payload: Record<string, unknown> | null | undefined): boolean {
+  if (!payload) return false;
+  return payload["livemode"] === false;
+}
+
 export function validateRemotePrice(
   remote: Record<string, unknown> | null,
   expected: PlanPrice,
