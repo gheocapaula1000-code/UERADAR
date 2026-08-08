@@ -163,10 +163,10 @@ async function ensureCustomer(userId: string, email: string | undefined) {
   } catch {
     throw new Error("CUSTOMER_CREATE_FAILED");
   }
-  const id = created.payload?.["id"];
   // Post-write fail-closed: nessuna scrittura DB prima del controllo di modo.
   const customerGate = customerCreationGate(created);
   if (!customerGate.ok) throw new Error(customerGate.code);
+  const id = created.payload?.["id"] as string;
   const { error: linkError } = await admin
     .from("ueradar_subscriptions")
     .update({ provider: "stripe", provider_customer_id: id, billing_mode: "test" })
@@ -325,8 +325,6 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       await releaseIntent();
       return { ok: false, code: "PAYMENT_SESSION_FAILED" };
     }
-    const url = session.payload?.["url"];
-    const sessionId = session.payload?.["id"];
     // Post-write fail-closed: nessun URL restituito o sessione attaccata
     // finché il provider non dichiara esplicitamente livemode false.
     const sessionGate = checkoutSessionGate(session);
@@ -340,7 +338,7 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       await adminClient().rpc("ueradar_attach_checkout_session", {
         _user_id: context.userId,
         _price_id: priceId,
-        _session_id: sessionId,
+        _session_id: session.payload?.["id"] as string,
       });
     }
 
@@ -350,7 +348,7 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       .eq("user_id", context.userId);
     if (priceError) return { ok: false, code: "SUBSCRIPTION_UPDATE_FAILED" };
 
-    return { ok: true, url, code: "OK" };
+    return { ok: true, url: session.payload?.["url"] as string, code: "OK" };
   });
 
 /** Portale cliente: fatture, dati fiscali e disdetta online senza comunicazione scritta. */
