@@ -264,8 +264,14 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           if (!userId) return settle("USER_NOT_FOUND", false);
           const subscriptionId = str(object["subscription"]);
           if (!subscriptionId) return settle("INVOICE_WITHOUT_SUBSCRIPTION", false);
-          // La fattura aggiorna solo documento e dato fiscale: lo stato resta
-          // quello della Subscription canonica.
+
+          // Prima lo stato canonico: una fattura più recente non deve mai
+          // "consumare" l'ordine e far scartare un subscription.updated
+          // precedente. Nessuno stato è dedotto dalla fattura.
+          const sync = await canonicalSync(subscriptionId, userId);
+          if (!sync.ok && !sync.skippable) return settle(sync.code, false);
+
+          // Poi solo i metadati documentali, con cursore fattura separato.
           const taxIds = Array.isArray(object["customer_tax_ids"])
             ? (object["customer_tax_ids"] as unknown[])
             : [];
@@ -282,8 +288,9 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           if (!applied.ok)
             return settle(
               applied.code ?? "INVOICE_WRITE_FAILED",
-              applied.code === "EVENT_OUT_OF_ORDER",
+              applied.code === "INVOICE_OUT_OF_ORDER",
             );
+          // Un unico settle chiude sia la sincronizzazione sia la fattura.
           return settle("INVOICE_DOCUMENT_SYNCED", true);
         }
 
