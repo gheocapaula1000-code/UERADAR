@@ -8,6 +8,8 @@ import { getTenantContext } from "@/lib/tenant.functions";
 import type { CompanyProfile, LegalForm } from "@/lib/bandocore-types";
 import { toast } from "sonner";
 import { startTrial } from "@/lib/trial.functions";
+import { getBillingStatus } from "@/lib/billing.functions";
+import { TRIAL_OBJECTIVES } from "@/lib/catalog";
 import { trialStartMessage } from "@/lib/trial";
 import { Building2, Save, Sparkles } from "lucide-react";
 import { seoHead } from "@/lib/seo";
@@ -93,6 +95,10 @@ function Profilo() {
   const tenantQ = useQuery({ queryKey: ["tenant-context"], queryFn: () => loadTenant() });
   // Solo il titolare modifica impresa e P.IVA: il membro accettato lavora in sola lettura.
   const isMember = tenantQ.data?.role === "member";
+  const loadBilling = useServerFn(getBillingStatus);
+  const billingQ = useQuery({ queryKey: ["billing-status"], queryFn: () => loadBilling() });
+  // Durante la prova gli obiettivi selezionabili sono limitati dal catalogo.
+  const trialActive = billingQ.data?.entitlement.state === "TRIAL";
 
   useEffect(() => {
     supabase
