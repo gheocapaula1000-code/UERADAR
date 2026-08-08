@@ -99,6 +99,35 @@ export function isTestModeObject(payload: Record<string, unknown> | null | undef
   return payload["livemode"] === false;
 }
 
+/**
+ * Verdetto esplicito sul modo dell'oggetto creato: distingue un oggetto live
+ * (bloccato) da un payload il cui modo non è dichiarato (ignoto ⇒ fail-closed).
+ */
+export function testModeVerdict(
+  payload: Record<string, unknown> | null | undefined,
+  unknownCode: string,
+): { ok: boolean; code: string } {
+  if (!payload) return { ok: false, code: unknownCode };
+  if (payload["livemode"] === true) return { ok: false, code: "LIVE_MODE_BLOCKED" };
+  if (payload["livemode"] !== false) return { ok: false, code: unknownCode };
+  return { ok: true, code: "OK" };
+}
+
+/** Identificatore provider con prefisso atteso (cus_, cs_, ...). */
+export function isProviderObjectId(value: unknown, prefix: string): value is string {
+  return typeof value === "string" && new RegExp(`^${prefix}[A-Za-z0-9_]+$`).test(value.trim());
+}
+
+/** URL di redirect accettata solo se https assoluta. */
+export function isProviderUrl(value: unknown): value is string {
+  if (typeof value !== "string" || !value.trim()) return false;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function validateRemotePrice(
   remote: Record<string, unknown> | null,
   expected: PlanPrice,
