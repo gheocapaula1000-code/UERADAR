@@ -355,7 +355,9 @@ describe("gate di review Stripe TEST", () => {
       expect(src).toContain(field);
     }
     expect(src).toContain("z.literal(true)");
-    expect(src).toContain("owner_attested_at");
+    // L'attestazione è registrata nella RPC atomica di invito (posti + insert).
+    expect(src).toContain(".rpc(INVITE_RPC");
+    expect(src).toContain("mapInviteRpcResult");
     // Il membro accetta con il proprio account tramite la RPC transazionale
     // service-only: i vincoli (invito pendente, nessuna seconda impresa) sono in SQL.
     expect(src).toContain(".rpc(ACCEPT_RPC");
