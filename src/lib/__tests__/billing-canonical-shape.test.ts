@@ -129,8 +129,9 @@ describe("webhook: errori di lettura bloccano l'evento", () => {
     expect(ROUTE).toContain("USER_LOOKUP_FAILED");
   });
 
-  it("il primo collegamento consuma la prenotazione di checkout", () => {
-    expect(ROUTE).toContain("ueradar_consume_checkout_intent");
+  it("il primo collegamento delega intento e consumo alla RPC atomica", () => {
+    expect(ROUTE).not.toContain("ueradar_consume_checkout_intent");
+    expect(ROUTE).toContain("ueradar_billing_apply_subscription");
   });
 });
 

@@ -54,7 +54,7 @@ describe("subscription canonica: validazione fail-closed", () => {
     expect(
       canonicalSubscriptionGuard({
         ...base,
-        subscription: sub({ items: { data: [{ price: { id: "price_ignoto" } }] } }),
+        subscription: sub({ items: { data: [{ quantity: 1, price: { id: "price_ignoto" } }] } }),
       }).code,
     ).toBe("PRICE_NOT_ALLOWLISTED");
   });
