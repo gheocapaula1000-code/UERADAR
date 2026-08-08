@@ -237,7 +237,12 @@ export const createPaymentSession = createServerFn({ method: "POST" })
     );
     if (!guard.allowed) return { ok: false, code: guard.reason };
 
-    const customerId = await ensureCustomer(context.userId, email);
+    let customerId: string;
+    try {
+      customerId = await ensureCustomer(context.userId, email);
+    } catch (err) {
+      return { ok: false, code: (err as Error).message || "CUSTOMER_CREATE_FAILED" };
+    }
 
     // Prenotazione checkout (QA-only): un solo checkout per volta per utente,
     // con TTL, così il primo collegamento nasce coerente con il Price scelto.
@@ -269,6 +274,8 @@ export const createPaymentSession = createServerFn({ method: "POST" })
         if (
           existing.status === 200 &&
           isTestModeObject(existing.payload) &&
+          isProviderObjectId(existing.payload?.["id"], "cs_") &&
+          isProviderUrl(existingUrl) &&
           existing.payload?.["status"] === "open" &&
           typeof existingUrl === "string"
         )
