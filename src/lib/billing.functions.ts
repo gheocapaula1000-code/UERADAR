@@ -226,6 +226,21 @@ export const createPaymentSession = createServerFn({ method: "POST" })
 
     const customerId = await ensureCustomer(context.userId, email);
 
+    // Prenotazione checkout (QA-only): un solo checkout per volta per utente,
+    // con TTL, così il primo collegamento nasce coerente con il Price scelto.
+    const { data: intent, error: intentError } = await adminClient().rpc(
+      "ueradar_claim_checkout_intent",
+      {
+        _user_id: context.userId,
+        _price_id: priceId,
+        _plan_code: CATALOG[data.plan].planCode ?? data.plan,
+        _ttl_seconds: 1800,
+      },
+    );
+    if (intentError) return { ok: false, code: "CHECKOUT_INTENT_UNAVAILABLE" };
+    const claimed = (intent ?? {}) as { ok?: boolean; code?: string };
+    if (!claimed.ok) return { ok: false, code: claimed.code ?? "CHECKOUT_ALREADY_IN_PROGRESS" };
+
     const session = await providerCall(
       "checkout/sessions",
       env.secretKey,
