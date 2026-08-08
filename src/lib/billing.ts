@@ -699,3 +699,15 @@ export function orderingDecision(input: {
     return { ok: false, code: "CANCELED_NOT_REACTIVATED" };
   return { ok: true, code: "OK" };
 }
+
+/**
+ * Finestra unica di validità: la prenotazione checkout e la Checkout Session
+ * creata presso il provider condividono lo stesso TTL, così un completamento
+ * fuori finestra non può mai legare il primo abbonamento.
+ */
+export const CHECKOUT_TTL_SECONDS = 1800;
+
+/** Scadenza assoluta (Unix epoch) della sessione, allineata al TTL dell'intento. */
+export function checkoutSessionExpiresAt(nowMs: number): number {
+  return Math.floor(nowMs / 1000) + CHECKOUT_TTL_SECONDS;
+}

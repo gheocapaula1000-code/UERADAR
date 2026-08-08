@@ -23,6 +23,8 @@ import {
   validateRemotePrice,
   type Entitlement,
   type SubscriptionSnapshot,
+  CHECKOUT_TTL_SECONDS,
+  checkoutSessionExpiresAt,
 } from "./billing";
 
 export type BillingStatus = {
@@ -321,7 +323,7 @@ export const createPaymentSession = createServerFn({ method: "POST" })
         "subscription_data[metadata][plan_id]": data.plan,
         "subscription_data[metadata][interval]": data.interval,
         // Finestra della sessione allineata al TTL della prenotazione.
-        expires_at: String(Math.floor(Date.now() / 1000) + CHECKOUT_TTL_SECONDS),
+        expires_at: String(checkoutSessionExpiresAt(Date.now())),
         "metadata[supabase_user_id]": context.userId,
         "metadata[plan_id]": data.plan,
         "metadata[interval]": data.interval,
