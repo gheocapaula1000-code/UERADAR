@@ -311,7 +311,10 @@ describe("gate di review Stripe TEST", () => {
     ];
     for (const f of files) {
       const src = readFileSync(f, "utf8");
-      expect(src).not.toMatch(/verifica camerale automatica(?! )/i);
+      // "camerale" ammesso solo in formulazioni negative
+      for (const occ of src.matchAll(/.{0,60}camerale/gi)) {
+        expect(occ[0]).toMatch(/nessun|non esiste|non viene/i);
+      }
       expect(src).not.toMatch(/registro imprese/i);
       expect(src).not.toMatch(/verifichiamo automaticamente/i);
     }
