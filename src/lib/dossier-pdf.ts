@@ -1,4 +1,4 @@
-import { DOSSIER_DISCLAIMER, type Dossier } from "./dossier";
+import { DOSSIER_DISCLAIMER, TRIAL_WATERMARK, type Dossier } from "./dossier";
 
 export interface PdfBlock {
   kind: "title" | "heading" | "note" | "text";
@@ -6,8 +6,9 @@ export interface PdfBlock {
 }
 
 /** Modello impaginabile del PDF: puro e testabile, nessun accesso al browser. */
-export function dossierPdfModel(d: Dossier): PdfBlock[] {
+export function dossierPdfModel(d: Dossier, watermarked = false): PdfBlock[] {
   const blocks: PdfBlock[] = [
+    ...(watermarked ? [{ kind: "note" as const, text: TRIAL_WATERMARK }] : []),
     { kind: "title", text: "Dossier candidatura (bozza) — UEradar.com" },
     { kind: "note", text: DOSSIER_DISCLAIMER },
     { kind: "text", text: `Riferimento interno: ${d.bando_id}` },
@@ -70,13 +71,18 @@ export function dossierPdfModel(d: Dossier): PdfBlock[] {
   }
 
   blocks.push({ kind: "note", text: DOSSIER_DISCLAIMER });
+  if (watermarked) blocks.push({ kind: "note", text: TRIAL_WATERMARK });
   return blocks;
 }
 
 /**
  * Genera e scarica il PDF interamente nel browser: nessun dato lascia il dispositivo.
  */
-export async function downloadDossierPdf(d: Dossier, fileName: string): Promise<void> {
+export async function downloadDossierPdf(
+  d: Dossier,
+  fileName: string,
+  watermarked = false,
+): Promise<void> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const marginX = 18;
@@ -93,7 +99,7 @@ export async function downloadDossierPdf(d: Dossier, fileName: string): Promise<
     }
   };
 
-  for (const b of dossierPdfModel(d)) {
+  for (const b of dossierPdfModel(d, watermarked)) {
     if (b.kind === "title") {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(16);
@@ -121,10 +127,20 @@ export async function downloadDossierPdf(d: Dossier, fileName: string): Promise<
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
+    if (watermarked) {
+      // Filigrana su ogni pagina: l'anteprima della prova non è presentabile.
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(28);
+      doc.setTextColor(200, 200, 200);
+      doc.text("ANTEPRIMA PROVA GRATUITA", marginX, pageHeight / 2, { angle: 30 });
+      doc.setTextColor(0, 0, 0);
+    }
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(
-      `UEradar.com — bozza informativa, non inviata — pagina ${i}/${pages}`,
+      `UEradar.com — bozza informativa, non inviata${
+        watermarked ? " — ANTEPRIMA PROVA GRATUITA FILIGRANATA" : ""
+      } — pagina ${i}/${pages}`,
       marginX,
       pageHeight - 10,
     );

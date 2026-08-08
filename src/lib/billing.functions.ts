@@ -224,10 +224,15 @@ export const createPaymentSession = createServerFn({ method: "POST" })
 export const createPortalSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ ok: boolean; url?: string; code: string }> => {
-    const { readBillingEnv, billingConfigured, providerCall } = await import("./billing.server");
+    const { readBillingEnv, billingConfigured, providerCall, fetchPortalConfiguration } =
+      await import("./billing.server");
     const env = readBillingEnv();
     const mode = billingConfigured(env);
     if (!mode.ok) return { ok: false, code: mode.code };
+
+    // La configurazione Portal viene verificata presso il provider, non assunta.
+    const portal = await fetchPortalConfiguration(env.portalConfiguration, env.secretKey);
+    if (!portal.ok) return { ok: false, code: portal.code };
 
     const { resolveTenantContext } = await import("./tenant.server");
     const tenant = await resolveTenantContext(context.supabase, context.userId);
@@ -242,6 +247,7 @@ export const createPortalSession = createServerFn({ method: "POST" })
       env.secretKey,
       {
         customer: customerId,
+        configuration: env.portalConfiguration,
         return_url: `${env.appUrl}/abbonamento`,
       },
       idempotencyKey("portal", context.userId, window),

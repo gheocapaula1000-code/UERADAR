@@ -253,6 +253,7 @@ export type Database = {
           attempts: number
           created_at: string
           error_code: string | null
+          event_created_at: string | null
           event_id: string
           event_type: string
           livemode: boolean
@@ -266,6 +267,7 @@ export type Database = {
           attempts?: number
           created_at?: string
           error_code?: string | null
+          event_created_at?: string | null
           event_id: string
           event_type: string
           livemode?: boolean
@@ -279,6 +281,7 @@ export type Database = {
           attempts?: number
           created_at?: string
           error_code?: string | null
+          event_created_at?: string | null
           event_id?: string
           event_type?: string
           livemode?: boolean
@@ -347,6 +350,7 @@ export type Database = {
           cancel_at_period_end: boolean
           created_at: string
           current_period_end: string | null
+          last_event_created_at: string | null
           latest_invoice_url: string | null
           plan_code: string
           plan_seats: number
@@ -357,8 +361,8 @@ export type Database = {
           stripe_price_id: string | null
           tax_id: string | null
           trial_consumed: boolean
-          trial_ends_at: string
-          trial_started_at: string
+          trial_ends_at: string | null
+          trial_started_at: string | null
           updated_at: string
           user_id: string
         }
@@ -367,6 +371,7 @@ export type Database = {
           cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string | null
+          last_event_created_at?: string | null
           latest_invoice_url?: string | null
           plan_code?: string
           plan_seats?: number
@@ -377,8 +382,8 @@ export type Database = {
           stripe_price_id?: string | null
           tax_id?: string | null
           trial_consumed?: boolean
-          trial_ends_at?: string
-          trial_started_at?: string
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -387,6 +392,7 @@ export type Database = {
           cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string | null
+          last_event_created_at?: string | null
           latest_invoice_url?: string | null
           plan_code?: string
           plan_seats?: number
@@ -397,8 +403,8 @@ export type Database = {
           stripe_price_id?: string | null
           tax_id?: string | null
           trial_consumed?: boolean
-          trial_ends_at?: string
-          trial_started_at?: string
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -467,6 +473,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ueradar_usage_ledger: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          opportunity_id: string
+          period_ym: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          opportunity_id: string
+          period_ym: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          opportunity_id?: string
+          period_ym?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -494,8 +527,22 @@ export type Database = {
         }
         Returns: Json
       }
+      ueradar_consume_quota_once: {
+        Args: {
+          _kind: string
+          _limit: number
+          _opportunity: string
+          _period: string
+          _tenant: string
+        }
+        Returns: Json
+      }
       ueradar_current_tenant: { Args: never; Returns: string }
       ueradar_is_tenant_owner: { Args: never; Returns: boolean }
+      ueradar_start_trial: {
+        Args: { _domain: string; _user_id: string; _vat: string }
+        Returns: Json
+      }
       ueradar_tenant_owner: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {

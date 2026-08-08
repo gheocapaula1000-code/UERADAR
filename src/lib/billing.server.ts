@@ -18,7 +18,8 @@ export type ProviderResult = { status: number; payload: Record<string, unknown> 
 export type BillingEnv = {
   secretKey: string;
   webhookSecret: string;
-  portalConfigured: boolean;
+  /** ID configurazione Portal TEST (`bpc_...`), validato prima dell'uso. */
+  portalConfiguration: string;
   /** Price ID per `plan:interval`, letti solo da env TEST dedicate. */
   priceMap: Record<string, string>;
   missingPriceEnvs: string[];
@@ -38,7 +39,7 @@ export function readBillingEnv(): BillingEnv {
   return {
     secretKey: process.env["STRIPE_SECRET_KEY"]?.trim() ?? "",
     webhookSecret: process.env["STRIPE_WEBHOOK_SECRET"]?.trim() ?? "",
-    portalConfigured: (process.env["STRIPE_PORTAL_CONFIGURATION_TEST"]?.trim() ?? "").length > 0,
+    portalConfiguration: process.env["STRIPE_PORTAL_CONFIGURATION_TEST"]?.trim() ?? "",
     priceMap,
     missingPriceEnvs,
     appUrl: process.env["UERADAR_APP_URL"]?.trim() || "https://www.ueradar.com",
@@ -56,7 +57,34 @@ export function billingConfigured(env: BillingEnv): { ok: boolean; code: string 
   if (!isTestSecretKey(env.secretKey)) return { ok: false, code: "BILLING_KEY_INVALID" };
   if (env.missingPriceEnvs.length > 0) return { ok: false, code: "PRICES_NOT_CONFIGURED" };
   if (!env.webhookSecret.startsWith("whsec_")) return { ok: false, code: "WEBHOOK_NOT_CONFIGURED" };
-  if (!env.portalConfigured) return { ok: false, code: "PORTAL_NOT_CONFIGURED" };
+  if (!isPortalConfigurationId(env.portalConfiguration))
+    return { ok: false, code: "PORTAL_NOT_CONFIGURED" };
+  return { ok: true, code: "OK" };
+}
+
+/** L'ID di configurazione del Portal deve essere un vero `bpc_`. */
+export function isPortalConfigurationId(value: string): boolean {
+  return /^bpc_[A-Za-z0-9_]+$/.test(value.trim());
+}
+
+/**
+ * Verifica presso il provider che la configurazione Portal esista, sia di test
+ * e sia attiva: una stringa qualsiasi non abilita il portale.
+ */
+export async function fetchPortalConfiguration(
+  configurationId: string,
+  secretKey: string,
+): Promise<{ ok: boolean; code: string }> {
+  if (!isPortalConfigurationId(configurationId))
+    return { ok: false, code: "PORTAL_NOT_CONFIGURED" };
+  const res = await providerCall(
+    `billing_portal/configurations/${encodeURIComponent(configurationId)}`,
+    secretKey,
+  );
+  if (res.status !== 200 || !res.payload) return { ok: false, code: "PORTAL_CONFIG_NOT_FOUND" };
+  if (res.payload["livemode"] === true) return { ok: false, code: "LIVE_MODE_BLOCKED" };
+  if (res.payload["livemode"] !== false) return { ok: false, code: "PORTAL_MODE_UNKNOWN" };
+  if (res.payload["active"] !== true) return { ok: false, code: "PORTAL_CONFIG_INACTIVE" };
   return { ok: true, code: "OK" };
 }
 

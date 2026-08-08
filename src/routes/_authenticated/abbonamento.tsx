@@ -15,7 +15,7 @@ import {
   listCompanyMembers,
   removeCompanyMember,
 } from "@/lib/billing.functions";
-import { MEMBER_ROLES, type MemberRole } from "@/lib/billing";
+import { MEMBER_ROLES, seatUsage, type MemberRole } from "@/lib/billing";
 import { ENTERPRISE_PLAN, PUBLIC_PLANS, TRIAL_COPY } from "@/lib/pricing";
 import { seoHead } from "@/lib/seo";
 
@@ -151,7 +151,11 @@ function Abbonamento() {
   const data = billing.data;
   const entitlement = data?.entitlement;
   const seats = entitlement?.seats ?? 0;
-  const used = data?.members_count ?? 0;
+  // Il titolare occupa sempre un posto: i conteggi mostrati lo includono.
+  const usage = entitlement
+    ? seatUsage(data?.members_count ?? 0, entitlement)
+    : { used: 0, seats: 0, unlimited: false, remaining: 0, label: "—" };
+  const used = usage.used;
   const canInvite =
     form.first_name.trim().length >= 2 &&
     form.last_name.trim().length >= 2 &&
@@ -200,9 +204,7 @@ function Abbonamento() {
                 </div>
                 <div>
                   Utenti operativi:{" "}
-                  <span className="text-foreground">
-                    {used} / {seats || "—"}
-                  </span>
+                  <span className="text-foreground">{usage.label}</span>
                 </div>
                 <div>
                   Partita IVA registrata:{" "}
@@ -317,8 +319,9 @@ function Abbonamento() {
             Utenti operativi della tua impresa
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Ogni piano copre una sola impresa verificata. I posti disponibili dipendono dal piano
-            attivo: {seats || "—"} in totale.
+            Ogni piano copre una sola impresa verificata. Il titolare occupa un posto: il piano
+            attivo prevede {seats > 0 ? seats : "—"} utenti in totale, quindi al massimo{" "}
+            {seats > 0 ? seats - 1 : "—"} collaboratori aggiuntivi.
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
             L'appartenenza all'impresa è dichiarata da te sotto la tua responsabilità: non viene

@@ -354,8 +354,16 @@ function block(title: string, lines: string[]): string {
 }
 
 /** Resa testuale del dossier: usata sia per la copia sia per il download TXT. */
-export function renderDossierText(d: Dossier): string {
+export type DossierRenderOptions = { watermarked?: boolean };
+
+/** Filigrana della prova gratuita: deve comparire nell'output, non solo nella UI. */
+export const TRIAL_WATERMARK =
+  "ANTEPRIMA PROVA GRATUITA — DOCUMENTO FILIGRANATO, NON UTILIZZABILE PER LA PRESENTAZIONE";
+
+export function renderDossierText(d: Dossier, options: DossierRenderOptions = {}): string {
+  const mark = options.watermarked ? TRIAL_WATERMARK : "";
   return [
+    mark,
     "DOSSIER CANDIDATURA (BOZZA) — UEradar.com",
     DOSSIER_DISCLAIMER,
     "",
@@ -411,6 +419,7 @@ export function renderDossierText(d: Dossier): string {
       d.missing_before_use.length ? d.missing_before_use : ["Nessun dato mancante rilevato automaticamente."],
     ),
     DOSSIER_DISCLAIMER,
+    mark,
   ]
     .filter(Boolean)
     .join("\n");

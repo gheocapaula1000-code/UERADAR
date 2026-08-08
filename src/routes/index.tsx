@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { BrandLogo, BrandLockup } from "@/components/bandocore/BrandLogo";
 import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { ENTERPRISE_PLAN, PRODUCT_BOUNDARIES, PUBLIC_PLANS, TRIAL_TERMS } from "@/lib/pricing";
-import { TrialBanner } from "@/components/bandocore/TrialBanner";
+import { TrialBanner, TrialStickyBar } from "@/components/bandocore/TrialBanner";
 import { ORGANIZATION_JSONLD, SOFTWARE_APPLICATION_JSONLD, seoHead } from "@/lib/seo";
 import {
   Radar,
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background pb-44 text-foreground md:pb-0">
       {/* NAV */}
       <header className="safe-x safe-top border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-40">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
@@ -294,6 +294,7 @@ function Landing() {
       </section>
       </main>
 
+      <TrialStickyBar />
       <SiteFooter>
         <BrandLockup className="mx-auto mb-5" />
       </SiteFooter>

@@ -96,14 +96,20 @@ function BandoDetail() {
   const profile = profileQ.data;
 
   const dossier = buildDossier(bando, profile);
-  const dossierText = renderDossierText(dossier);
+  // Nessun output prima del claim server: testo, TXT, PDF e clipboard
+  // esistono solo dopo `dossierOpen`, e portano la filigrana se in prova.
+  const dossierText = dossierOpen
+    ? renderDossierText(dossier, { watermarked })
+    : "";
 
   const copyDossier = async () => {
+    if (!dossierOpen) return;
     await navigator.clipboard.writeText(dossierText);
     toast.success("Dossier copiato negli appunti");
   };
 
   const downloadDossierTxt = () => {
+    if (!dossierOpen) return;
     const blob = new Blob([dossierText], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -114,9 +120,10 @@ function BandoDetail() {
   };
 
   const downloadPdf = async () => {
+    if (!dossierOpen) return;
     setPdfBusy(true);
     try {
-      await downloadDossierPdf(dossier, `dossier-${bando.id}.pdf`);
+      await downloadDossierPdf(dossier, `dossier-${bando.id}.pdf`, watermarked);
       toast.success("PDF generato nel browser");
     } catch {
       toast.error("Generazione PDF non riuscita");
