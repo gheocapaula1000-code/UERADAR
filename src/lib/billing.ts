@@ -555,12 +555,12 @@ export function canonicalSubscriptionGuard(input: {
   const price = item["price"];
   const priceObj = price && typeof price === "object" ? (price as Record<string, unknown>) : null;
   if (!priceObj) return { ok: false, code: "PRICE_NOT_ALLOWLISTED" };
+  // Prima l'allowlist: un Price sconosciuto è sempre PRICE_NOT_ALLOWLISTED.
+  if (!planFromPriceId(canonicalPriceId(sub), input.priceMap))
+    return { ok: false, code: "PRICE_NOT_ALLOWLISTED" };
   if (priceObj["type"] !== "recurring" && !priceObj["recurring"])
     return { ok: false, code: "PRICE_NOT_RECURRING" };
   if (priceObj["active"] === false) return { ok: false, code: "PRICE_NOT_ACTIVE" };
-
-  if (!planFromPriceId(canonicalPriceId(sub), input.priceMap))
-    return { ok: false, code: "PRICE_NOT_ALLOWLISTED" };
 
   const periodEnd = sub["current_period_end"];
   if (typeof periodEnd !== "number" || !Number.isFinite(periodEnd) || periodEnd <= 0)
