@@ -15,10 +15,7 @@ describe("onboarding di un account pending", () => {
         plan_seats: 1,
         trial_ends_at: null,
         current_period_end: null,
-        provider: null,
-        provider_subscription_id: null,
         cancel_at_period_end: false,
-        trial_consumed: false,
       },
       new Date().toISOString(),
     );
