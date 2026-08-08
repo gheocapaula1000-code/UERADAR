@@ -221,10 +221,11 @@ function Abbonamento() {
             </p>
           ) : null}
 
-          {data && !data.configured ? (
+          {data && !data.checkout_available ? (
             <p className="mt-4 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm">
               <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-              Pagamenti non ancora configurati in questo ambiente: gli addebiti restano disattivati.
+              Attivazione online non disponibile in questo ambiente: gli addebiti restano
+              disattivati. I piani restano consultabili e l'attivazione avviene su richiesta.
             </p>
           ) : null}
 
@@ -294,7 +295,7 @@ function Abbonamento() {
                 onClick={() =>
                   payMutation.mutate(plan.id as "professional" | "business" | "executive")
                 }
-                disabled={payMutation.isPending || !data?.configured || isMember}
+                disabled={payMutation.isPending || !data?.checkout_available || isMember}
                 className="tap mt-6 w-full rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground disabled:opacity-50"
               >
                 Attiva {plan.name}
