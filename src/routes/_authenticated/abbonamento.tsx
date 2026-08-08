@@ -47,8 +47,8 @@ function Abbonamento() {
   const remove = useServerFn(removeCompanyMember);
   const [email, setEmail] = useState("");
 
-  const billing = useQuery({ queryKey: ["billing-status"], queryFn: () => status({ data: {} }) });
-  const team = useQuery({ queryKey: ["company-members"], queryFn: () => members({ data: {} }) });
+  const billing = useQuery({ queryKey: ["billing-status"], queryFn: () => status() });
+  const team = useQuery({ queryKey: ["company-members"], queryFn: () => members() });
 
   const payMutation = useMutation({
     mutationFn: (plan: "business" | "team") => startPayment({ data: { plan } }),
@@ -60,7 +60,7 @@ function Abbonamento() {
   });
 
   const portalMutation = useMutation({
-    mutationFn: () => openPortal({ data: {} }),
+    mutationFn: () => openPortal(),
     onSuccess: (res) => {
       if (res.ok && res.url) window.location.assign(res.url);
       else toast.error("Portale non disponibile", { description: res.code });
