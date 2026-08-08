@@ -8,8 +8,8 @@ import {
 } from "./membership";
 import {
   CATALOG,
+  billingIdempotencyKey,
   canStartNewSubscription,
-  idempotencyKey,
   isMemberRole,
   checkoutTarget,
   checkoutResumeGate,
@@ -22,6 +22,7 @@ import {
   resolveEntitlement,
   validateRemotePrice,
   type Entitlement,
+  type BillingMode,
   type SubscriptionSnapshot,
   CHECKOUT_TTL_SECONDS,
   checkoutSessionExpiresAt,
@@ -33,7 +34,7 @@ export type BillingStatus = {
   role: "owner" | "member";
   tenant_owner_id: string;
   can_manage_billing: boolean;
-  mode: "test";
+  mode: BillingMode | "disabled";
   entitlement: Entitlement;
   subscription: SubscriptionSnapshot | null;
   members_count: number;
@@ -90,13 +91,13 @@ function toSnapshot(row: SubRow | null): SubscriptionSnapshot | null {
 export const getBillingStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<BillingStatus> => {
-    const { readBillingEnv, billingConfigured, readCheckoutQa, checkoutQaAllowed } = await import(
+    const { readBillingEnv, billingConfigured, checkoutAccessAllowed } = await import(
       "./billing.server"
     );
     const env = readBillingEnv();
     const mode = billingConfigured(env);
-    const qa = checkoutQaAllowed(
-      readCheckoutQa(),
+    const access = checkoutAccessAllowed(
+      env,
       (context.claims as { email?: string } | undefined)?.email,
     );
 
@@ -121,17 +122,17 @@ export const getBillingStatus = createServerFn({ method: "POST" })
       role: tenant.role,
       tenant_owner_id: tenant.tenant_owner_id,
       can_manage_billing: tenant.can_manage_billing,
-      mode: "test",
+      mode: env.mode ?? "disabled",
       entitlement: resolveEntitlement(snapshot, new Date().toISOString()),
       subscription: snapshot,
       members_count: count ?? 0,
       latest_invoice_url: (row as SubRow | null)?.latest_invoice_url ?? null,
       tax_id: (row as SubRow | null)?.tax_id ?? null,
       configured: mode.ok,
-      checkout_available: mode.ok && qa.ok,
+      checkout_available: mode.ok && access.ok,
       portal_available: portalAvailable(
         (row as SubRow | null) ?? null,
-        mode.ok,
+        mode.ok && access.ok,
         tenant.can_manage_billing,
       ),
     };
@@ -143,12 +144,22 @@ async function ensureCustomer(userId: string, email: string | undefined) {
   const admin = adminClient();
   const { data, error } = await admin
     .from("ueradar_subscriptions")
-    .select("provider_customer_id")
+    .select("provider_customer_id, provider_subscription_id, billing_mode")
     .eq("user_id", userId)
     .maybeSingle();
   if (error) throw new Error("CUSTOMER_LOOKUP_FAILED");
-  const existing = (data as { provider_customer_id: string | null } | null)?.provider_customer_id;
-  if (existing) return existing;
+  const row = data as {
+    provider_customer_id: string | null;
+    provider_subscription_id: string | null;
+    billing_mode: string | null;
+  } | null;
+  const existing = row?.provider_customer_id;
+  if (existing) {
+    if (row?.billing_mode !== env.mode) throw new Error("BILLING_MODE_CONFLICT");
+    return existing;
+  }
+  if (row?.provider_subscription_id) throw new Error("SUBSCRIPTION_BINDING_CONFLICT");
+  if (!env.mode || env.expectedLivemode === null) throw new Error("BILLING_MODE_INVALID");
 
   let created: Awaited<ReturnType<typeof providerCall>>;
   try {
@@ -160,18 +171,18 @@ async function ensureCustomer(userId: string, email: string | undefined) {
         "metadata[supabase_user_id]": userId,
         "metadata[app]": "ueradar",
       },
-      idempotencyKey("customer", userId),
+      billingIdempotencyKey(env.mode, "customer", userId),
     );
   } catch {
     throw new Error("CUSTOMER_CREATE_FAILED");
   }
   // Post-write fail-closed: nessuna scrittura DB prima del controllo di modo.
-  const customerGate = customerCreationGate(created);
+  const customerGate = customerCreationGate(created, env.expectedLivemode);
   if (!customerGate.ok) throw new Error(customerGate.code);
   const id = created.payload?.["id"] as string;
   const { error: linkError } = await admin
     .from("ueradar_subscriptions")
-    .update({ provider: "stripe", provider_customer_id: id, billing_mode: "test" })
+    .update({ provider: "stripe", provider_customer_id: id, billing_mode: env.mode })
     .eq("user_id", userId);
   if (linkError) throw new Error("CUSTOMER_LINK_FAILED");
   return id;
@@ -198,8 +209,7 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       providerCall,
       adminClient,
       fetchRemotePrice,
-      readCheckoutQa,
-      checkoutQaAllowed,
+      checkoutAccessAllowed,
     } = await import("./billing.server");
     const env = readBillingEnv();
     const mode = billingConfigured(env);
@@ -208,8 +218,8 @@ export const createPaymentSession = createServerFn({ method: "POST" })
     // La presenza dei segreti Sandbox non apre il checkout: serve il flag QA
     // esplicito e l'indirizzo dell'utente nella allowlist.
     const email = (context.claims as { email?: string } | undefined)?.email;
-    const qa = checkoutQaAllowed(readCheckoutQa(), email);
-    if (!qa.ok) return { ok: false, code: qa.code };
+    const access = checkoutAccessAllowed(env, email);
+    if (!access.ok) return { ok: false, code: access.code };
 
     const { resolveTenantContext } = await import("./tenant.server");
     const tenant = await resolveTenantContext(context.supabase, context.userId);
@@ -222,18 +232,31 @@ export const createPaymentSession = createServerFn({ method: "POST" })
 
     // Il Price remoto deve corrispondere esattamente al catalogo ed essere di test.
     const remote = await fetchRemotePrice(priceId, env.secretKey);
-    const priceCheck = validateRemotePrice(remote, target);
+    if (!env.mode || env.expectedLivemode === null)
+      return { ok: false, code: "BILLING_MODE_INVALID" };
+    const priceCheck = validateRemotePrice(remote, target, env.expectedLivemode);
     if (!priceCheck.ok) return { ok: false, code: priceCheck.code };
 
     // Nessuna seconda sottoscrizione se ne esiste già una attiva o in prova presso il provider.
     const { data: current, error: currentError } = await context.supabase
       .from("ueradar_subscriptions")
-      .select("status, provider_subscription_id")
+      .select("status, provider_customer_id, provider_subscription_id, billing_mode")
       .eq("user_id", context.userId)
       .maybeSingle();
     if (currentError) return { ok: false, code: "SUBSCRIPTION_LOOKUP_FAILED" };
+    const binding = current as {
+      status: string | null;
+      provider_customer_id: string | null;
+      provider_subscription_id: string | null;
+      billing_mode: string | null;
+    } | null;
+    if (
+      (binding?.provider_customer_id || binding?.provider_subscription_id) &&
+      binding.billing_mode !== env.mode
+    )
+      return { ok: false, code: "BILLING_MODE_CONFLICT" };
     const guard = canStartNewSubscription(
-      current as { status: string | null; provider_subscription_id: string | null } | null,
+      binding,
     );
     if (!guard.allowed) return { ok: false, code: guard.reason };
 
@@ -275,7 +298,11 @@ export const createPaymentSession = createServerFn({ method: "POST" })
         } catch {
           existing = null;
         }
-        const resume = checkoutResumeGate(existing, claimed.session_id);
+        const resume = checkoutResumeGate(
+          existing,
+          claimed.session_id,
+          env.expectedLivemode,
+        );
         if (resume.ok)
           return {
             ok: true,
@@ -331,7 +358,14 @@ export const createPaymentSession = createServerFn({ method: "POST" })
         success_url: `${env.appUrl}/abbonamento?esito=ok`,
         cancel_url: `${env.appUrl}/abbonamento?esito=annullato`,
       },
-      idempotencyKey("checkout", context.userId, data.plan, data.interval, priceId),
+      billingIdempotencyKey(
+        env.mode,
+        "checkout",
+        context.userId,
+        data.plan,
+        data.interval,
+        priceId,
+      ),
       );
     } catch {
       // Errore di rete/eccezione: prenotazione rilasciata e fail-closed.
@@ -340,7 +374,7 @@ export const createPaymentSession = createServerFn({ method: "POST" })
     }
     // Post-write fail-closed: nessun URL restituito o sessione attaccata
     // finché il provider non dichiara esplicitamente livemode false.
-    const sessionGate = checkoutSessionGate(session);
+    const sessionGate = checkoutSessionGate(session, env.expectedLivemode);
     if (!sessionGate.ok) {
       await releaseIntent();
       return { ok: false, code: sessionGate.code };
@@ -364,7 +398,11 @@ export const createPaymentSession = createServerFn({ method: "POST" })
 
     const { error: priceError } = await adminClient()
       .from("ueradar_subscriptions")
-      .update({ stripe_price_id: priceId, plan_seats: CATALOG[data.plan].limits.seats })
+      .update({
+        stripe_price_id: priceId,
+        plan_seats: CATALOG[data.plan].limits.seats,
+        billing_mode: env.mode,
+      })
       .eq("user_id", context.userId);
     if (priceError) return { ok: false, code: "SUBSCRIPTION_UPDATE_FAILED" };
 
@@ -380,8 +418,7 @@ export const createPortalSession = createServerFn({ method: "POST" })
       billingConfigured,
       providerCall,
       fetchPortalConfiguration,
-      readCheckoutQa,
-      checkoutQaAllowed,
+      checkoutAccessAllowed,
     } = await import("./billing.server");
     const env = readBillingEnv();
     const mode = billingConfigured(env);
@@ -389,11 +426,17 @@ export const createPortalSession = createServerFn({ method: "POST" })
 
     // Stesso gate QA del checkout: in TEST il portale non è aperto al pubblico.
     const email = (context.claims as { email?: string } | undefined)?.email;
-    const qa = checkoutQaAllowed(readCheckoutQa(), email);
-    if (!qa.ok) return { ok: false, code: qa.code };
+    const access = checkoutAccessAllowed(env, email);
+    if (!access.ok) return { ok: false, code: access.code };
+    if (!env.mode || env.expectedLivemode === null)
+      return { ok: false, code: "BILLING_MODE_INVALID" };
 
     // La configurazione Portal viene verificata presso il provider, non assunta.
-    const portal = await fetchPortalConfiguration(env.portalConfiguration, env.secretKey);
+    const portal = await fetchPortalConfiguration(
+      env.portalConfiguration,
+      env.secretKey,
+      env.expectedLivemode,
+    );
     if (!portal.ok) return { ok: false, code: portal.code };
 
     const { resolveTenantContext } = await import("./tenant.server");
@@ -404,13 +447,17 @@ export const createPortalSession = createServerFn({ method: "POST" })
     // ha già un rapporto di pagamento attivo presso il provider.
     const { data: subRow, error: subError } = await context.supabase
       .from("ueradar_subscriptions")
-      .select("provider_customer_id")
+      .select("provider_customer_id, billing_mode")
       .eq("user_id", tenant.tenant_owner_id)
       .maybeSingle();
     if (subError) return { ok: false, code: "SUBSCRIPTION_LOOKUP_FAILED" };
-    const customerId =
-      (subRow as { provider_customer_id: string | null } | null)?.provider_customer_id?.trim() ??
-      "";
+    const portalRow = subRow as {
+      provider_customer_id: string | null;
+      billing_mode: string | null;
+    } | null;
+    if (portalRow?.billing_mode !== env.mode)
+      return { ok: false, code: "BILLING_MODE_CONFLICT" };
+    const customerId = portalRow?.provider_customer_id?.trim() ?? "";
     if (!customerId.startsWith("cus_")) return { ok: false, code: "PORTAL_NOT_AVAILABLE" };
 
     // Finestra oraria: chiave deterministica ma senza riusare un link scaduto.
@@ -425,13 +472,13 @@ export const createPortalSession = createServerFn({ method: "POST" })
           configuration: env.portalConfiguration,
           return_url: `${env.appUrl}/abbonamento`,
         },
-        idempotencyKey("portal", context.userId, window),
+        billingIdempotencyKey(env.mode, "portal", context.userId, window),
       );
     } catch {
       return { ok: false, code: "PORTAL_FAILED" };
     }
     // Post-write fail-closed: nessun link restituito senza livemode false.
-    const portalGate = portalSessionGate(session);
+    const portalGate = portalSessionGate(session, env.expectedLivemode);
     if (!portalGate.ok) return { ok: false, code: portalGate.code };
     return { ok: true, url: session.payload?.["url"] as string, code: "OK" };
   });

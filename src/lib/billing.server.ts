@@ -1,5 +1,5 @@
 /**
- * Accesso server-only al provider di pagamento (solo modalità TEST) e
+ * Accesso server-only al provider di pagamento con isolamento TEST/LIVE e
  * all'anagrafica abbonamenti con privilegi di servizio.
  * Nessun segreto di questo modulo è mai esposto al browser.
  */
@@ -7,15 +7,21 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import {
   CATALOG,
+  expectedLivemode,
   isLiveSecretKey,
   isTestSecretKey,
   isValidPriceId,
   priceKey,
+  type BillingMode,
 } from "./billing";
 
 export type ProviderResult = { status: number; payload: Record<string, unknown> | null };
 
 export type BillingEnv = {
+  mode: BillingMode | null;
+  expectedLivemode: boolean | null;
+  liveEnabled: boolean;
+  publicCheckoutEnabled: boolean;
   secretKey: string;
   webhookSecret: string;
   /** ID configurazione Portal TEST (`bpc_...`), validato prima dell'uso. */
@@ -25,6 +31,19 @@ export type BillingEnv = {
   missingPriceEnvs: string[];
   appUrl: string;
 };
+
+function enabled(name: string): boolean {
+  return (process.env[name] ?? "").trim().toLowerCase() === "true";
+}
+
+export function parseBillingMode(value: unknown): BillingMode | null {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return normalized === "test" || normalized === "live" ? normalized : null;
+}
+
+export function priceEnvForMode(testEnv: string, mode: BillingMode): string {
+  return mode === "test" ? testEnv : testEnv.replace(/_TEST$/, "_LIVE");
+}
 
 /**
  * Il checkout TEST non è aperto al pubblico solo perché i segreti Sandbox
@@ -55,20 +74,42 @@ export function checkoutQaAllowed(
   return { ok: true, code: "OK" };
 }
 
+export function checkoutAccessAllowed(
+  env: Pick<BillingEnv, "mode" | "liveEnabled" | "publicCheckoutEnabled">,
+  email: unknown,
+): { ok: boolean; code: string } {
+  if (env.mode === "test") return checkoutQaAllowed(readCheckoutQa(), email);
+  if (env.mode !== "live") return { ok: false, code: "BILLING_MODE_INVALID" };
+  if (!env.liveEnabled) return { ok: false, code: "LIVE_MODE_DISABLED" };
+  if (!env.publicCheckoutEnabled)
+    return { ok: false, code: "PUBLIC_CHECKOUT_DISABLED" };
+  return { ok: true, code: "OK" };
+}
+
 export function readBillingEnv(): BillingEnv {
+  const mode = parseBillingMode(process.env["UERADAR_BILLING_MODE"]);
   const priceMap: Record<string, string> = {};
   const missingPriceEnvs: string[] = [];
-  for (const plan of Object.values(CATALOG)) {
-    for (const price of Object.values(plan.prices)) {
-      const value = process.env[price.priceEnv]?.trim() ?? "";
-      if (isValidPriceId(value)) priceMap[priceKey(plan.id, price.interval)] = value;
-      else missingPriceEnvs.push(price.priceEnv);
+  if (mode) {
+    for (const plan of Object.values(CATALOG)) {
+      for (const price of Object.values(plan.prices)) {
+        const envName = priceEnvForMode(price.priceEnv, mode);
+        const value = process.env[envName]?.trim() ?? "";
+        if (isValidPriceId(value)) priceMap[priceKey(plan.id, price.interval)] = value;
+        else missingPriceEnvs.push(envName);
+      }
     }
   }
+  const suffix = mode === "live" ? "LIVE" : mode === "test" ? "TEST" : "INVALID";
   return {
-    secretKey: process.env["STRIPE_SECRET_KEY"]?.trim() ?? "",
-    webhookSecret: process.env["STRIPE_WEBHOOK_SECRET"]?.trim() ?? "",
-    portalConfiguration: process.env["STRIPE_PORTAL_CONFIGURATION_TEST"]?.trim() ?? "",
+    mode,
+    expectedLivemode: mode ? expectedLivemode(mode) : null,
+    liveEnabled: enabled("UERADAR_BILLING_LIVE_ENABLED"),
+    publicCheckoutEnabled: enabled("UERADAR_CHECKOUT_PUBLIC_ENABLED"),
+    secretKey: process.env[`STRIPE_SECRET_KEY_${suffix}`]?.trim() ?? "",
+    webhookSecret: process.env[`STRIPE_WEBHOOK_SECRET_${suffix}`]?.trim() ?? "",
+    portalConfiguration:
+      process.env[`STRIPE_PORTAL_CONFIGURATION_${suffix}`]?.trim() ?? "",
     priceMap,
     missingPriceEnvs,
     appUrl: process.env["UERADAR_APP_URL"]?.trim() || "https://www.ueradar.com",
@@ -81,9 +122,15 @@ export function readBillingEnv(): BillingEnv {
  * fatturazione pubblica restano disabilitati.
  */
 export function billingConfigured(env: BillingEnv): { ok: boolean; code: string } {
+  if (!env.mode || env.expectedLivemode === null)
+    return { ok: false, code: "BILLING_MODE_INVALID" };
+  if (env.mode === "live" && !env.liveEnabled)
+    return { ok: false, code: "LIVE_MODE_DISABLED" };
   if (!env.secretKey) return { ok: false, code: "BILLING_NOT_CONFIGURED" };
-  if (isLiveSecretKey(env.secretKey)) return { ok: false, code: "LIVE_MODE_BLOCKED" };
-  if (!isTestSecretKey(env.secretKey)) return { ok: false, code: "BILLING_KEY_INVALID" };
+  if (env.mode === "test" && !isTestSecretKey(env.secretKey))
+    return { ok: false, code: "BILLING_KEY_MODE_MISMATCH" };
+  if (env.mode === "live" && !isLiveSecretKey(env.secretKey))
+    return { ok: false, code: "BILLING_KEY_MODE_MISMATCH" };
   if (env.missingPriceEnvs.length > 0) return { ok: false, code: "PRICES_NOT_CONFIGURED" };
   if (!env.webhookSecret.startsWith("whsec_")) return { ok: false, code: "WEBHOOK_NOT_CONFIGURED" };
   if (!isPortalConfigurationId(env.portalConfiguration))
@@ -103,6 +150,7 @@ export function isPortalConfigurationId(value: string): boolean {
 export async function fetchPortalConfiguration(
   configurationId: string,
   secretKey: string,
+  expectedMode = false,
 ): Promise<{ ok: boolean; code: string }> {
   if (!isPortalConfigurationId(configurationId))
     return { ok: false, code: "PORTAL_NOT_CONFIGURED" };
@@ -111,8 +159,10 @@ export async function fetchPortalConfiguration(
     secretKey,
   );
   if (res.status !== 200 || !res.payload) return { ok: false, code: "PORTAL_CONFIG_NOT_FOUND" };
-  if (res.payload["livemode"] === true) return { ok: false, code: "LIVE_MODE_BLOCKED" };
-  if (res.payload["livemode"] !== false) return { ok: false, code: "PORTAL_MODE_UNKNOWN" };
+  if (res.payload["livemode"] !== true && res.payload["livemode"] !== false)
+    return { ok: false, code: "PORTAL_MODE_UNKNOWN" };
+  if (res.payload["livemode"] !== expectedMode)
+    return { ok: false, code: expectedMode ? "TEST_MODE_BLOCKED" : "LIVE_MODE_BLOCKED" };
   if (res.payload["active"] !== true) return { ok: false, code: "PORTAL_CONFIG_INACTIVE" };
   return { ok: true, code: "OK" };
 }
@@ -126,7 +176,15 @@ export async function fetchRemotePrice(
   return res.status === 200 ? res.payload : null;
 }
 
-/** Fail-closed: nessuna chiave, o chiave non di test, nessuna operazione. */
+/** Fail-closed: la chiave deve corrispondere esattamente al modo selezionato. */
+export function assertBillingMode(
+  env: BillingEnv,
+): { ok: true } | { ok: false; code: string } {
+  const configured = billingConfigured(env);
+  return configured.ok ? { ok: true } : { ok: false, code: configured.code };
+}
+
+/** Compatibilità dei test storici; nessun uso nel percorso runtime. */
 export function assertTestMode(secretKey: string): { ok: true } | { ok: false; code: string } {
   if (!secretKey) return { ok: false, code: "BILLING_NOT_CONFIGURED" };
   if (!isTestSecretKey(secretKey)) return { ok: false, code: "LIVE_MODE_BLOCKED" };

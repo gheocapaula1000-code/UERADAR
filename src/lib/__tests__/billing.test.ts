@@ -247,21 +247,24 @@ describe("sicurezza dell'integrazione di pagamento", () => {
     // La presa in carico avviene tramite RPC atomica con lease, non con una scrittura diretta.
     expect(webhook).toContain("ueradar_billing_claim_event");
     expect(webhook).toContain("ALREADY_PROCESSED");
-    expect(webhook).toContain("LIVE_MODE_BLOCKED");
+    expect(webhook).toContain("WEBHOOK_MODE_MISMATCH");
+    expect(webhook).toContain('event["livemode"] !== env.expectedLivemode');
     expect(webhook.indexOf("verifyWebhookSignature")).toBeLessThan(
       webhook.indexOf("ueradar_billing_claim_event"),
     );
   });
 
-  it("tiene le chiavi solo lato server e blocca la modalità live", () => {
-    expect(server).toContain('process.env["STRIPE_SECRET_KEY"]');
+  it("tiene le chiavi solo lato server e separa TEST/LIVE", () => {
+    expect(server).toContain('process.env[`STRIPE_SECRET_KEY_${suffix}`]');
+    expect(server).toContain("BILLING_KEY_MODE_MISMATCH");
+    expect(server).toContain("LIVE_MODE_DISABLED");
     expect(functions).toContain("billingConfigured");
     expect(functions).toContain("requireSupabaseAuth");
     expect(functions).not.toMatch(/import\.meta\.env\.VITE_STRIPE/);
     for (const file of ["src/routes/_authenticated/abbonamento.tsx"]) {
       const src = readFileSync(file, "utf8");
       expect(src).not.toMatch(/sk_(test|live)_/);
-      expect(src).not.toMatch(/STRIPE_SECRET_KEY/);
+      expect(src).not.toMatch(/STRIPE_SECRET_KEY_(TEST|LIVE)/);
     }
   });
 });
@@ -274,8 +277,9 @@ describe("gate di review Stripe TEST", () => {
 
   it("passa chiavi di idempotenza deterministiche a customer, checkout e portale", () => {
     const src = readFileSync("src/lib/billing.functions.ts", "utf8");
+    expect(src).toContain("billingIdempotencyKey");
     for (const scope of ["customer", "checkout", "portal"]) {
-      expect(src).toContain(`idempotencyKey("${scope}"`);
+      expect(src).toContain(`"${scope}"`);
     }
     expect(readFileSync("src/lib/billing.server.ts", "utf8")).toContain('"Idempotency-Key"');
   });

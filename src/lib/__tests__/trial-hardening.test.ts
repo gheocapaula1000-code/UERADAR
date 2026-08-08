@@ -217,8 +217,9 @@ describe("P0 capienza utenti con il titolare incluso", () => {
 });
 
 describe("P0 webhook: ordine, livemode e fatture coerenti", () => {
-  it("richiede livemode esplicitamente false", () => {
-    expect(webhook).toContain('event["livemode"] !== false');
+  it("richiede livemode identico alla modalità server selezionata", () => {
+    expect(webhook).toContain('event["livemode"] !== env.expectedLivemode');
+    expect(webhook).toContain("WEBHOOK_MODE_MISMATCH");
   });
 
   it("un evento più vecchio non retrocede lo stato", () => {

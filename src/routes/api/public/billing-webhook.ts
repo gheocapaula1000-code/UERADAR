@@ -23,7 +23,7 @@ function str(value: unknown): string | null {
 }
 
 /**
- * Webhook di fatturazione: firmato, in sola modalità test, con presa in carico
+ * Webhook di fatturazione: firmato, isolato per modalità, con presa in carico
  * esclusiva a scadenza e stato derivato unicamente dalla Subscription canonica
  * recuperata dal provider. Nessuna scrittura prima della verifica della firma.
  */
@@ -31,11 +31,11 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { readBillingEnv, assertTestMode, providerCall, adminClient } = await import(
+        const { readBillingEnv, assertBillingMode, providerCall, adminClient } = await import(
           "@/lib/billing.server"
         );
         const env = readBillingEnv();
-        const mode = assertTestMode(env.secretKey);
+        const mode = assertBillingMode(env);
         if (!mode.ok) return Response.json({ ok: false, code: mode.code }, { status: 503 });
         if (!env.webhookSecret)
           return Response.json({ ok: false, code: "WEBHOOK_NOT_CONFIGURED" }, { status: 503 });
@@ -61,9 +61,9 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         } catch {
           return Response.json({ ok: false, code: "INVALID_JSON" }, { status: 400 });
         }
-        // Solo eventi esplicitamente di test: livemode deve essere false.
-        if (event["livemode"] !== false)
-          return Response.json({ ok: false, code: "LIVE_MODE_BLOCKED" }, { status: 400 });
+        // La modalità dell'evento deve coincidere esattamente col contesto attivo.
+        if (event["livemode"] !== env.expectedLivemode)
+          return Response.json({ ok: false, code: "WEBHOOK_MODE_MISMATCH" }, { status: 400 });
 
         const eventId = str(event["id"]);
         const eventType = str(event["type"]);
@@ -86,6 +86,7 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             _event_type: meta.event_type,
             _object_id: meta.object_id ?? "",
             _customer: meta.provider_customer_id ?? "",
+            _livemode: env.expectedLivemode,
             _event_created_at: eventCreatedAt,
             _lease_seconds: LEASE_SECONDS,
           },
@@ -132,7 +133,9 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         async function loadRecord(userId: string) {
           const { data, error } = await admin
             .from("ueradar_subscriptions")
-            .select("status, provider_customer_id, provider_subscription_id, last_event_created_at")
+            .select(
+              "status, provider_customer_id, provider_subscription_id, last_event_created_at, billing_mode",
+            )
             .eq("user_id", userId)
             .maybeSingle();
           // Un errore di lettura non è "nessun collegamento": blocca l'evento.
@@ -143,9 +146,10 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
               (data as {
                 status: string | null;
                 provider_customer_id: string | null;
-                provider_subscription_id: string | null;
-                last_event_created_at: string | null;
-              } | null) ?? null,
+                 provider_subscription_id: string | null;
+                 last_event_created_at: string | null;
+                 billing_mode: string | null;
+               } | null) ?? null,
           };
         }
 
@@ -162,6 +166,7 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             .from("ueradar_subscriptions")
             .select("user_id")
             .eq("provider_customer_id", customerId)
+            .eq("billing_mode", env.mode!)
             .maybeSingle();
           // Errore di lettura: mai dedurre "utente non collegato".
           if (error) return { ok: false, userId: null };
@@ -184,6 +189,11 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           if (!loaded.ok)
             return { ok: false, code: "SUBSCRIPTION_STATE_UNAVAILABLE", skippable: false };
           const record = loaded.record;
+          if (
+            (record?.provider_customer_id || record?.provider_subscription_id) &&
+            record.billing_mode !== env.mode
+          )
+            return { ok: false, code: "BILLING_MODE_CONFLICT", skippable: false };
           const fetched = await providerCall(
             `subscriptions/${encodeURIComponent(subscriptionId)}`,
             env.secretKey,
@@ -197,6 +207,7 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             expectedCustomerId: customerId,
             linkedCustomerId: record?.provider_customer_id ?? null,
             priceMap: env.priceMap,
+            expectedLivemode: env.expectedLivemode ?? undefined,
           });
           if (!guard.ok) return { ok: false, code: guard.code, skippable: false };
 
@@ -212,6 +223,7 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             subscriptionId,
             customerId: str(sub["customer"]),
             priceMap: env.priceMap,
+            billingMode: env.mode ?? undefined,
           });
           if (!mapped.ok || !mapped.patch)
             return { ok: false, code: mapped.code, skippable: false };

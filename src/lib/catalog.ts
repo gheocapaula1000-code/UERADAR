@@ -1,7 +1,8 @@
 /**
  * Catalogo UEradar: fonte unica di verità server-side per piani, prezzi,
  * capienza utenti e limiti operativi. La UI legge da qui e non duplica mai
- * prezzi o limiti. Nessun Price ID è hardcoded: solo i nomi delle env TEST.
+ * prezzi o limiti. Nessun Price ID è hardcoded: le env LIVE sono derivate
+ * meccanicamente dalle omologhe TEST e non esiste fallback tra modalità.
  *
  * Tutti gli importi sono IVA esclusa. L'annuale include 2 mesi (10 x mensile).
  * Il numero di utenti è solo capienza tecnica, non la leva di valore.
@@ -335,6 +336,11 @@ export function intervalFromCode(value: unknown): BillingInterval | null {
 /** Tutti i nomi delle env TEST attesi: nessun Price ID nel codice. */
 export const PRICE_ENV_NAMES: readonly string[] = PLAN_IDS.flatMap((id) =>
   Object.values(CATALOG[id].prices).map((p) => p.priceEnv),
+);
+
+/** Omologhe LIVE, usate solo quando il server seleziona esplicitamente live. */
+export const LIVE_PRICE_ENV_NAMES: readonly string[] = PRICE_ENV_NAMES.map((name) =>
+  name.replace(/_TEST$/, "_LIVE"),
 );
 
 /** Formattazione italiana degli importi, sempre IVA esclusa. */

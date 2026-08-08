@@ -1,5 +1,5 @@
 /**
- * Logica pura di fatturazione UEradar (modalità TEST obbligatoria).
+ * Logica pura di fatturazione UEradar con isolamento rigoroso TEST/LIVE.
  * Nessun segreto qui: stati abbonamento, entitlement fail-closed, validazione
  * dei prezzi remoti e controllo della capienza utenti. Il catalogo (prezzi,
  * limiti, capienza) vive in `catalog.ts` ed è l'unica fonte di verità.
@@ -22,6 +22,12 @@ import {
 
 export type { BillingInterval, PlanDefinition, PlanId, PlanLimits, PlanPrice };
 export { CATALOG, checkoutTarget, formatEuro };
+
+export type BillingMode = "test" | "live";
+
+export function expectedLivemode(mode: BillingMode): boolean {
+  return mode === "live";
+}
 
 /** Chiave del price map server-side: piano + intervallo. */
 export function priceKey(plan: PlanId, interval: BillingInterval): string {
@@ -55,7 +61,7 @@ export function isTestSecretKey(key: string): boolean {
 }
 
 export function isLiveSecretKey(key: string): boolean {
-  return /^(sk|rk)_live_/.test(key.trim());
+  return /^(sk|rk)_live_[A-Za-z0-9_]+$/.test(key.trim());
 }
 
 export function isValidPriceId(price: string): boolean {
@@ -103,14 +109,25 @@ export function isTestModeObject(payload: Record<string, unknown> | null | undef
  * Verdetto esplicito sul modo dell'oggetto creato: distingue un oggetto live
  * (bloccato) da un payload il cui modo non è dichiarato (ignoto ⇒ fail-closed).
  */
+export function modeVerdict(
+  payload: Record<string, unknown> | null | undefined,
+  expected: boolean,
+  unknownCode: string,
+): { ok: boolean; code: string } {
+  if (!payload) return { ok: false, code: unknownCode };
+  const actual = payload["livemode"];
+  if (actual !== true && actual !== false) return { ok: false, code: unknownCode };
+  if (actual !== expected)
+    return { ok: false, code: expected ? "TEST_MODE_BLOCKED" : "LIVE_MODE_BLOCKED" };
+  return { ok: true, code: "OK" };
+}
+
+/** Compatibilità dei test storici: il default resta Sandbox. */
 export function testModeVerdict(
   payload: Record<string, unknown> | null | undefined,
   unknownCode: string,
 ): { ok: boolean; code: string } {
-  if (!payload) return { ok: false, code: unknownCode };
-  if (payload["livemode"] === true) return { ok: false, code: "LIVE_MODE_BLOCKED" };
-  if (payload["livemode"] !== false) return { ok: false, code: unknownCode };
-  return { ok: true, code: "OK" };
+  return modeVerdict(payload, false, unknownCode);
 }
 
 /** Identificatore provider con prefisso atteso (cus_, cs_, ...). */
@@ -131,36 +148,44 @@ export function isProviderUrl(value: unknown): value is string {
 type ProviderResponse = { status: number; payload: Record<string, unknown> | null };
 
 /** Gate post-write sul Customer creato: id cus_, status 200, livemode false. */
-export function customerCreationGate(res: ProviderResponse): { ok: boolean; code: string } {
+export function customerCreationGate(
+  res: ProviderResponse,
+  expected = false,
+): { ok: boolean; code: string } {
   if (res.status !== 200 || !isProviderObjectId(res.payload?.["id"], "cus_"))
     return { ok: false, code: "CUSTOMER_CREATE_FAILED" };
-  return testModeVerdict(res.payload, "CUSTOMER_MODE_UNKNOWN");
+  return modeVerdict(res.payload, expected, "CUSTOMER_MODE_UNKNOWN");
 }
 
 /** Gate post-write sulla Checkout Session creata: id cs_, url https, livemode false. */
-export function checkoutSessionGate(res: ProviderResponse): { ok: boolean; code: string } {
+export function checkoutSessionGate(
+  res: ProviderResponse,
+  expected = false,
+): { ok: boolean; code: string } {
   if (
     res.status !== 200 ||
     !isProviderObjectId(res.payload?.["id"], "cs_") ||
     !isProviderUrl(res.payload?.["url"])
   )
     return { ok: false, code: "PAYMENT_SESSION_FAILED" };
-  return testModeVerdict(res.payload, "CHECKOUT_MODE_UNKNOWN");
+  return modeVerdict(res.payload, expected, "CHECKOUT_MODE_UNKNOWN");
 }
 
 /**
  * Gate sulla ripresa di una Checkout Session esistente: id corrispondente a
- * quello prenotato, sessione aperta, URL https e modo test dichiarato.
+ * quello prenotato, sessione aperta, URL https e modo dichiarato identico al
+ * contesto server selezionato.
  */
 export function checkoutResumeGate(
   res: ProviderResponse | null,
   expectedId?: string,
+  expected = false,
 ): { ok: boolean; code: string } {
   if (!res || res.status !== 200 || !isProviderObjectId(res.payload?.["id"], "cs_"))
     return { ok: false, code: "CHECKOUT_RESUME_UNAVAILABLE" };
   if (expectedId && res.payload?.["id"] !== expectedId)
     return { ok: false, code: "CHECKOUT_RESUME_ID_MISMATCH" };
-  const mode = testModeVerdict(res.payload, "CHECKOUT_MODE_UNKNOWN");
+  const mode = modeVerdict(res.payload, expected, "CHECKOUT_MODE_UNKNOWN");
   if (!mode.ok) return mode;
   if (res.payload?.["status"] !== "open" || !isProviderUrl(res.payload?.["url"]))
     return { ok: false, code: "CHECKOUT_RESUME_UNAVAILABLE" };
@@ -168,19 +193,23 @@ export function checkoutResumeGate(
 }
 
 /** Gate post-write sulla sessione Portal: url https e livemode false. */
-export function portalSessionGate(res: ProviderResponse): { ok: boolean; code: string } {
+export function portalSessionGate(
+  res: ProviderResponse,
+  expected = false,
+): { ok: boolean; code: string } {
   if (res.status !== 200 || !isProviderUrl(res.payload?.["url"]))
     return { ok: false, code: "PORTAL_FAILED" };
-  return testModeVerdict(res.payload, "PORTAL_MODE_UNKNOWN");
+  return modeVerdict(res.payload, expected, "PORTAL_MODE_UNKNOWN");
 }
 
 export function validateRemotePrice(
   remote: Record<string, unknown> | null,
   expected: PlanPrice,
+  expectedMode = false,
 ): { ok: boolean; code: string } {
   if (!remote) return { ok: false, code: "PRICE_NOT_FOUND" };
-  if (remote["livemode"] === true) return { ok: false, code: "LIVE_MODE_BLOCKED" };
-  if (remote["livemode"] !== false) return { ok: false, code: "PRICE_MODE_UNKNOWN" };
+  const mode = modeVerdict(remote, expectedMode, "PRICE_MODE_UNKNOWN");
+  if (!mode.ok) return mode;
   if (remote["active"] !== true) return { ok: false, code: "PRICE_NOT_ACTIVE" };
   if (remote["currency"] !== "eur") return { ok: false, code: "PRICE_CURRENCY_MISMATCH" };
   if (remote["unit_amount"] !== expected.amountCents)
@@ -451,6 +480,15 @@ export function idempotencyKey(scope: string, ...parts: (string | number)[]): st
   return `ueradar:test:${raw}`.slice(0, 255);
 }
 
+export function billingIdempotencyKey(
+  mode: BillingMode,
+  scope: string,
+  ...parts: (string | number)[]
+): string {
+  const raw = idempotencyKey(scope, ...parts).replace(/^ueradar:test:/, "");
+  return `ueradar:${mode}:${raw}`.slice(0, 255);
+}
+
 /** Metadati minimi dell'evento: mai il payload completo con dati personali. */
 export function billingEventMetadata(event: Record<string, unknown>) {
   const data = event["data"];
@@ -568,6 +606,7 @@ export function subscriptionUpdateFromEvent(input: {
   subscriptionId: unknown;
   customerId: unknown;
   priceMap: Record<string, string>;
+  billingMode?: BillingMode;
 }): SubscriptionUpdate {
   if (Object.keys(input.priceMap).length < PRICE_ENV_NAMES.length)
     return { ok: false, code: "PRICES_NOT_CONFIGURED", patch: null };
@@ -586,7 +625,7 @@ export function subscriptionUpdateFromEvent(input: {
   const patch = {
     status: normalizeStatus(input.status),
     provider: "stripe",
-    billing_mode: "test",
+    billing_mode: input.billingMode ?? "test",
     provider_subscription_id:
       typeof input.subscriptionId === "string" ? input.subscriptionId : null,
     provider_customer_id: typeof input.customerId === "string" ? input.customerId : null,
@@ -611,12 +650,16 @@ export function canonicalSubscriptionGuard(input: {
   expectedCustomerId: unknown;
   linkedCustomerId: unknown;
   priceMap: Record<string, string>;
+  expectedLivemode?: boolean;
 }): { ok: boolean; code: string } {
   const sub = input.subscription;
   if (!sub) return { ok: false, code: "SUBSCRIPTION_FETCH_FAILED" };
-  // Nessuna tolleranza sulla modalità: solo oggetti esplicitamente di test.
-  if (sub["livemode"] === true) return { ok: false, code: "LIVE_MODE_BLOCKED" };
-  if (sub["livemode"] !== false) return { ok: false, code: "SUBSCRIPTION_MODE_UNKNOWN" };
+  const mode = modeVerdict(
+    sub,
+    input.expectedLivemode ?? false,
+    "SUBSCRIPTION_MODE_UNKNOWN",
+  );
+  if (!mode.ok) return mode;
 
   const id = typeof sub["id"] === "string" ? sub["id"] : "";
   if (!id) return { ok: false, code: "SUBSCRIPTION_WITHOUT_ID" };
@@ -699,7 +742,6 @@ export function orderingDecision(input: {
     return { ok: false, code: "CANCELED_NOT_REACTIVATED" };
   return { ok: true, code: "OK" };
 }
-
 /**
  * Finestra unica di validità: la prenotazione checkout e la Checkout Session
  * creata presso il provider condividono lo stesso TTL, così un completamento
