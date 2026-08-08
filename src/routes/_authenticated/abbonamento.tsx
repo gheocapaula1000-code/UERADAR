@@ -233,12 +233,18 @@ function Abbonamento() {
             <button
               type="button"
               onClick={() => portalMutation.mutate()}
-              disabled={portalMutation.isPending || !data?.configured || isMember}
+              disabled={portalMutation.isPending || !data?.portal_available || isMember}
               className="tap inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium disabled:opacity-50"
             >
               <CreditCard aria-hidden="true" className="h-4 w-4" />
               Gestisci fatture e disdetta
             </button>
+            {data && !data.portal_available && !isMember ? (
+              <p className="w-full text-sm text-muted-foreground">
+                Il portale di fatturazione si attiva con il primo pagamento: durante la prova non
+                viene creata alcuna anagrafica cliente.
+              </p>
+            ) : null}
           </div>
         </section>
 
