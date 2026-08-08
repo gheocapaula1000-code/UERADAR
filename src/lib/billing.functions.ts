@@ -12,10 +12,10 @@ import {
   idempotencyKey,
   isMemberRole,
   checkoutTarget,
-  isTestModeObject,
-  isProviderObjectId,
-  isProviderUrl,
-  testModeVerdict,
+  checkoutResumeGate,
+  checkoutSessionGate,
+  customerCreationGate,
+  portalSessionGate,
   isValidPriceId,
   MEMBER_ROLES,
   priceKey,
@@ -164,11 +164,9 @@ async function ensureCustomer(userId: string, email: string | undefined) {
     throw new Error("CUSTOMER_CREATE_FAILED");
   }
   const id = created.payload?.["id"];
-  if (created.status !== 200 || !isProviderObjectId(id, "cus_"))
-    throw new Error("CUSTOMER_CREATE_FAILED");
   // Post-write fail-closed: nessuna scrittura DB prima del controllo di modo.
-  const customerMode = testModeVerdict(created.payload, "CUSTOMER_MODE_UNKNOWN");
-  if (!customerMode.ok) throw new Error(customerMode.code);
+  const customerGate = customerCreationGate(created);
+  if (!customerGate.ok) throw new Error(customerGate.code);
   const { error: linkError } = await admin
     .from("ueradar_subscriptions")
     .update({ provider: "stripe", provider_customer_id: id, billing_mode: "test" })
@@ -275,15 +273,13 @@ export const createPaymentSession = createServerFn({ method: "POST" })
         } catch {
           existing = null;
         }
-        const existingUrl = existing?.payload?.["url"];
-        if (
-          existing?.status === 200 &&
-          isTestModeObject(existing.payload) &&
-          isProviderObjectId(existing.payload?.["id"], "cs_") &&
-          isProviderUrl(existingUrl) &&
-          existing.payload?.["status"] === "open"
-        )
-          return { ok: true, url: existingUrl, code: "CHECKOUT_RESUMED" };
+        const resume = checkoutResumeGate(existing);
+        if (resume.ok)
+          return {
+            ok: true,
+            url: existing?.payload?.["url"] as string,
+            code: "CHECKOUT_RESUMED",
+          };
       }
       return { ok: false, code: claimed.code ?? "CHECKOUT_ALREADY_IN_PROGRESS" };
     }
@@ -331,20 +327,12 @@ export const createPaymentSession = createServerFn({ method: "POST" })
     }
     const url = session.payload?.["url"];
     const sessionId = session.payload?.["id"];
-    if (
-      session.status !== 200 ||
-      !isProviderObjectId(sessionId, "cs_") ||
-      !isProviderUrl(url)
-    ) {
-      await releaseIntent();
-      return { ok: false, code: "PAYMENT_SESSION_FAILED" };
-    }
     // Post-write fail-closed: nessun URL restituito o sessione attaccata
     // finché il provider non dichiara esplicitamente livemode false.
-    const sessionMode = testModeVerdict(session.payload, "CHECKOUT_MODE_UNKNOWN");
-    if (!sessionMode.ok) {
+    const sessionGate = checkoutSessionGate(session);
+    if (!sessionGate.ok) {
       await releaseIntent();
-      return { ok: false, code: sessionMode.code };
+      return { ok: false, code: sessionGate.code };
     }
 
     // Sessione registrata sulla prenotazione: abilita solo la ripresa idempotente.
@@ -424,13 +412,10 @@ export const createPortalSession = createServerFn({ method: "POST" })
     } catch {
       return { ok: false, code: "PORTAL_FAILED" };
     }
-    const url = session.payload?.["url"];
-    if (session.status !== 200 || !isProviderUrl(url))
-      return { ok: false, code: "PORTAL_FAILED" };
     // Post-write fail-closed: nessun link restituito senza livemode false.
-    const portalMode = testModeVerdict(session.payload, "PORTAL_MODE_UNKNOWN");
-    if (!portalMode.ok) return { ok: false, code: portalMode.code };
-    return { ok: true, url, code: "OK" };
+    const portalGate = portalSessionGate(session);
+    if (!portalGate.ok) return { ok: false, code: portalGate.code };
+    return { ok: true, url: session.payload?.["url"] as string, code: "OK" };
   });
 
 export type CompanyMember = {
