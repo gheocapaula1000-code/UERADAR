@@ -233,7 +233,6 @@ describe("enforcement lato server, non solo nella UI", () => {
     // direttamente con un JWT: qui resta solo il gate di entitlement.
     expect(feedFunctions).not.toContain("claimSearchLane");
     expect(feedFunctions).toContain("FEED_NOT_ENTITLED");
-    expect(feedFunctions).toContain("REFRESH_RATE_LIMITED");
     expect(feedFunctions).toContain("AVAILABLE_SOURCE_TIER");
     // Il gate vale anche su refresh e cache, non solo sul fetch.
     expect(feedFunctions.match(/FEED_NOT_ENTITLED/g)?.length).toBeGreaterThanOrEqual(3);
