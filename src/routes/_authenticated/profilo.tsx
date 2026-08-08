@@ -7,6 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getTenantContext } from "@/lib/tenant.functions";
 import type { CompanyProfile, LegalForm } from "@/lib/bandocore-types";
 import { toast } from "sonner";
+import { startTrial } from "@/lib/trial.functions";
+import { trialStartMessage } from "@/lib/trial";
 import { Building2, Save, Sparkles } from "lucide-react";
 import { seoHead } from "@/lib/seo";
 
@@ -116,6 +118,8 @@ function Profilo() {
       });
   }, []);
 
+  const activateTrial = useServerFn(startTrial);
+
   const update = <K extends keyof CompanyProfile>(k: K, v: CompanyProfile[K]) =>
     setProfile((p) => ({ ...p, [k]: v }));
 
@@ -151,6 +155,16 @@ function Profilo() {
       if (preferencesError) throw preferencesError;
 
       toast.success("Profilo e preferenze salvati");
+      // La prova gratuita parte solo ora, dopo un profilo con P.IVA valida:
+      // nessuna carta, nessun metodo di pagamento, decisione server-side.
+      try {
+        const trial = await activateTrial({});
+        if (trial.ok && trial.code === "TRIAL_STARTED") toast.success(trialStartMessage(trial.code));
+        else if (!trial.ok && trial.code !== "MEMBER_USES_TENANT_PLAN")
+          toast.message(trialStartMessage(trial.code));
+      } catch {
+        toast.message(trialStartMessage("TRIAL_START_FAILED"));
+      }
       navigate({ to: "/dashboard" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Salvataggio non riuscito");

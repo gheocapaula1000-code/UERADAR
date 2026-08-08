@@ -66,7 +66,7 @@ export const ENTERPRISE_PLAN = {
   cta: "Contattaci",
   contact: "info@pigiservice.com",
   description:
-    "Più imprese sullo stesso contratto, fonti dedicate, API e webhook, workflow e limiti definiti in accordo. Nessun checkout pubblico: si procede su preventivo.",
+    "Più imprese sullo stesso contratto, fonti e integrazioni definite in accordo, workflow e limiti da contratto. Nessun checkout pubblico: si procede su preventivo.",
   features: CATALOG.enterprise.highlights,
 } as const;
 
@@ -97,7 +97,7 @@ export const TRIAL_TERMS: readonly string[] = [
   `${TRIAL_COPY.noCard}.`,
   TRIAL_COPY.noCharge,
   TRIAL_COPY.ctaNote,
-  "La prova offre temporaneamente il livello Business con 1 impresa, 1 utente, 2 obiettivi, 5 verifiche approfondite e 1 anteprima dossier filigranata.",
+  "La prova offre temporaneamente il livello Business con 1 impresa, 1 utente, 2 obiettivi e 1 anteprima dossier filigranata.",
   "Una prova per Partita IVA e per dominio aziendale ogni 12 mesi.",
   "Cancellazione online, senza disdetta scritta e senza PEC.",
   "Tutti i prezzi sono IVA esclusa; l'annuale include 2 mesi.",
@@ -119,7 +119,7 @@ export const ARCHITECTURE_NOTES: readonly { t: string; d: string }[] = [
   },
   {
     t: "Cadenze e verifiche misurate",
-    d: "Frequenza delle ricerche, verifiche approfondite e dossier sono applicati lato server secondo il piano attivo, non dal browser.",
+    d: "Frequenza degli aggiornamenti e dossier inclusi sono applicati lato server secondo il piano attivo, non dal browser.",
   },
 ];
 
@@ -130,11 +130,11 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Quante opportunità posso vedere?",
-    a: "Tutte quelle pertinenti al tuo profilo: il numero di opportunità mostrate non è mai limitato. I piani si distinguono per frequenza delle ricerche, ampiezza delle fonti, verifiche approfondite e dossier.",
+    a: "Tutte quelle pertinenti al tuo profilo: il numero di opportunità mostrate non è mai limitato. I piani si distinguono per frequenza degli aggiornamenti, capienza utenti e dossier inclusi.",
   },
   {
     q: "Che differenza c'è tra Professional, Business ed Executive?",
-    a: "Professional esegue la ricerca completa 2 volte al giorno su fonti regionali, nazionali e principali programmi UE, con 25 verifiche approfondite e 1 dossier al mese. Business aggiunge la ricerca ogni 2 ore, la corsia urgente ogni 15 minuti, le fonti locali, camerali, di agenzie, settoriali e di nicchia, 100 verifiche e 5 dossier al mese. Executive porta la ricerca a ogni ora, la corsia urgente a ogni 5 minuti, la verifica incrociata e il monitoraggio delle modifiche, con 300 verifiche e 15 dossier al mese.",
+    a: "Le fonti ufficiali consultate sono le stesse per tutti i piani self-service. I piani si distinguono per frequenza degli aggiornamenti programmati, capienza utenti e dossier inclusi: 1 dossier al mese con Professional, 5 con Business, 15 con Executive.",
   },
   {
     q: "Cosa significa Verificato?",
@@ -146,7 +146,7 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Il numero di utenti è il valore del piano?",
-    a: "No. Gli utenti sono soltanto capienza tecnica: 2 con Professional, 5 con Business, 10 con Executive. Il valore sta in frequenza, ampiezza delle fonti, verifiche e dossier.",
+    a: "No. Gli utenti sono soltanto capienza tecnica, titolare incluso: 2 con Professional, 5 con Business, 10 con Executive. Il valore sta nella qualità della selezione e nei dossier preparati.",
   },
   {
     q: "Quanto costa l'annuale?",
@@ -158,6 +158,6 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Posso gestire più imprese?",
-    a: "I piani self-service coprono una sola impresa verificata. Più imprese, fonti dedicate, API e webhook rientrano in Enterprise, da 3.990 € al mese + IVA su preventivo.",
+    a: "I piani self-service coprono una sola impresa verificata. Più imprese e integrazioni su misura rientrano in Enterprise, da 3.990 € al mese + IVA su preventivo.",
   },
 ];

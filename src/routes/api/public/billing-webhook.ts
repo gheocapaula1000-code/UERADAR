@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   billingEventMetadata,
+  eventIsApplicable,
+  invoiceUpdateAllowed,
   normalizeStatus,
   subscriptionUpdateFromEvent,
   verifyWebhookSignature,
@@ -54,8 +56,8 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         } catch {
           return Response.json({ ok: false, code: "INVALID_JSON" }, { status: 400 });
         }
-        // Nessun evento live viene mai elaborato.
-        if (event["livemode"] === true)
+        // Solo eventi esplicitamente di test: livemode deve essere false.
+        if (event["livemode"] !== false)
           return Response.json({ ok: false, code: "LIVE_MODE_BLOCKED" }, { status: 400 });
 
         const eventId = typeof event["id"] === "string" ? (event["id"] as string) : "";
@@ -65,11 +67,22 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
 
         const admin = adminClient();
         const meta = billingEventMetadata(event);
+        // Ordinamento: senza timestamp l'evento non è applicabile.
+        const ordering = eventIsApplicable(event["created"], null);
+        if (!ordering.createdAt)
+          return Response.json({ ok: false, code: ordering.code }, { status: 400 });
+        const eventCreatedAt = ordering.createdAt;
 
         // Prenotazione dell'evento: solo i metadati minimi, mai il contenuto ricevuto.
         const { error: reserveError } = await admin
           .from("ueradar_billing_events")
-          .insert({ ...meta, livemode: false, status: "processing", attempts: 1 });
+          .insert({
+            ...meta,
+            livemode: false,
+            status: "processing",
+            attempts: 1,
+            event_created_at: eventCreatedAt,
+          });
 
         if (reserveError) {
           // Riga già presente: elaborata → nessun lavoro; altrimenti retry sicuro.
@@ -107,6 +120,22 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           return Response.json({ ok, code }, { status: httpStatus });
         }
 
+        /**
+         * Lettura del record con il timestamp dell'ultimo evento applicato:
+         * un evento più vecchio non retrocede né riattiva lo stato.
+         */
+        async function loadRecord(userId: string) {
+          const { data } = await admin
+            .from("ueradar_subscriptions")
+            .select("provider_subscription_id, last_event_created_at")
+            .eq("user_id", userId)
+            .maybeSingle();
+          return (data as {
+            provider_subscription_id: string | null;
+            last_event_created_at: string | null;
+          } | null) ?? null;
+        }
+
         const object = asObj(asObj(event["data"])?.["object"]) ?? {};
         const customerId =
           typeof object["customer"] === "string" ? (object["customer"] as string) : null;
@@ -131,6 +160,9 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           const userId = await resolveUserId(asObj(object["metadata"]));
           // Nessun 200: l'evento resta ritentabile finché l'utente non è collegabile.
           if (!userId) return settle("USER_NOT_FOUND", false);
+          const record = await loadRecord(userId);
+          const order = eventIsApplicable(event["created"], record?.last_event_created_at);
+          if (!order.ok) return settle(order.code, true);
           const update = subscriptionUpdateFromEvent({
             status:
               eventType === "customer.subscription.deleted" ? "canceled" : object["status"],
@@ -143,7 +175,7 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           });
           const { error } = await admin
             .from("ueradar_subscriptions")
-            .update(update)
+            .update({ ...update, last_event_created_at: eventCreatedAt })
             .eq("user_id", userId);
           if (error) return settle("SUBSCRIPTION_WRITE_FAILED", false);
           return settle("SUBSCRIPTION_SYNCED", true);
@@ -155,6 +187,12 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             typeof object["subscription"] === "string" ? (object["subscription"] as string) : "";
           if (!subscriptionId) return settle("SESSION_WITHOUT_SUBSCRIPTION", true);
           if (!userId) return settle("USER_NOT_FOUND", false);
+          const checkoutRecord = await loadRecord(userId);
+          const checkoutOrder = eventIsApplicable(
+            event["created"],
+            checkoutRecord?.last_event_created_at,
+          );
+          if (!checkoutOrder.ok) return settle(checkoutOrder.code, true);
           const fetched = await providerCall(`subscriptions/${subscriptionId}`, env.secretKey);
           if (fetched.status !== 200 || !fetched.payload)
             return settle("SUBSCRIPTION_FETCH_FAILED", false);
@@ -170,7 +208,7 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           });
           const { error } = await admin
             .from("ueradar_subscriptions")
-            .update(update)
+            .update({ ...update, last_event_created_at: eventCreatedAt })
             .eq("user_id", userId);
           if (error) return settle("CHECKOUT_WRITE_FAILED", false);
           return settle("CHECKOUT_SYNCED", true);
@@ -179,6 +217,26 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         if (eventType === "invoice.paid" || eventType === "invoice.payment_failed") {
           const userId = await resolveUserId(null);
           if (!userId) return settle("USER_NOT_FOUND", false);
+          const invoiceRecord = await loadRecord(userId);
+          const invoiceOrder = eventIsApplicable(
+            event["created"],
+            invoiceRecord?.last_event_created_at,
+          );
+          if (!invoiceOrder.ok) return settle(invoiceOrder.code, true);
+          // Il solo customer non basta: subscription e Price devono coincidere.
+          const invoiceLines = asObj(object["lines"]);
+          const lineData = Array.isArray(invoiceLines?.["data"])
+            ? (invoiceLines["data"] as unknown[])
+            : [];
+          const firstLine = asObj(lineData[0]);
+          const linePrice = asObj(firstLine?.["price"]);
+          const guard = invoiceUpdateAllowed({
+            invoiceSubscriptionId: object["subscription"],
+            invoicePriceId: linePrice?.["id"],
+            recordSubscriptionId: invoiceRecord?.provider_subscription_id,
+            priceMap: env.priceMap,
+          });
+          if (!guard.ok) return settle(guard.code, false);
           const status = eventType === "invoice.paid" ? "active" : "past_due";
           const hosted =
             typeof object["hosted_invoice_url"] === "string"
@@ -194,6 +252,7 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
               status: normalizeStatus(status),
               latest_invoice_url: hosted,
               tax_id: typeof firstTax?.["value"] === "string" ? (firstTax["value"] as string) : null,
+              last_event_created_at: eventCreatedAt,
             })
             .eq("user_id", userId);
           if (error) return settle("INVOICE_WRITE_FAILED", false);

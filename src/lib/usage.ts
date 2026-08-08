@@ -1,7 +1,7 @@
 /**
  * Consumi e cadenze: logica pura, testabile e usata dall'enforcement server-side.
  * Le opportunità pertinenti mostrate non sono mai limitate: i limiti riguardano
- * soltanto verifiche approfondite, dossier e frequenza delle ricerche.
+ * soltanto dossier inclusi e frequenza degli aggiornamenti.
  */
 export type QuotaKind = "deep_verifications" | "dossiers";
 
@@ -48,6 +48,27 @@ export function cadenceDecision(
     reason: "TOO_SOON",
     retryAfterSeconds: Math.ceil((windowMs - elapsedMs) / 1000),
   };
+}
+
+/**
+ * Chiave del periodo di consumo per la prova gratuita: l'intera prova è un
+ * solo periodo, così la quota non si azzera al cambio del mese solare.
+ */
+export function trialPeriodKey(trialStartedAt: unknown): string {
+  const started = typeof trialStartedAt === "string" ? Date.parse(trialStartedAt) : Number.NaN;
+  if (!Number.isFinite(started)) throw new Error("INVALID_TRIAL_START");
+  return `trial-${new Date(started).toISOString().slice(0, 10)}`;
+}
+
+/** Periodo effettivo: prova intera durante il trial, mese solare altrimenti. */
+export function usagePeriodKey(input: {
+  isTrial: boolean;
+  trialStartedAt?: string | null;
+  nowIso: string;
+}): string {
+  if (input.isTrial && typeof input.trialStartedAt === "string" && input.trialStartedAt)
+    return trialPeriodKey(input.trialStartedAt);
+  return periodKey(input.nowIso);
 }
 
 /** Chiave del periodo di consumo: mese solare UTC. */

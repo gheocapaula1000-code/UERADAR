@@ -9,12 +9,20 @@
 export type PlanId = "trial" | "professional" | "business" | "executive" | "enterprise";
 export type BillingInterval = "month" | "year";
 
-/** Categorie di fonti ufficiali coperte, in ordine crescente di ampiezza. */
+/**
+ * Categorie di fonti ufficiali. Oggi il motore espone un solo set di fonti
+ * verificabile per tutti i piani: `AVAILABLE_SOURCE_TIER`. Finché la
+ * classificazione per livello non è affidabile alla fonte, nessun piano
+ * dichiara o riceve una copertura diversa (fail-closed).
+ */
 export const SOURCE_TIERS = {
-  core: "Fonti ufficiali regionali, nazionali e principali programmi UE",
-  extended: "Fonti locali, camerali, agenzie, settoriali e di nicchia",
-  dedicated: "Fonti dedicate concordate su misura",
+  core: "Fonti ufficiali pubbliche disponibili nel motore",
+  extended: "Fonti ufficiali pubbliche disponibili nel motore",
+  dedicated: "Fonti e integrazioni definite da contratto",
 } as const;
+
+/** Unico livello di fonti realmente servito e verificabile oggi. */
+export const AVAILABLE_SOURCE_TIER: keyof typeof SOURCE_TIERS = "core";
 
 export type PlanLimits = {
   /** Utenti operativi: capienza tecnica del piano. */
@@ -76,7 +84,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       dossiersPerMonth: 1,
       fullSearchIntervalMinutes: 120,
       urgentLaneIntervalMinutes: 15,
-      sourceTier: "extended",
+      sourceTier: AVAILABLE_SOURCE_TIER,
       crossVerification: false,
       changeMonitoring: false,
       apiAccess: false,
@@ -86,7 +94,6 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
     highlights: [
       "Livello Business per 7 giorni",
       "1 impresa, 1 utente, 2 obiettivi",
-      "5 verifiche approfondite",
       "1 anteprima dossier filigranata",
       NO_LIMITS_NOTE,
     ],
@@ -118,7 +125,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       dossiersPerMonth: 1,
       fullSearchIntervalMinutes: 720,
       urgentLaneIntervalMinutes: null,
-      sourceTier: "core",
+      sourceTier: AVAILABLE_SOURCE_TIER,
       crossVerification: false,
       changeMonitoring: false,
       apiAccess: false,
@@ -126,9 +133,8 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       watermarkedDossier: false,
     },
     highlights: [
-      "Ricerca completa 2 volte al giorno",
-      SOURCE_TIERS.core,
-      "25 verifiche approfondite al mese",
+      "Aggiornamenti programmati sul profilo impresa",
+      SOURCE_TIERS[AVAILABLE_SOURCE_TIER],
       "Checklist domanda e 1 dossier al mese",
       "2 utenti operativi (capienza tecnica)",
       NO_LIMITS_NOTE,
@@ -161,7 +167,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       dossiersPerMonth: 5,
       fullSearchIntervalMinutes: 120,
       urgentLaneIntervalMinutes: 15,
-      sourceTier: "extended",
+      sourceTier: AVAILABLE_SOURCE_TIER,
       crossVerification: false,
       changeMonitoring: false,
       apiAccess: false,
@@ -169,10 +175,8 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       watermarkedDossier: false,
     },
     highlights: [
-      "Ricerca completa ogni 2 ore",
-      "Corsia urgente ogni 15 minuti",
-      SOURCE_TIERS.extended,
-      "100 verifiche approfondite al mese",
+      "Aggiornamenti programmati più frequenti",
+      SOURCE_TIERS[AVAILABLE_SOURCE_TIER],
       "5 dossier al mese",
       "5 utenti operativi (capienza tecnica)",
       NO_LIMITS_NOTE,
@@ -205,18 +209,16 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       dossiersPerMonth: 15,
       fullSearchIntervalMinutes: 60,
       urgentLaneIntervalMinutes: 5,
-      sourceTier: "extended",
-      crossVerification: true,
-      changeMonitoring: true,
+      sourceTier: AVAILABLE_SOURCE_TIER,
+      crossVerification: false,
+      changeMonitoring: false,
       apiAccess: false,
       exportsEnabled: true,
       watermarkedDossier: false,
     },
     highlights: [
-      "Ricerca completa ogni ora",
-      "Corsia urgente ogni 5 minuti",
-      "Verifica incrociata e monitoraggio delle modifiche",
-      "300 verifiche approfondite al mese",
+      "Aggiornamenti programmati alla massima frequenza prevista",
+      SOURCE_TIERS[AVAILABLE_SOURCE_TIER],
       "15 dossier al mese",
       "10 utenti operativi (capienza tecnica)",
       NO_LIMITS_NOTE,
@@ -225,7 +227,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
   enterprise: {
     id: "enterprise",
     name: "ENTERPRISE",
-    audience: "Più imprese, fonti dedicate e workflow concordati",
+    audience: "Più imprese e workflow definiti da contratto",
     selfService: false,
     highlighted: false,
     prices: {},
@@ -236,17 +238,16 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       dossiersPerMonth: -1,
       fullSearchIntervalMinutes: 60,
       urgentLaneIntervalMinutes: 5,
-      sourceTier: "dedicated",
-      crossVerification: true,
-      changeMonitoring: true,
-      apiAccess: true,
+      sourceTier: AVAILABLE_SOURCE_TIER,
+      crossVerification: false,
+      changeMonitoring: false,
+      apiAccess: false,
       exportsEnabled: true,
       watermarkedDossier: false,
     },
     highlights: [
       "Più imprese sullo stesso contratto",
       SOURCE_TIERS.dedicated,
-      "API e webhook",
       "Workflow e limiti definiti da contratto",
     ],
   },

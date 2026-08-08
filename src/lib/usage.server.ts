@@ -5,7 +5,7 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { resolveEntitlement, type Entitlement, type SubscriptionSnapshot } from "./billing";
-import { periodKey, type QuotaKind } from "./usage";
+import { periodKey, usagePeriodKey, type QuotaKind } from "./usage";
 
 /** Client di servizio non tipizzato: i contatori non sono esposti alla Data API. */
 function usageClient(): SupabaseClient {
@@ -14,20 +14,48 @@ function usageClient(): SupabaseClient {
   });
 }
 
+export type TenantUsageContext = { entitlement: Entitlement; period: string };
+
+/**
+ * Entitlement + periodo di consumo del tenant.
+ * Durante la prova il periodo copre l'intera prova, non il mese solare.
+ */
+export async function tenantUsageContext(
+  supabase: SupabaseClient,
+  tenantId: string,
+  nowIso = new Date().toISOString(),
+): Promise<TenantUsageContext> {
+  const { entitlement, trialStartedAt } = await readEntitlement(supabase, tenantId, nowIso);
+  const period = usagePeriodKey({
+    isTrial: entitlement.state === "TRIAL",
+    trialStartedAt,
+    nowIso,
+  });
+  return { entitlement, period };
+}
+
 export async function entitlementForTenant(
   supabase: SupabaseClient,
   tenantId: string,
   nowIso = new Date().toISOString(),
 ): Promise<Entitlement> {
+  return (await readEntitlement(supabase, tenantId, nowIso)).entitlement;
+}
+
+async function readEntitlement(
+  supabase: SupabaseClient,
+  tenantId: string,
+  nowIso: string,
+): Promise<{ entitlement: Entitlement; trialStartedAt: string | null }> {
   const { data, error } = await supabase
     .from("ueradar_subscriptions")
     .select(
-      "status, plan_code, plan_seats, trial_ends_at, current_period_end, cancel_at_period_end",
+      "status, plan_code, plan_seats, trial_started_at, trial_ends_at, current_period_end, cancel_at_period_end",
     )
     .eq("user_id", tenantId)
     .maybeSingle();
   // Fail-closed: qualunque errore di lettura nega l'accesso.
-  if (error) return resolveEntitlement(null, nowIso);
+  if (error) return { entitlement: resolveEntitlement(null, nowIso), trialStartedAt: null };
   const row = data as Record<string, unknown> | null;
   const snapshot: SubscriptionSnapshot | null = row
     ? {
@@ -39,10 +67,42 @@ export async function entitlementForTenant(
         plan_seats: Number(row["plan_seats"] ?? 0),
       }
     : null;
-  return resolveEntitlement(snapshot, nowIso);
+  return {
+    entitlement: resolveEntitlement(snapshot, nowIso),
+    trialStartedAt: (row?.["trial_started_at"] as string | null) ?? null,
+  };
 }
 
 export type ConsumeResult = { allowed: boolean; code: string; used: number; limit: number };
+
+/**
+ * Consuma una unità di quota in modo atomico e idempotente per opportunità:
+ * riaprire la stessa opportunità nello stesso periodo non consuma di nuovo.
+ */
+export async function consumeQuotaOnce(input: {
+  tenantId: string;
+  kind: QuotaKind;
+  opportunityId: string;
+  limit: number;
+  period: string;
+}): Promise<ConsumeResult> {
+  const { data, error } = await usageClient().rpc("ueradar_consume_quota_once", {
+    _tenant: input.tenantId,
+    _period: input.period,
+    _kind: input.kind,
+    _opportunity: input.opportunityId,
+    _limit: input.limit,
+  });
+  if (error)
+    return { allowed: false, code: "USAGE_UNAVAILABLE", used: 0, limit: input.limit };
+  const row = (data ?? {}) as Record<string, unknown>;
+  return {
+    allowed: row["allowed"] === true,
+    code: typeof row["code"] === "string" ? (row["code"] as string) : "USAGE_UNAVAILABLE",
+    used: Number(row["used"] ?? 0),
+    limit: input.limit,
+  };
+}
 
 /** Consuma una unità di quota mensile in modo atomico. */
 export async function consumeQuota(
@@ -50,10 +110,11 @@ export async function consumeQuota(
   kind: QuotaKind,
   limit: number,
   nowIso = new Date().toISOString(),
+  period = periodKey(nowIso),
 ): Promise<ConsumeResult> {
   const { data, error } = await usageClient().rpc("ueradar_consume_quota", {
     _tenant: tenantId,
-    _period: periodKey(nowIso),
+    _period: period,
     _kind: kind,
     _limit: limit,
   });
@@ -93,12 +154,16 @@ export async function claimSearchLane(
   };
 }
 
-export async function readUsage(tenantId: string, nowIso = new Date().toISOString()) {
+export async function readUsage(
+  tenantId: string,
+  nowIso = new Date().toISOString(),
+  period = periodKey(nowIso),
+) {
   const { data, error } = await usageClient()
     .from("ueradar_usage_counters")
     .select("period_ym, deep_verifications, dossiers, last_full_search_at, last_urgent_search_at")
     .eq("user_id", tenantId)
-    .eq("period_ym", periodKey(nowIso))
+    .eq("period_ym", period)
     .maybeSingle();
   if (error) return null;
   return (data as Record<string, unknown> | null) ?? null;

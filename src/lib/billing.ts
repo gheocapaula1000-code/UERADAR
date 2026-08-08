@@ -28,6 +28,7 @@ export function priceKey(plan: PlanId, interval: BillingInterval): string {
 }
 
 export const SUBSCRIPTION_STATES = [
+  "pending",
   "trialing",
   "active",
   "past_due",
@@ -120,7 +121,15 @@ export type SubscriptionSnapshot = {
 
 export type Entitlement = {
   entitled: boolean;
-  state: "TRIAL" | "ACTIVE" | "TRIAL_EXPIRED" | "PAST_DUE" | "UNPAID" | "CANCELED" | "NONE";
+  state:
+    | "TRIAL"
+    | "ACTIVE"
+    | "TRIAL_EXPIRED"
+    | "TRIAL_NOT_STARTED"
+    | "PAST_DUE"
+    | "UNPAID"
+    | "CANCELED"
+    | "NONE";
   planId: PlanId;
   planCode: string;
   interval: BillingInterval | null;
@@ -179,6 +188,9 @@ export function resolveEntitlement(
   if (!Number.isFinite(now)) return denied("NONE", "INVALID_CLOCK");
 
   const status = normalizeStatus(row.status);
+  // Nessun entitlement automatico alla registrazione: la prova va avviata.
+  if (status === "pending")
+    return denied("TRIAL_NOT_STARTED", "TRIAL_NOT_STARTED", { requiresPayment: false });
   const planCode = normalizePlanCode(row.plan_code);
   const trialEnd = row.trial_ends_at ? Date.parse(row.trial_ends_at) : Number.NaN;
   const periodEnd = row.current_period_end ? Date.parse(row.current_period_end) : Number.NaN;
@@ -229,12 +241,29 @@ export function resolveEntitlement(
   return denied("CANCELED", `STATUS_${status.toUpperCase()}`);
 }
 
+/**
+ * Capienza utenti: il titolare occupa sempre un posto.
+ * Posti usati = 1 (titolare) + membri e inviti pendenti.
+ */
+export function seatUsage(membersAndInvites: number, entitlement: Entitlement) {
+  const total = Math.max(0, Math.trunc(membersAndInvites)) + 1;
+  const seats = entitlement.seats;
+  return {
+    used: total,
+    seats,
+    unlimited: seats < 0,
+    /** Collaboratori ancora invitabili oltre al titolare. */
+    remaining: seats < 0 ? Number.POSITIVE_INFINITY : Math.max(0, seats - total),
+    label: seats < 0 ? `${total} utenti` : `${total} / ${seats} utenti`,
+  };
+}
+
 /** Gli utenti operativi della stessa impresa non possono superare la capienza. */
 export function canAddMember(currentMembers: number, entitlement: Entitlement) {
   if (!entitlement.entitled) return { allowed: false, reason: "NOT_ENTITLED" as const };
-  if (entitlement.seats < 0) return { allowed: true, reason: "OK" as const };
-  if (currentMembers + 1 > entitlement.seats)
-    return { allowed: false, reason: "SEATS_EXCEEDED" as const };
+  const usage = seatUsage(currentMembers, entitlement);
+  if (usage.unlimited) return { allowed: true, reason: "OK" as const };
+  if (usage.used + 1 > usage.seats) return { allowed: false, reason: "SEATS_EXCEEDED" as const };
   return { allowed: true, reason: "OK" as const };
 }
 
@@ -262,9 +291,60 @@ export function canStartNewSubscription(
   const subscriptionId = row?.provider_subscription_id ?? null;
   if (!subscriptionId) return { allowed: true, reason: "NO_PROVIDER_SUBSCRIPTION" };
   const status = normalizeStatus(row?.status);
-  if (status === "active" || status === "trialing")
+  // Solo gli stati terminali consentono di ripartire: tutto il resto va gestito
+  // dal portale cliente, altrimenti si creerebbe una seconda sottoscrizione.
+  const TERMINAL: readonly SubscriptionState[] = [
+    "canceled",
+    "expired",
+    "incomplete_expired",
+    "superseded_by_tenant",
+  ];
+  if (!TERMINAL.includes(status))
     return { allowed: false, reason: "SUBSCRIPTION_ALREADY_ACTIVE" };
   return { allowed: true, reason: "PREVIOUS_SUBSCRIPTION_INACTIVE" };
+}
+
+/**
+ * Ordinamento eventi: un evento più vecchio di quello già applicato non deve
+ * retrocedere né riattivare lo stato. Senza timestamp valido si rifiuta.
+ */
+export function eventIsApplicable(
+  eventCreated: unknown,
+  lastApplied: unknown,
+): { ok: boolean; code: string; createdAt: string | null } {
+  const created =
+    typeof eventCreated === "number" && Number.isFinite(eventCreated) && eventCreated > 0
+      ? new Date(eventCreated * 1000).toISOString()
+      : null;
+  if (!created) return { ok: false, code: "EVENT_WITHOUT_TIMESTAMP", createdAt: null };
+  if (typeof lastApplied === "string" && lastApplied) {
+    const previous = Date.parse(lastApplied);
+    if (Number.isFinite(previous) && Date.parse(created) < previous)
+      return { ok: false, code: "EVENT_OUT_OF_ORDER", createdAt: created };
+  }
+  return { ok: true, code: "OK", createdAt: created };
+}
+
+/**
+ * Una fattura non cambia lo stato solo perché il customer coincide: la
+ * sottoscrizione e il Price devono corrispondere all'allowlist TEST e al record.
+ */
+export function invoiceUpdateAllowed(input: {
+  invoiceSubscriptionId: unknown;
+  invoicePriceId: unknown;
+  recordSubscriptionId: unknown;
+  priceMap: Record<string, string>;
+}): { ok: boolean; code: string } {
+  const subId = input.invoiceSubscriptionId;
+  if (typeof subId !== "string" || !subId)
+    return { ok: false, code: "INVOICE_WITHOUT_SUBSCRIPTION" };
+  const recordSub = input.recordSubscriptionId;
+  if (typeof recordSub !== "string" || !recordSub)
+    return { ok: false, code: "SUBSCRIPTION_NOT_LINKED" };
+  if (recordSub !== subId) return { ok: false, code: "SUBSCRIPTION_MISMATCH" };
+  if (!planFromPriceId(input.invoicePriceId, input.priceMap))
+    return { ok: false, code: "PRICE_NOT_ALLOWLISTED" };
+  return { ok: true, code: "OK" };
 }
 
 /**

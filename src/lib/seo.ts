@@ -33,7 +33,7 @@ export const ROUTE_SEO = {
     path: "/prezzi",
     title: "Prezzi UEradar.com — Professional, Business ed Executive",
     description:
-      "Professional, Business ed Executive: frequenza delle ricerche, fonti ufficiali, verifiche e dossier a confronto. Prezzi IVA esclusa e 7 giorni gratuiti senza carta.",
+      "Professional, Business ed Executive: aggiornamenti programmati, utenti operativi e dossier inclusi a confronto. Prezzi IVA esclusa e 7 giorni gratuiti senza carta.",
     indexable: true,
     ogType: "website",
   },

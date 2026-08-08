@@ -19,7 +19,6 @@ export const TRIAL_SCOPE: readonly string[] = [
   "Livello Business per 7 giorni",
   "1 impresa e 1 utente",
   "2 obiettivi",
-  "5 verifiche approfondite",
   "1 anteprima dossier filigranata",
 ];
 
@@ -75,4 +74,36 @@ export function trialCooldownActive(lastStartedAt: unknown, nowIso: string): boo
   if (!Number.isFinite(now)) return true;
   const months = (now - last) / (1000 * 60 * 60 * 24 * 30.44);
   return months < TRIAL_COOLDOWN_MONTHS;
+}
+
+
+export type StartTrialResult = { ok: boolean; code: string; trial_ends_at?: string };
+
+/** Fail-closed: senza esito esplicito la prova non risulta mai avviata. */
+export function mapStartTrialResult(data: unknown, error: unknown): StartTrialResult {
+  if (error) return { ok: false, code: "TRIAL_START_FAILED" };
+  if (!data || typeof data !== "object" || Array.isArray(data))
+    return { ok: false, code: "TRIAL_START_FAILED" };
+  const row = data as Record<string, unknown>;
+  const code = typeof row["code"] === "string" ? (row["code"] as string) : "TRIAL_START_FAILED";
+  if (row["ok"] !== true) return { ok: false, code };
+  const ends = row["trial_ends_at"];
+  return typeof ends === "string" ? { ok: true, code, trial_ends_at: ends } : { ok: true, code };
+}
+
+/** Messaggi utente per gli esiti dell'avvio prova. */
+export const TRIAL_START_MESSAGES: Record<string, string> = {
+  TRIAL_STARTED: "Prova gratuita di 7 giorni attivata. Nessun addebito, nessuna carta.",
+  TRIAL_ALREADY_ACTIVE: "La tua prova gratuita è già in corso.",
+  VAT_REQUIRED: "Inserisci una Partita IVA valida per attivare la prova gratuita.",
+  TRIAL_COOLDOWN_ACTIVE:
+    "È già stata usata una prova gratuita per questa Partita IVA o per questo dominio negli ultimi 12 mesi.",
+  TRIAL_ALREADY_USED: "La prova gratuita è già stata utilizzata.",
+  SUBSCRIPTION_PRESENT: "Esiste già un abbonamento collegato a questo account.",
+  MEMBER_USES_TENANT_PLAN: "Il tuo accesso segue il piano dell'impresa a cui appartieni.",
+  TRIAL_START_FAILED: "Attivazione non riuscita. Riprova tra poco.",
+};
+
+export function trialStartMessage(code: string): string {
+  return TRIAL_START_MESSAGES[code] ?? TRIAL_START_MESSAGES["TRIAL_START_FAILED"]!;
 }
