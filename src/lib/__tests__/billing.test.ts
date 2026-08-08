@@ -336,7 +336,7 @@ describe("gate di review Stripe TEST", () => {
     // Il claim marca processing e il settle chiude l'evento, entrambi lato database.
     expect(src).toContain("ueradar_billing_claim_event");
     expect(src).toContain("ueradar_billing_settle_event");
-    expect(src).toContain("_status: ok ? \"succeeded\" : \"failed\"");
+    expect(src).toContain("_ok: ok");
     // Nessun 200 che consuma l'evento quando l'utente non è collegabile.
     expect(src).toContain('settle("USER_NOT_FOUND", false)');
     expect(src).not.toMatch(/Response\.json\(\{\s*ok:\s*true,\s*code:\s*"USER_NOT_FOUND"/);
