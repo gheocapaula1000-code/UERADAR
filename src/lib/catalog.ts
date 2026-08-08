@@ -183,7 +183,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       watermarkedDossier: false,
     },
     highlights: [
-      "Aggiornamenti programmati più frequenti",
+      "Aggiornamenti programmati sul profilo impresa",
       SOURCE_TIERS[AVAILABLE_SOURCE_TIER],
       "5 dossier al mese",
       "5 utenti operativi (capienza tecnica)",
@@ -226,7 +226,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       watermarkedDossier: false,
     },
     highlights: [
-      "Aggiornamenti programmati alla massima frequenza prevista",
+      "Aggiornamenti programmati sul profilo impresa",
       SOURCE_TIERS[AVAILABLE_SOURCE_TIER],
       "15 dossier al mese",
       "10 utenti operativi (capienza tecnica)",
