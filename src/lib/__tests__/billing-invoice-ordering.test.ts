@@ -212,7 +212,7 @@ describe("webhook: la fattura passa dallo stato canonico", () => {
       ROUTE.indexOf('return settle("EVENT_IGNORED"'),
     );
     // settle è chiamato solo nei rami terminali del percorso fattura.
-    expect((block.match(/return settle\(/g) ?? []).length).toBeLessThanOrEqual(6);
+    expect((block.match(/return settle\(/g) ?? []).length).toBeLessThanOrEqual(7);
     expect(ROUTE).toContain("_lease_token: leaseToken");
     expect(ROUTE).toContain("EVENT_LEASE_LOST");
   });

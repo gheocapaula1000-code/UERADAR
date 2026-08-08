@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { canonicalSubscriptionGuard, subscriptionUpdateFromEvent } from "@/lib/billing";
 
-const PRICE_MAP = { "business:month": "price_biz_m" };
+const PRICE_MAP: Record<string, string> = { "business:month": "price_biz_m" };
+for (const plan of ["professional", "business", "executive"])
+  for (const interval of ["month", "year"])
+    PRICE_MAP[`${plan}:${interval}`] ??= `price_${plan}_${interval}`;
 const ITEM = { quantity: 1, price: { id: "price_biz_m", type: "recurring", active: true } };
 
 function sub(over: Record<string, unknown> = {}) {
