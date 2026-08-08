@@ -6,13 +6,16 @@ import { toast } from "sonner";
 import { AlertTriangle, Check, CreditCard, ShieldCheck, Trash2, Users } from "lucide-react";
 import { AppShell } from "@/components/bandocore/AppShell";
 import {
+  acceptCompanyInvite,
   createPaymentSession,
   createPortalSession,
+  getPendingInvite,
   getBillingStatus,
   inviteCompanyMember,
   listCompanyMembers,
   removeCompanyMember,
 } from "@/lib/billing.functions";
+import { MEMBER_ROLES, type MemberRole } from "@/lib/billing";
 import { CUSTOM_PLAN, PUBLIC_PLANS } from "@/lib/pricing";
 import { seoHead } from "@/lib/seo";
 
@@ -45,10 +48,19 @@ function Abbonamento() {
   const openPortal = useServerFn(createPortalSession);
   const invite = useServerFn(inviteCompanyMember);
   const remove = useServerFn(removeCompanyMember);
-  const [email, setEmail] = useState("");
+  const pending = useServerFn(getPendingInvite);
+  const accept = useServerFn(acceptCompanyInvite);
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    declared_role: "dipendente" as MemberRole,
+    attestation: false,
+  });
 
   const billing = useQuery({ queryKey: ["billing-status"], queryFn: () => status() });
   const team = useQuery({ queryKey: ["company-members"], queryFn: () => members() });
+  const invitation = useQuery({ queryKey: ["pending-invite"], queryFn: () => pending() });
 
   const payMutation = useMutation({
     mutationFn: (plan: "business" | "team") => startPayment({ data: { plan } }),
@@ -69,7 +81,16 @@ function Abbonamento() {
   });
 
   const inviteMutation = useMutation({
-    mutationFn: () => invite({ data: { email: email.trim().toLowerCase() } }),
+    mutationFn: () =>
+      invite({
+        data: {
+          first_name: form.first_name.trim(),
+          last_name: form.last_name.trim(),
+          email: form.email.trim().toLowerCase(),
+          declared_role: form.declared_role,
+          owner_attestation: true as const,
+        },
+      }),
     onSuccess: (res) => {
       if (!res.ok) {
         toast.error(
@@ -79,10 +100,34 @@ function Abbonamento() {
         );
         return;
       }
-      setEmail("");
-      toast.success("Utente aggiunto");
+      setForm({
+        first_name: "",
+        last_name: "",
+        email: "",
+        declared_role: "dipendente",
+        attestation: false,
+      });
+      toast.success("Invito registrato: l'utente deve accettarlo con il proprio account");
       void queryClient.invalidateQueries({ queryKey: ["company-members"] });
       void queryClient.invalidateQueries({ queryKey: ["billing-status"] });
+    },
+    onError: () => toast.error("Utente non aggiunto"),
+  });
+
+  const acceptMutation = useMutation({
+    mutationFn: (member_id: string) => accept({ data: { member_id } }),
+    onSuccess: (res) => {
+      if (!res.ok) {
+        toast.error(
+          res.code === "ALREADY_MEMBER_OF_ANOTHER_COMPANY"
+            ? "Il tuo account è già associato a un'altra impresa"
+            : "Invito non disponibile",
+        );
+        return;
+      }
+      toast.success("Invito accettato");
+      void queryClient.invalidateQueries({ queryKey: ["pending-invite"] });
+      void queryClient.invalidateQueries({ queryKey: ["company-members"] });
     },
   });
 
@@ -98,6 +143,12 @@ function Abbonamento() {
   const entitlement = data?.entitlement;
   const seats = entitlement?.seats ?? 0;
   const used = data?.members_count ?? 0;
+  const canInvite =
+    form.first_name.trim().length >= 2 &&
+    form.last_name.trim().length >= 2 &&
+    /.+@.+\..+/.test(form.email.trim()) &&
+    form.attestation;
+  const pendingInvite = invitation.data?.invite ?? null;
 
   return (
     <AppShell requireEntitlement={false}>
