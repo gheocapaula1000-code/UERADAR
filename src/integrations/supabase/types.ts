@@ -527,7 +527,10 @@ export type Database = {
       ueradar_billing_apply_invoice: {
         Args: {
           _event_created_at: string
+          _event_id: string
+          _expected_customer: string
           _invoice_url: string
+          _lease_token: string
           _subscription_id: string
           _tax_id: string
           _user_id: string
@@ -535,8 +538,21 @@ export type Database = {
         Returns: Json
       }
       ueradar_billing_apply_subscription: {
-        Args: { _event_created_at: string; _patch: Json; _user_id: string }
+        Args: {
+          _event_created_at: string
+          _event_id: string
+          _expected_customer: string
+          _expected_price: string
+          _expected_subscription: string
+          _lease_token: string
+          _patch: Json
+          _user_id: string
+        }
         Returns: Json
+      }
+      ueradar_billing_assert_lease: {
+        Args: { _event_id: string; _lease_token: string }
+        Returns: boolean
       }
       ueradar_billing_claim_event: {
         Args: {
