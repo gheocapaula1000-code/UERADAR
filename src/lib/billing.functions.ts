@@ -266,18 +266,22 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       // Ripresa idempotente: una prenotazione viva con sessione gia'
       // registrata riusa quella sessione. Mai crearne una seconda.
       if (claimed.code === "CHECKOUT_ALREADY_IN_PROGRESS" && claimed.session_id) {
-        const existing = await providerCall(
-          `checkout/sessions/${encodeURIComponent(claimed.session_id)}`,
-          env.secretKey,
-        );
-        const existingUrl = existing.payload?.["url"];
+        let existing: Awaited<ReturnType<typeof providerCall>> | null = null;
+        try {
+          existing = await providerCall(
+            `checkout/sessions/${encodeURIComponent(claimed.session_id)}`,
+            env.secretKey,
+          );
+        } catch {
+          existing = null;
+        }
+        const existingUrl = existing?.payload?.["url"];
         if (
-          existing.status === 200 &&
+          existing?.status === 200 &&
           isTestModeObject(existing.payload) &&
           isProviderObjectId(existing.payload?.["id"], "cs_") &&
           isProviderUrl(existingUrl) &&
-          existing.payload?.["status"] === "open" &&
-          typeof existingUrl === "string"
+          existing.payload?.["status"] === "open"
         )
           return { ok: true, url: existingUrl, code: "CHECKOUT_RESUMED" };
       }
