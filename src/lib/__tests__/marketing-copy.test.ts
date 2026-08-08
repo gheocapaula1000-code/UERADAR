@@ -46,12 +46,16 @@ const FORBIDDEN: RegExp[] = [
   /ti avvisiamo/i,
 ];
 
-/** Ignora import e path di modulo: il test verifica il copy, non i nomi tecnici interni. */
+/**
+ * Ignora import e path di modulo e normalizza gli spazi: il copy in JSX va a
+ * capo, quindi senza normalizzazione una frase vietata sfugge al controllo.
+ */
 function copyOnly(src: string): string {
   return src
     .split("\n")
     .filter((l) => !/^\s*import\s/.test(l) && !/^\s*\/\//.test(l) && !/^\s*\*/.test(l))
-    .join("\n");
+    .join(" ")
+    .replace(/\s+/g, " ");
 }
 
 describe("copy pubblico e autenticato", () => {
