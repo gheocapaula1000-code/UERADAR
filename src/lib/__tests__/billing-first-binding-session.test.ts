@@ -155,7 +155,7 @@ describe("TTL allineato fra intento e sessione", () => {
   it("la sessione scade nella stessa finestra dell'intento, in epoch Unix", () => {
     const now = 1_800_000_000_000;
     expect(checkoutSessionExpiresAt(now)).toBe(now / 1000 + CHECKOUT_TTL_SECONDS);
-    expect(CHECKOUT_TTL_SECONDS).toBe(1800);
+    expect(CHECKOUT_TTL_SECONDS).toBe(1860);
     // Limiti Stripe: fra 30 minuti e 24 ore dalla creazione.
     const delta = checkoutSessionExpiresAt(now) - now / 1000;
     expect(delta).toBeGreaterThanOrEqual(1800);
@@ -190,7 +190,7 @@ describe("SQL e webhook allineati al contratto di primo binding", () => {
     const body = lastBody("ueradar_billing_settle_event");
     expect(body).toContain("FOR UPDATE");
     expect(body).toContain("'processing'");
-    expect(body).toContain("lease_expires_at <= now()");
+    expect(body).toContain("lease_expires_at <= clock_timestamp()");
   });
 
   it("solo il servizio interno può eseguire le RPC aggiornate", () => {
