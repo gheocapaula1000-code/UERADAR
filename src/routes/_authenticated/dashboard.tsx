@@ -358,7 +358,8 @@ function Dashboard() {
               Array.from({ length: 3 }).map((_, i) => <BandoCardSkeleton key={i} />)
             ) : flashBandi.length === 0 ? (
               <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Nessuna scadenza ravvicinata al momento. Il radar aggiorna in automatico.
+                Nessuna scadenza ravvicinata tra le opportunità caricate. Usa Aggiorna per una
+                nuova ricerca sulle fonti ufficiali.
               </div>
             ) : (
               flashBandi.map((b) => <BandoCard key={b.id} bando={b} />)

@@ -130,34 +130,42 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         }
 
         async function loadRecord(userId: string) {
-          const { data } = await admin
+          const { data, error } = await admin
             .from("ueradar_subscriptions")
             .select("status, provider_customer_id, provider_subscription_id, last_event_created_at")
             .eq("user_id", userId)
             .maybeSingle();
-          return (
-            (data as {
-              status: string | null;
-              provider_customer_id: string | null;
-              provider_subscription_id: string | null;
-              last_event_created_at: string | null;
-            } | null) ?? null
-          );
+          // Un errore di lettura non è "nessun collegamento": blocca l'evento.
+          if (error) return { ok: false as const, record: null };
+          return {
+            ok: true as const,
+            record:
+              (data as {
+                status: string | null;
+                provider_customer_id: string | null;
+                provider_subscription_id: string | null;
+                last_event_created_at: string | null;
+              } | null) ?? null,
+          };
         }
 
         const object = asObj(asObj(event["data"])?.["object"]) ?? {};
         const customerId = str(object["customer"]);
 
-        async function resolveUserId(metadata: Obj | null): Promise<string | null> {
+        type UserLookup = { ok: boolean; userId: string | null };
+
+        async function resolveUserId(metadata: Obj | null): Promise<UserLookup> {
           const fromMeta = metadata?.["supabase_user_id"];
-          if (typeof fromMeta === "string" && fromMeta) return fromMeta;
-          if (!customerId) return null;
-          const { data } = await admin
+          if (typeof fromMeta === "string" && fromMeta) return { ok: true, userId: fromMeta };
+          if (!customerId) return { ok: true, userId: null };
+          const { data, error } = await admin
             .from("ueradar_subscriptions")
             .select("user_id")
             .eq("provider_customer_id", customerId)
             .maybeSingle();
-          return (data as { user_id: string } | null)?.user_id ?? null;
+          // Errore di lettura: mai dedurre "utente non collegato".
+          if (error) return { ok: false, userId: null };
+          return { ok: true, userId: (data as { user_id: string } | null)?.user_id ?? null };
         }
 
         type SyncOutcome = { ok: boolean; code: string; skippable: boolean };
@@ -168,7 +176,10 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
          * atomica. Nessuno stato deriva dal payload dell'evento.
          */
         async function canonicalSync(subscriptionId: string, userId: string): Promise<SyncOutcome> {
-          const record = await loadRecord(userId);
+          const loaded = await loadRecord(userId);
+          if (!loaded.ok)
+            return { ok: false, code: "SUBSCRIPTION_STATE_UNAVAILABLE", skippable: false };
+          const record = loaded.record;
           const fetched = await providerCall(
             `subscriptions/${encodeURIComponent(subscriptionId)}`,
             env.secretKey,
@@ -184,6 +195,24 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             priceMap: env.priceMap,
           });
           if (!guard.ok) return { ok: false, code: guard.code, skippable: false };
+
+          // Primo collegamento: deve corrispondere alla prenotazione di
+          // checkout (QA-only), altrimenti nessun binding viene creato.
+          if (!record?.provider_subscription_id) {
+            const { data: intentData, error: intentError } = await admin.rpc(
+              "ueradar_consume_checkout_intent",
+              { _user_id: userId, _price_id: canonicalPriceId(sub) ?? "" },
+            );
+            if (intentError)
+              return { ok: false, code: "CHECKOUT_INTENT_UNAVAILABLE", skippable: false };
+            const intent = (intentData ?? {}) as { ok?: boolean; code?: string };
+            if (!intent.ok)
+              return {
+                ok: false,
+                code: intent.code ?? "CHECKOUT_INTENT_MISSING",
+                skippable: false,
+              };
+          }
 
           const mapped = subscriptionUpdateFromEvent({
             status: sub["status"],
@@ -253,7 +282,9 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           eventType === "customer.subscription.updated" ||
           eventType === "customer.subscription.deleted"
         ) {
-          const userId = await resolveUserId(asObj(object["metadata"]));
+          const lookup = await resolveUserId(asObj(object["metadata"]));
+          if (!lookup.ok) return settle("USER_LOOKUP_FAILED", false);
+          const userId = lookup.userId;
           // Nessun 200: l'evento resta ritentabile finché l'utente non è collegabile.
           if (!userId) return settle("USER_NOT_FOUND", false);
           const subscriptionId = str(object["id"]);
@@ -262,7 +293,9 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         }
 
         if (eventType === "checkout.session.completed") {
-          const userId = await resolveUserId(asObj(object["metadata"]));
+          const lookup = await resolveUserId(asObj(object["metadata"]));
+          if (!lookup.ok) return settle("USER_LOOKUP_FAILED", false);
+          const userId = lookup.userId;
           const subscriptionId = str(object["subscription"]);
           if (!subscriptionId) return settle("SESSION_WITHOUT_SUBSCRIPTION", true);
           if (!userId) return settle("USER_NOT_FOUND", false);
@@ -270,7 +303,9 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         }
 
         if (eventType === "invoice.paid" || eventType === "invoice.payment_failed") {
-          const userId = await resolveUserId(null);
+          const lookup = await resolveUserId(null);
+          if (!lookup.ok) return settle("USER_LOOKUP_FAILED", false);
+          const userId = lookup.userId;
           if (!userId) return settle("USER_NOT_FOUND", false);
           const subscriptionId = str(object["subscription"]);
           if (!subscriptionId) return settle("INVOICE_WITHOUT_SUBSCRIPTION", false);

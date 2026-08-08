@@ -299,6 +299,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ueradar_checkout_intents: {
+        Row: {
+          created_at: string
+          expires_at: string
+          plan_code: string
+          price_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          plan_code: string
+          price_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          plan_code?: string
+          price_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ueradar_company_members: {
         Row: {
           accepted_at: string | null
@@ -574,6 +601,15 @@ export type Database = {
         }
         Returns: Json
       }
+      ueradar_claim_checkout_intent: {
+        Args: {
+          _plan_code: string
+          _price_id: string
+          _ttl_seconds: number
+          _user_id: string
+        }
+        Returns: Json
+      }
       ueradar_claim_search_lane: {
         Args: {
           _lane: string
@@ -581,6 +617,10 @@ export type Database = {
           _period: string
           _tenant: string
         }
+        Returns: Json
+      }
+      ueradar_consume_checkout_intent: {
+        Args: { _price_id: string; _user_id: string }
         Returns: Json
       }
       ueradar_consume_quota: {
