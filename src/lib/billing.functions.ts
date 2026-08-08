@@ -296,7 +296,9 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       });
     }
 
-    const session = await providerCall(
+    let session: Awaited<ReturnType<typeof providerCall>>;
+    try {
+      session = await providerCall(
       "checkout/sessions",
       env.secretKey,
       {
@@ -321,21 +323,32 @@ export const createPaymentSession = createServerFn({ method: "POST" })
         cancel_url: `${env.appUrl}/abbonamento?esito=annullato`,
       },
       idempotencyKey("checkout", context.userId, data.plan, data.interval, priceId),
-    );
-    const url = session.payload?.["url"];
-    if (session.status !== 200 || typeof url !== "string") {
+      );
+    } catch {
+      // Errore di rete/eccezione: prenotazione rilasciata e fail-closed.
       await releaseIntent();
       return { ok: false, code: "PAYMENT_SESSION_FAILED" };
     }
-    // Post-write fail-closed: una sessione non dichiarata test non viene mai usata.
-    if (!isTestModeObject(session.payload)) {
+    const url = session.payload?.["url"];
+    const sessionId = session.payload?.["id"];
+    if (
+      session.status !== 200 ||
+      !isProviderObjectId(sessionId, "cs_") ||
+      !isProviderUrl(url)
+    ) {
       await releaseIntent();
-      return { ok: false, code: "CHECKOUT_MODE_BLOCKED" };
+      return { ok: false, code: "PAYMENT_SESSION_FAILED" };
+    }
+    // Post-write fail-closed: nessun URL restituito o sessione attaccata
+    // finché il provider non dichiara esplicitamente livemode false.
+    const sessionMode = testModeVerdict(session.payload, "CHECKOUT_MODE_UNKNOWN");
+    if (!sessionMode.ok) {
+      await releaseIntent();
+      return { ok: false, code: sessionMode.code };
     }
 
     // Sessione registrata sulla prenotazione: abilita solo la ripresa idempotente.
-    const sessionId = session.payload?.["id"];
-    if (typeof sessionId === "string" && sessionId) {
+    {
       await adminClient().rpc("ueradar_attach_checkout_session", {
         _user_id: context.userId,
         _price_id: priceId,
