@@ -148,10 +148,18 @@ export function checkoutSessionGate(res: ProviderResponse): { ok: boolean; code:
   return testModeVerdict(res.payload, "CHECKOUT_MODE_UNKNOWN");
 }
 
-/** Gate sulla ripresa di una Checkout Session esistente: deve essere aperta e di test. */
-export function checkoutResumeGate(res: ProviderResponse | null): { ok: boolean; code: string } {
+/**
+ * Gate sulla ripresa di una Checkout Session esistente: id corrispondente a
+ * quello prenotato, sessione aperta, URL https e modo test dichiarato.
+ */
+export function checkoutResumeGate(
+  res: ProviderResponse | null,
+  expectedId?: string,
+): { ok: boolean; code: string } {
   if (!res || res.status !== 200 || !isProviderObjectId(res.payload?.["id"], "cs_"))
     return { ok: false, code: "CHECKOUT_RESUME_UNAVAILABLE" };
+  if (expectedId && res.payload?.["id"] !== expectedId)
+    return { ok: false, code: "CHECKOUT_RESUME_ID_MISMATCH" };
   const mode = testModeVerdict(res.payload, "CHECKOUT_MODE_UNKNOWN");
   if (!mode.ok) return mode;
   if (res.payload?.["status"] !== "open" || !isProviderUrl(res.payload?.["url"]))
