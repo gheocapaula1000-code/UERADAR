@@ -2,7 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
-  canAddMember,
+  INVITE_RPC,
+  mapInviteRpcResult,
+  type InviteRpcResult,
+} from "./membership";
+import {
   CATALOG,
   canStartNewSubscription,
   idempotencyKey,
@@ -318,39 +322,30 @@ export const inviteCompanyMember = createServerFn({ method: "POST" })
       toSnapshot((row as SubRow | null) ?? null),
       new Date().toISOString(),
     );
-    const { count, error: countError } = await context.supabase
-      .from("ueradar_company_members")
-      .select("id", { count: "exact", head: true })
-      .eq("owner_user_id", context.userId);
-    if (countError) return { ok: false, code: "MEMBERS_LOOKUP_FAILED" };
-
-    const decision = canAddMember(count ?? 0, entitlement);
-    if (!decision.allowed) return { ok: false, code: decision.reason };
-
-    const { normalizeEmail, isUniqueViolation } = await import("./membership");
+    const { normalizeEmail } = await import("./membership");
     const email = normalizeEmail(data.email);
     const ownerEmail = normalizeEmail((context.claims as { email?: string } | undefined)?.email);
     if (ownerEmail && ownerEmail === email) return { ok: false, code: "OWNER_ALREADY_COUNTED" };
+    if (!entitlement.entitled) return { ok: false, code: "NOT_ENTITLED" };
 
+    // Conteggio e inserimento nella stessa transazione: due inviti simultanei
+    // non possono superare la capienza, titolare incluso.
     const { adminClient } = await import("./billing.server");
-    const { error } = await adminClient()
-      .from("ueradar_company_members")
-      .insert({
-        owner_user_id: context.userId,
-        email,
-        first_name: data.first_name.trim(),
-        last_name: data.last_name.trim(),
-        declared_role: data.declared_role,
-        owner_attested_at: new Date().toISOString(),
-        role: "member",
-        status: "invited",
-      });
-    if (error)
-      return {
-        ok: false,
-        code: isUniqueViolation(error) ? "MEMBER_ALREADY_PRESENT" : "MEMBER_INVITE_FAILED",
-      };
-    return { ok: true, code: "OK" };
+    const rpc = adminClient() as unknown as {
+      rpc: (
+        name: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { code?: string | null } | null }>;
+    };
+    const { data: result, error } = await rpc.rpc(INVITE_RPC, {
+      _owner: context.userId,
+      _email: email,
+      _first_name: data.first_name.trim(),
+      _last_name: data.last_name.trim(),
+      _declared_role: data.declared_role,
+      _seats: entitlement.seats,
+    });
+    return mapInviteRpcResult(result as InviteRpcResult, error);
   });
 
 /** Invito pendente destinato all'utente autenticato (match sull'email del token). */

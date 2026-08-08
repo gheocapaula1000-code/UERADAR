@@ -5,6 +5,7 @@
  * limiti, capienza) vive in `catalog.ts` ed è l'unica fonte di verità.
  */
 import {
+  PRICE_ENV_NAMES,
   CATALOG,
   checkoutTarget,
   formatEuro,
@@ -99,11 +100,15 @@ export function validateRemotePrice(
   if (remote["unit_amount"] !== expected.amountCents)
     return { ok: false, code: "PRICE_AMOUNT_MISMATCH" };
   const recurring = remote["recurring"];
-  const interval =
+  const rec =
     recurring && typeof recurring === "object" && !Array.isArray(recurring)
-      ? (recurring as Record<string, unknown>)["interval"]
+      ? (recurring as Record<string, unknown>)
       : null;
-  if (interval !== expected.interval) return { ok: false, code: "PRICE_INTERVAL_MISMATCH" };
+  if (!rec) return { ok: false, code: "PRICE_NOT_RECURRING" };
+  if (rec["interval"] !== expected.interval)
+    return { ok: false, code: "PRICE_INTERVAL_MISMATCH" };
+  // Un solo periodo per ricorrenza: "ogni 2 mesi" non è il piano approvato.
+  if (rec["interval_count"] !== 1) return { ok: false, code: "PRICE_INTERVAL_COUNT_MISMATCH" };
   const taxBehavior = remote["tax_behavior"];
   // Prezzi IVA esclusa: il comportamento fiscale deve essere coerente.
   if (taxBehavior !== "exclusive") return { ok: false, code: "PRICE_TAX_BEHAVIOR_MISMATCH" };
@@ -143,6 +148,7 @@ export type Entitlement = {
 const DENIED_LIMITS: PlanLimits = {
   seats: 0,
   companies: 0,
+  objectives: 0,
   deepVerificationsPerMonth: 0,
   dossiersPerMonth: 0,
   fullSearchIntervalMinutes: Number.MAX_SAFE_INTEGER,
@@ -377,27 +383,42 @@ export function billingEventMetadata(event: Record<string, unknown>) {
   };
 }
 
-/** Verifica firma webhook (schema v1, HMAC SHA-256, tolleranza 5 minuti). */
-export async function verifyWebhookSignature(
-  payload: string,
-  header: string,
-  secret: string,
-  nowSeconds: number,
-  toleranceSeconds = 300,
-): Promise<{ ok: boolean; reason: string }> {
-  if (!secret.startsWith("whsec_")) return { ok: false, reason: "BAD_WEBHOOK_SECRET" };
-  const parts: Record<string, string> = {};
-  for (const piece of header.split(",")) {
-    const [k, v] = piece.trim().split("=");
-    if (k && v) parts[k] = v;
-  }
-  const timestamp = Number(parts["t"]);
-  const provided = parts["v1"];
-  if (!Number.isFinite(timestamp) || !provided)
-    return { ok: false, reason: "BAD_SIGNATURE_HEADER" };
-  if (Math.abs(nowSeconds - timestamp) > toleranceSeconds)
-    return { ok: false, reason: "SIGNATURE_TOO_OLD" };
+/** Segreti webhook accettati: più di uno solo durante una rotazione. */
+export function parseWebhookSecrets(raw: string): string[] {
+  return Array.from(
+    new Set(
+      raw
+        .split(/[\s,]+/)
+        .map((v) => v.trim())
+        .filter((v) => v.startsWith("whsec_")),
+    ),
+  );
+}
 
+/** Tutte le firme v1 presenti: durante la rotazione ne arrivano più di una. */
+export function parseSignatureHeader(header: string): { timestamp: number; v1: string[] } {
+  let timestamp = Number.NaN;
+  const v1: string[] = [];
+  for (const piece of header.split(",")) {
+    const idx = piece.indexOf("=");
+    if (idx <= 0) continue;
+    const k = piece.slice(0, idx).trim();
+    const v = piece.slice(idx + 1).trim();
+    if (!v) continue;
+    if (k === "t") timestamp = Number(v);
+    else if (k === "v1") v1.push(v);
+  }
+  return { timestamp, v1 };
+}
+
+function timingSafeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+async function hmacHex(secret: string, message: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -405,24 +426,54 @@ export async function verifyWebhookSignature(
     false,
     ["sign"],
   );
-  const mac = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(`${timestamp}.${payload}`),
-  );
-  const expected = Array.from(new Uint8Array(mac))
+  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(mac))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  if (expected.length !== provided.length) return { ok: false, reason: "SIGNATURE_MISMATCH" };
-  let diff = 0;
-  for (let i = 0; i < expected.length; i += 1)
-    diff |= expected.charCodeAt(i) ^ provided.charCodeAt(i);
-  return diff === 0
+}
+
+/**
+ * Verifica firma webhook (schema v1, HMAC SHA-256, tolleranza 5 minuti).
+ * Accetta più segreti (rotazione) e più firme v1 nello stesso header:
+ * basta una corrispondenza valida, il confronto resta a tempo costante.
+ */
+export async function verifyWebhookSignature(
+  payload: string,
+  header: string,
+  secret: string,
+  nowSeconds: number,
+  toleranceSeconds = 300,
+): Promise<{ ok: boolean; reason: string }> {
+  const secrets = parseWebhookSecrets(secret);
+  if (secrets.length === 0) return { ok: false, reason: "BAD_WEBHOOK_SECRET" };
+  const { timestamp, v1 } = parseSignatureHeader(header);
+  if (!Number.isFinite(timestamp) || v1.length === 0)
+    return { ok: false, reason: "BAD_SIGNATURE_HEADER" };
+  if (Math.abs(nowSeconds - timestamp) > toleranceSeconds)
+    return { ok: false, reason: "SIGNATURE_TOO_OLD" };
+
+  const message = `${timestamp}.${payload}`;
+  let matched = false;
+  for (const candidate of secrets) {
+    const expected = await hmacHex(candidate, message);
+    for (const provided of v1) if (timingSafeEqualHex(expected, provided)) matched = true;
+  }
+  return matched
     ? { ok: true, reason: "SIGNATURE_OK" }
     : { ok: false, reason: "SIGNATURE_MISMATCH" };
 }
 
 /** Mappa un abbonamento remoto sulle colonne dell'anagrafica locale. */
+export type SubscriptionUpdate = {
+  ok: boolean;
+  code: string;
+  patch: Record<string, unknown> | null;
+};
+
+/**
+ * Nessun fallback: se il Price non è nella configurazione TEST completa,
+ * l'evento non viene mappato (mai piano prova o zero posti per ripiego).
+ */
 export function subscriptionUpdateFromEvent(input: {
   status: unknown;
   currentPeriodEnd: unknown;
@@ -431,10 +482,13 @@ export function subscriptionUpdateFromEvent(input: {
   subscriptionId: unknown;
   customerId: unknown;
   priceMap: Record<string, string>;
-}) {
+}): SubscriptionUpdate {
+  if (Object.keys(input.priceMap).length < PRICE_ENV_NAMES.length)
+    return { ok: false, code: "PRICES_NOT_CONFIGURED", patch: null };
   const match = planFromPriceId(input.priceId, input.priceMap);
+  if (!match) return { ok: false, code: "PRICE_NOT_ALLOWLISTED", patch: null };
   const seconds = typeof input.currentPeriodEnd === "number" ? input.currentPeriodEnd : 0;
-  return {
+  const patch = {
     status: normalizeStatus(input.status),
     provider: "stripe",
     billing_mode: "test",
@@ -442,10 +496,11 @@ export function subscriptionUpdateFromEvent(input: {
       typeof input.subscriptionId === "string" ? input.subscriptionId : null,
     provider_customer_id: typeof input.customerId === "string" ? input.customerId : null,
     stripe_price_id: typeof input.priceId === "string" ? input.priceId : null,
-    plan_code: match?.price.planCode ?? TRIAL_PLAN_CODE,
-    plan_seats: match?.plan.limits.seats ?? 0,
+    plan_code: match.price.planCode,
+    plan_seats: match.plan.limits.seats,
     cancel_at_period_end: input.cancelAtPeriodEnd === true,
     current_period_end: seconds > 0 ? new Date(seconds * 1000).toISOString() : null,
     trial_consumed: true,
   };
+  return { ok: true, code: "OK", patch };
 }

@@ -128,3 +128,21 @@ export function mapAcceptRpcResult(
     return { ok: false, code: "INVITE_ACCEPT_FAILED" };
   return { ok: result.ok, code: result.code };
 }
+
+/** RPC atomica di invito (service-only): conteggio posti e insert in transazione. */
+export const INVITE_RPC = "ueradar_invite_member";
+
+export type InviteRpcResult = { ok?: boolean; code?: string } | null;
+
+export function mapInviteRpcResult(
+  result: InviteRpcResult,
+  error: { code?: string | null } | null | undefined,
+): { ok: boolean; code: string } {
+  if (error) {
+    if (isUniqueViolation(error)) return { ok: false, code: "ALREADY_INVITED" };
+    return { ok: false, code: "INVITE_FAILED" };
+  }
+  if (!result || typeof result.ok !== "boolean" || !result.code)
+    return { ok: false, code: "INVITE_FAILED" };
+  return { ok: result.ok, code: result.code };
+}

@@ -362,6 +362,7 @@ export type Database = {
           tax_id: string | null
           trial_consumed: boolean
           trial_ends_at: string | null
+          trial_source: string | null
           trial_started_at: string | null
           updated_at: string
           user_id: string
@@ -383,6 +384,7 @@ export type Database = {
           tax_id?: string | null
           trial_consumed?: boolean
           trial_ends_at?: string | null
+          trial_source?: string | null
           trial_started_at?: string | null
           updated_at?: string
           user_id: string
@@ -404,6 +406,7 @@ export type Database = {
           tax_id?: string | null
           trial_consumed?: boolean
           trial_ends_at?: string | null
+          trial_source?: string | null
           trial_started_at?: string | null
           updated_at?: string
           user_id?: string
@@ -413,6 +416,7 @@ export type Database = {
       ueradar_trial_registry: {
         Row: {
           created_at: string
+          fingerprint_algo: string
           fingerprint_type: string
           fingerprint_value: string
           id: string
@@ -422,6 +426,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          fingerprint_algo?: string
           fingerprint_type: string
           fingerprint_value: string
           id?: string
@@ -431,6 +436,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          fingerprint_algo?: string
           fingerprint_type?: string
           fingerprint_value?: string
           id?: string
@@ -538,12 +544,27 @@ export type Database = {
         Returns: Json
       }
       ueradar_current_tenant: { Args: never; Returns: string }
+      ueradar_invite_member: {
+        Args: {
+          _declared_role: string
+          _email: string
+          _first_name: string
+          _last_name: string
+          _owner: string
+          _seats: number
+        }
+        Returns: Json
+      }
       ueradar_is_tenant_owner: { Args: never; Returns: boolean }
       ueradar_start_trial: {
         Args: { _domain: string; _user_id: string; _vat: string }
         Returns: Json
       }
       ueradar_tenant_owner: { Args: { _user_id: string }; Returns: string }
+      ueradar_trial_fingerprint: {
+        Args: { _type: string; _value: string }
+        Returns: string
+      }
     }
     Enums: {
       legal_form:

@@ -48,6 +48,15 @@ async function sign(payload: string, secret: string, timestamp: number) {
     .join("");
 }
 
+/** Configurazione Price TEST completa: il webhook non mappa nulla senza. */
+function fullPriceMap(overrides: Record<string, string> = {}): Record<string, string> {
+  const base: Record<string, string> = {};
+  for (const plan of ["professional", "business", "executive"] as const)
+    for (const interval of ["month", "year"] as const)
+      base[priceKey(plan, interval)] = `price_${plan}_${interval}`;
+  return { ...base, ...overrides };
+}
+
 describe("catalogo piani UEradar", () => {
   it("espone il catalogo approvato con prezzi IVA esclusa e annuale = 10 mensilità", () => {
     expect(CATALOG.professional.prices.month?.amountCents).toBe(49900);
@@ -81,7 +90,7 @@ describe("catalogo piani UEradar", () => {
       active: true,
       currency: "eur",
       unit_amount: 99000,
-      recurring: { interval: "month" },
+      recurring: { interval: "month", interval_count: 1 },
       tax_behavior: "exclusive",
     };
     expect(validateRemotePrice(good, expected).ok).toBe(true);
@@ -92,9 +101,15 @@ describe("catalogo piani UEradar", () => {
     expect(validateRemotePrice({ ...good, currency: "usd" }, expected).code).toBe(
       "PRICE_CURRENCY_MISMATCH",
     );
-    expect(validateRemotePrice({ ...good, recurring: { interval: "year" } }, expected).code).toBe(
-      "PRICE_INTERVAL_MISMATCH",
-    );
+    expect(
+      validateRemotePrice({ ...good, recurring: { interval: "year", interval_count: 1 } }, expected)
+        .code,
+    ).toBe("PRICE_INTERVAL_MISMATCH");
+    // "Ogni 2 mesi" non è il piano approvato: ricorrenza a periodo singolo.
+    expect(
+      validateRemotePrice({ ...good, recurring: { interval: "month", interval_count: 2 } }, expected)
+        .code,
+    ).toBe("PRICE_INTERVAL_COUNT_MISMATCH");
     expect(validateRemotePrice({ ...good, active: false }, expected).code).toBe("PRICE_NOT_ACTIVE");
     expect(validateRemotePrice({ ...good, tax_behavior: "inclusive" }, expected).code).toBe(
       "PRICE_TAX_BEHAVIOR_MISMATCH",
@@ -190,16 +205,15 @@ describe("sincronizzazione webhook", () => {
       priceId: "price_t",
       subscriptionId: "sub_1",
       customerId: "cus_1",
-      priceMap: {
-        [priceKey("business", "month")]: "price_b",
-        [priceKey("executive", "year")]: "price_t",
-      },
+      priceMap: fullPriceMap({ [priceKey("executive", "year")]: "price_t" }),
     });
-    expect(update.status).toBe("active");
-    expect(update.plan_seats).toBe(10);
-    expect(update.cancel_at_period_end).toBe(true);
-    expect(update.billing_mode).toBe("test");
-    expect(update.current_period_end).toBe(new Date(1790000000 * 1000).toISOString());
+    expect(update.ok).toBe(true);
+    const patch = update.patch!;
+    expect(patch.status).toBe("active");
+    expect(patch.plan_seats).toBe(10);
+    expect(patch.cancel_at_period_end).toBe(true);
+    expect(patch.billing_mode).toBe("test");
+    expect(patch.current_period_end).toBe(new Date(1790000000 * 1000).toISOString());
   });
 
   it("verifica la firma e rifiuta firme errate, scadute o segreti non validi", async () => {
@@ -347,7 +361,9 @@ describe("gate di review Stripe TEST", () => {
       expect(src).toContain(field);
     }
     expect(src).toContain("z.literal(true)");
-    expect(src).toContain("owner_attested_at");
+    // L'attestazione è registrata nella RPC atomica di invito (posti + insert).
+    expect(src).toContain(".rpc(INVITE_RPC");
+    expect(src).toContain("mapInviteRpcResult");
     // Il membro accetta con il proprio account tramite la RPC transazionale
     // service-only: i vincoli (invito pendente, nessuna seconda impresa) sono in SQL.
     expect(src).toContain(".rpc(ACCEPT_RPC");

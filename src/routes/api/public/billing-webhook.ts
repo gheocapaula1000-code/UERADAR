@@ -10,6 +10,9 @@ import {
 
 type Obj = Record<string, unknown>;
 
+/** Oltre questa finestra un evento "processing" è considerato appeso. */
+const PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
+
 function asObj(value: unknown): Obj | null {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Obj) : null;
 }
@@ -38,6 +41,10 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         if (!mode.ok) return Response.json({ ok: false, code: mode.code }, { status: 503 });
         if (!env.webhookSecret)
           return Response.json({ ok: false, code: "WEBHOOK_NOT_CONFIGURED" }, { status: 503 });
+        // Nessuna mappatura senza configurazione Price TEST completa:
+        // meglio ritentare l'evento che scrivere un piano di ripiego.
+        if (env.missingPriceEnvs.length > 0)
+          return Response.json({ ok: false, code: "PRICES_NOT_CONFIGURED" }, { status: 503 });
 
         const raw = await request.text();
         const signature = request.headers.get("stripe-signature") ?? "";
@@ -85,7 +92,9 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           });
 
         if (reserveError) {
-          // Riga già presente: elaborata → nessun lavoro; altrimenti retry sicuro.
+          // Riga già presente: elaborata → nessun lavoro. Altrimenti la ripresa
+          // è concessa a un solo worker, e solo se il precedente è fallito o
+          // è rimasto appeso oltre la finestra di elaborazione.
           const { data: prior, error: priorError } = await admin
             .from("ueradar_billing_events")
             .select("status, attempts")
@@ -95,21 +104,30 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             return Response.json({ ok: false, code: "EVENT_STATE_UNAVAILABLE" }, { status: 500 });
           if ((prior as { status: string } | null)?.status === "succeeded")
             return Response.json({ ok: true, code: "ALREADY_PROCESSED" }, { status: 200 });
-          const { error: retryError } = await admin
+          const staleBefore = new Date(Date.now() - PROCESSING_TIMEOUT_MS).toISOString();
+          const { data: claimed, error: retryError } = await admin
             .from("ueradar_billing_events")
             .update({
               status: "processing",
               error_code: null,
               attempts: ((prior as { attempts?: number } | null)?.attempts ?? 1) + 1,
             })
-            .eq("event_id", eventId);
+            .eq("event_id", eventId)
+            .or(`status.eq.failed,and(status.eq.processing,updated_at.lt.${staleBefore})`)
+            .select("event_id");
           if (retryError)
             return Response.json({ ok: false, code: "EVENT_RETRY_FAILED" }, { status: 500 });
+          // Nessuna riga rivendicata: un altro worker sta già elaborando l'evento.
+          if (!claimed || claimed.length === 0)
+            return Response.json(
+              { ok: false, code: "EVENT_ALREADY_IN_PROGRESS" },
+              { status: 409 },
+            );
         }
 
         /** Chiude l'evento: solo un esito riuscito lo consuma definitivamente. */
         async function settle(code: string, ok: boolean, httpStatus = ok ? 200 : 500) {
-          await admin
+          const { error: settleError } = await admin
             .from("ueradar_billing_events")
             .update({
               status: ok ? "succeeded" : "failed",
@@ -117,6 +135,13 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
               processed_at: ok ? new Date().toISOString() : null,
             })
             .eq("event_id", eventId);
+          // La chiusura non può essere ignorata: senza conferma l'evento resta
+          // ritentabile e il chiamante riceve un errore esplicito.
+          if (settleError)
+            return Response.json(
+              { ok: false, code: "EVENT_SETTLE_FAILED", outcome: code },
+              { status: 500 },
+            );
           return Response.json({ ok, code }, { status: httpStatus });
         }
 
@@ -163,7 +188,7 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           const record = await loadRecord(userId);
           const order = eventIsApplicable(event["created"], record?.last_event_created_at);
           if (!order.ok) return settle(order.code, true);
-          const update = subscriptionUpdateFromEvent({
+          const mapped = subscriptionUpdateFromEvent({
             status:
               eventType === "customer.subscription.deleted" ? "canceled" : object["status"],
             currentPeriodEnd: object["current_period_end"],
@@ -173,9 +198,10 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             customerId,
             priceMap: env.priceMap,
           });
+          if (!mapped.ok || !mapped.patch) return settle(mapped.code, false);
           const { error } = await admin
             .from("ueradar_subscriptions")
-            .update({ ...update, last_event_created_at: eventCreatedAt })
+            .update({ ...mapped.patch, last_event_created_at: eventCreatedAt })
             .eq("user_id", userId);
           if (error) return settle("SUBSCRIPTION_WRITE_FAILED", false);
           return settle("SUBSCRIPTION_SYNCED", true);
@@ -197,7 +223,7 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           if (fetched.status !== 200 || !fetched.payload)
             return settle("SUBSCRIPTION_FETCH_FAILED", false);
           const sub = fetched.payload ?? {};
-          const update = subscriptionUpdateFromEvent({
+          const mapped = subscriptionUpdateFromEvent({
             status: sub["status"],
             currentPeriodEnd: sub["current_period_end"],
             cancelAtPeriodEnd: sub["cancel_at_period_end"],
@@ -206,9 +232,10 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             customerId,
             priceMap: env.priceMap,
           });
+          if (!mapped.ok || !mapped.patch) return settle(mapped.code, false);
           const { error } = await admin
             .from("ueradar_subscriptions")
-            .update({ ...update, last_event_created_at: eventCreatedAt })
+            .update({ ...mapped.patch, last_event_created_at: eventCreatedAt })
             .eq("user_id", userId);
           if (error) return settle("CHECKOUT_WRITE_FAILED", false);
           return settle("CHECKOUT_SYNCED", true);

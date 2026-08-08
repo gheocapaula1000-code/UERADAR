@@ -22,6 +22,9 @@ export const SOURCE_TIERS = {
 } as const;
 
 /** Unico livello di fonti realmente servito e verificabile oggi. */
+/** Obiettivi di investimento ammessi durante la prova gratuita. */
+export const TRIAL_OBJECTIVES = 2;
+
 export const AVAILABLE_SOURCE_TIER: keyof typeof SOURCE_TIERS = "core";
 
 export type PlanLimits = {
@@ -29,6 +32,8 @@ export type PlanLimits = {
   seats: number;
   /** Imprese gestibili. Oltre 1 solo su contratto Enterprise. */
   companies: number;
+  /** Obiettivi di investimento selezionabili nel profilo. -1 = nessun limite. */
+  objectives: number;
   /** Verifiche approfondite incluse ogni mese. -1 = definito da contratto. */
   deepVerificationsPerMonth: number;
   /** Dossier candidatura preparabili ogni mese. -1 = definito da contratto. */
@@ -80,6 +85,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
     limits: {
       seats: 1,
       companies: 1,
+      objectives: TRIAL_OBJECTIVES,
       deepVerificationsPerMonth: 5,
       dossiersPerMonth: 1,
       fullSearchIntervalMinutes: 120,
@@ -121,6 +127,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
     limits: {
       seats: 2,
       companies: 1,
+      objectives: -1,
       deepVerificationsPerMonth: 25,
       dossiersPerMonth: 1,
       fullSearchIntervalMinutes: 720,
@@ -163,6 +170,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
     limits: {
       seats: 5,
       companies: 1,
+      objectives: -1,
       deepVerificationsPerMonth: 100,
       dossiersPerMonth: 5,
       fullSearchIntervalMinutes: 120,
@@ -205,6 +213,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
     limits: {
       seats: 10,
       companies: 1,
+      objectives: -1,
       deepVerificationsPerMonth: 300,
       dossiersPerMonth: 15,
       fullSearchIntervalMinutes: 60,
@@ -234,6 +243,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
     limits: {
       seats: -1,
       companies: -1,
+      objectives: -1,
       deepVerificationsPerMonth: -1,
       dossiersPerMonth: -1,
       fullSearchIntervalMinutes: 60,
