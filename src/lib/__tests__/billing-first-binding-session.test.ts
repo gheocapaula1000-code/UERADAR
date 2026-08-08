@@ -12,7 +12,7 @@ const ROUTE = readFileSync("src/routes/api/public/billing-webhook.ts", "utf8");
 const FNS = readFileSync("src/lib/billing.functions.ts", "utf8");
 
 function lastBody(name: string) {
-  const start = SQL.lastIndexOf(`FUNCTION public.${name}`);
+  const start = SQL.lastIndexOf(`CREATE OR REPLACE FUNCTION public.${name}`);
   expect(start, name).toBeGreaterThan(-1);
   const end = SQL.indexOf("$function$;", start);
   return SQL.slice(start, end);
