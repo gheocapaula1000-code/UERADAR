@@ -92,3 +92,39 @@ export function trialNeutralization(
     },
   };
 }
+
+/**
+ * Fail-closed: un abbonamento personale presso il provider (o comunque con
+ * subscription id) non può restare attivo mentre l'utente entra come membro,
+ * perché il portale di gestione viene disattivato per i membri. In quel caso
+ * l'accettazione è rifiutata e l'utente deve prima gestirlo o disdirlo.
+ */
+export const PERSONAL_SUBSCRIPTION_BLOCK_CODE = "PERSONAL_SUBSCRIPTION_MUST_BE_MANAGED";
+
+export function personalSubscriptionBlocksAccept(
+  sub: (MemberSubscription & { provider?: string | null }) | null,
+): boolean {
+  if (!sub) return false;
+  if (sub.provider_subscription_id) return true;
+  const providerStatuses = ["active", "trialing", "past_due", "unpaid"];
+  return Boolean(sub.provider) && providerStatuses.includes(sub.status ?? "");
+}
+
+/** Esiti della RPC atomica di accettazione (service-only). */
+export const ACCEPT_RPC = "ueradar_accept_invite";
+
+export type AcceptRpcResult = { ok?: boolean; code?: string; trial_neutralized?: boolean } | null;
+
+/** Nessun errore DB ignorato: qualsiasi anomalia diventa un codice fail-closed. */
+export function mapAcceptRpcResult(
+  result: AcceptRpcResult,
+  error: { code?: string | null } | null | undefined,
+): { ok: boolean; code: string } {
+  if (error) {
+    if (isUniqueViolation(error)) return { ok: false, code: "ALREADY_MEMBER" };
+    return { ok: false, code: "INVITE_ACCEPT_FAILED" };
+  }
+  if (!result || typeof result.ok !== "boolean" || !result.code)
+    return { ok: false, code: "INVITE_ACCEPT_FAILED" };
+  return { ok: result.ok, code: result.code };
+}

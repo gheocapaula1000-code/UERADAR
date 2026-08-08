@@ -118,17 +118,24 @@ function Abbonamento() {
     mutationFn: (member_id: string) => accept({ data: { member_id } }),
     onSuccess: (res) => {
       if (!res.ok) {
-        toast.error(
-          res.code === "ALREADY_MEMBER_OF_ANOTHER_COMPANY"
-            ? "Il tuo account è già associato a un'altra impresa"
-            : "Invito non disponibile",
-        );
+        const messages: Record<string, string> = {
+          ALREADY_MEMBER_OF_ANOTHER_COMPANY: "Il tuo account è già associato a un'altra impresa",
+          ALREADY_MEMBER: "Il tuo account è già associato a un'altra impresa",
+          PERSONAL_SUBSCRIPTION_MUST_BE_MANAGED:
+            "Hai un abbonamento personale attivo: gestiscilo o disdicilo dal portale di fatturazione prima di accettare l'invito",
+          EMAIL_NOT_VERIFIABLE: "Email dell'account non verificabile",
+          INVITE_EMAIL_MISMATCH: "L'invito è associato a un'altra email",
+          INVITE_ACCEPT_FAILED: "Accettazione non completata: nessuna modifica applicata, riprova",
+        };
+        toast.error(messages[res.code] ?? "Invito non disponibile");
         return;
       }
       toast.success("Invito accettato");
       void queryClient.invalidateQueries({ queryKey: ["pending-invite"] });
       void queryClient.invalidateQueries({ queryKey: ["company-members"] });
+      void queryClient.invalidateQueries({ queryKey: ["billing-status"] });
     },
+    onError: () => toast.error("Accettazione non completata: nessuna modifica applicata"),
   });
 
   const removeMutation = useMutation({

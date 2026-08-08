@@ -297,10 +297,10 @@ describe("gate di review Stripe TEST", () => {
     }
     expect(src).toContain("z.literal(true)");
     expect(src).toContain("owner_attested_at");
-    // Il membro accetta con il proprio account e resta legato a un solo titolare.
-    expect(src).toContain("ALREADY_MEMBER_OF_ANOTHER_COMPANY");
-    expect(src).toContain('.eq("status", "invited")');
-    expect(src).toContain('.is("member_user_id", null)');
+    // Il membro accetta con il proprio account tramite la RPC transazionale
+    // service-only: i vincoli (invito pendente, nessuna seconda impresa) sono in SQL.
+    expect(src).toContain(".rpc(ACCEPT_RPC");
+    expect(src).toContain("mapAcceptRpcResult");
   });
 
   it("non promette verifiche camerali automatiche", () => {

@@ -409,6 +409,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ueradar_accept_invite: {
+        Args: { _email: string; _member_id: string; _user_id: string }
+        Returns: Json
+      }
       ueradar_current_tenant: { Args: never; Returns: string }
       ueradar_is_tenant_owner: { Args: never; Returns: boolean }
       ueradar_tenant_owner: { Args: { _user_id: string }; Returns: string }

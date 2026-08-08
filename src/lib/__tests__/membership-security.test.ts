@@ -31,6 +31,7 @@ const sqlAll = readdirSync(MIGRATIONS)
   .map((f) => readFileSync(join(MIGRATIONS, f), "utf8"))
   .join("\n");
 const billingFns = readFileSync(join(process.cwd(), "src/lib/billing.functions.ts"), "utf8");
+const membershipSrc = readFileSync(join(process.cwd(), "src/lib/membership.ts"), "utf8");
 
 describe("RLS: nessuna scrittura diretta dal client sui membri", () => {
   it("la policy self-accept di UPDATE è rimossa", () => {
@@ -117,11 +118,12 @@ describe("accettazione invito fail-closed", () => {
   it("la violazione di unicità diventa ALREADY_MEMBER", () => {
     expect(isUniqueViolation({ code: "23505" })).toBe(true);
     expect(isUniqueViolation({ code: "42501" })).toBe(false);
-    expect(billingFns).toContain('"ALREADY_MEMBER"');
+    expect(membershipSrc).toContain('"ALREADY_MEMBER"');
+    expect(sqlAll).toContain("'ALREADY_MEMBER'");
   });
 
   it("un membro già legato non entra in una seconda azienda", () => {
-    expect(billingFns).toContain("ALREADY_MEMBER_OF_ANOTHER_COMPANY");
+    expect(sqlAll).toContain("ALREADY_MEMBER_OF_ANOTHER_COMPANY");
   });
 });
 

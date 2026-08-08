@@ -375,88 +375,41 @@ export const getPendingInvite = createServerFn({ method: "POST" })
   );
 
 /**
- * Accettazione dell'invito: server-only con client di servizio. Selezione per id +
- * email del token + stato invitato + nessun utente collegato; update atomico che
- * imposta soltanto member_user_id, status e accepted_at (owner, email, nomi e ruolo
- * restano immutabili). L'utente resta legato a una sola impresa.
+ * Accettazione dell'invito: server-only, eseguita in un'unica transazione dalla
+ * RPC service-only ueradar_accept_invite. Nella stessa transazione vengono
+ * verificati i vincoli (email del token, invito pendente, nessuna seconda
+ * impresa, nessun abbonamento personale presso il provider) e neutralizzato il
+ * trial locale: se la neutralizzazione fallisce, l'accettazione viene annullata.
+ * Nessun errore DB viene ignorato.
  */
 export const acceptCompanyInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ member_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<{ ok: boolean; code: string }> => {
-    const { normalizeEmail, canAcceptInvite, buildAcceptUpdate, isUniqueViolation, trialNeutralization } =
-      await import("./membership");
+    const { normalizeEmail, mapAcceptRpcResult, ACCEPT_RPC } = await import("./membership");
     const email = normalizeEmail((context.claims as { email?: string } | undefined)?.email);
     if (!email) return { ok: false, code: "EMAIL_NOT_VERIFIABLE" };
 
     const { adminClient } = await import("./billing.server");
     const admin = adminClient();
 
-    const { count, error: existingError } = await admin
-      .from("ueradar_company_members")
-      .select("id", { count: "exact", head: true })
-      .eq("member_user_id", context.userId);
-    if (existingError) return { ok: false, code: "MEMBERSHIP_LOOKUP_FAILED" };
-    if ((count ?? 0) > 0) return { ok: false, code: "ALREADY_MEMBER_OF_ANOTHER_COMPANY" };
+    const { data: rpcResult, error } = await (
+      admin as unknown as {
+        rpc: (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: unknown; error: { code?: string | null } | null }>;
+      }
+    ).rpc(ACCEPT_RPC, {
+      _member_id: data.member_id,
+      _user_id: context.userId,
+      _email: email,
+    });
 
-    const { data: row, error: rowError } = await admin
-      .from("ueradar_company_members")
-      .select("id, owner_user_id, email, status, member_user_id")
-      .eq("id", data.member_id)
-      .eq("email", email)
-      .eq("status", "invited")
-      .is("member_user_id", null)
-      .maybeSingle();
-    if (rowError) return { ok: false, code: "INVITE_LOOKUP_FAILED" };
-    const decision = canAcceptInvite(
-      (row as {
-        id: string;
-        owner_user_id: string;
-        email: string;
-        status: string | null;
-        member_user_id: string | null;
-      } | null) ?? null,
-      context.userId,
-      email,
+    return mapAcceptRpcResult(
+      (rpcResult as { ok?: boolean; code?: string; trial_neutralized?: boolean } | null) ?? null,
+      error,
     );
-    if (!decision.ok) return { ok: false, code: decision.code };
-
-    const { data: updated, error } = await admin
-      .from("ueradar_company_members")
-      .update(buildAcceptUpdate(context.userId, new Date().toISOString()))
-      .eq("id", data.member_id)
-      .eq("status", "invited")
-      .is("member_user_id", null)
-      .select("id")
-      .maybeSingle();
-    if (error)
-      return {
-        ok: false,
-        code: isUniqueViolation(error) ? "ALREADY_MEMBER" : "INVITE_ACCEPT_FAILED",
-      };
-    if (!updated) return { ok: false, code: "INVITE_NOT_AVAILABLE" };
-
-    // Il membro non deve portarsi dietro un trial personale come seconda impresa.
-    const { data: ownSub } = await admin
-      .from("ueradar_subscriptions")
-      .select("status, provider_subscription_id, trial_consumed")
-      .eq("user_id", context.userId)
-      .maybeSingle();
-    const neutralization = trialNeutralization(
-      (ownSub as {
-        status: string | null;
-        provider_subscription_id: string | null;
-        trial_consumed: boolean | null;
-      } | null) ?? null,
-    );
-    if (neutralization.neutralize) {
-      await admin
-        .from("ueradar_subscriptions")
-        .update(neutralization.patch)
-        .eq("user_id", context.userId)
-        .is("provider_subscription_id", null);
-    }
-    return { ok: true, code: "OK" };
   });
 
 /** Rimozione di un posto: server-only, consentita solo al titolare del tenant. */
