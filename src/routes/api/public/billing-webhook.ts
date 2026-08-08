@@ -1,5 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { normalizeStatus, subscriptionUpdateFromEvent, verifyWebhookSignature } from "@/lib/billing";
+import {
+  billingEventMetadata,
+  normalizeStatus,
+  subscriptionUpdateFromEvent,
+  verifyWebhookSignature,
+} from "@/lib/billing";
 
 type Obj = Record<string, unknown>;
 
@@ -59,17 +64,48 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           return Response.json({ ok: false, code: "INVALID_EVENT" }, { status: 400 });
 
         const admin = adminClient();
-        // Idempotenza: l'inserimento fallisce se l'evento è già stato elaborato.
-        const { error: dedupeError } = await admin
+        const meta = billingEventMetadata(event);
+
+        // Prenotazione dell'evento: solo i metadati minimi, mai il contenuto ricevuto.
+        const { error: reserveError } = await admin
           .from("ueradar_billing_events")
-          .insert({
-            event_id: eventId,
-            event_type: eventType,
-            livemode: false,
-            payload: event as never,
-          });
-        if (dedupeError)
-          return Response.json({ ok: true, code: "ALREADY_PROCESSED" }, { status: 200 });
+          .insert({ ...meta, livemode: false, status: "processing", attempts: 1 });
+
+        if (reserveError) {
+          // Riga già presente: elaborata → nessun lavoro; altrimenti retry sicuro.
+          const { data: prior, error: priorError } = await admin
+            .from("ueradar_billing_events")
+            .select("status, attempts")
+            .eq("event_id", eventId)
+            .maybeSingle();
+          if (priorError)
+            return Response.json({ ok: false, code: "EVENT_STATE_UNAVAILABLE" }, { status: 500 });
+          if ((prior as { status: string } | null)?.status === "succeeded")
+            return Response.json({ ok: true, code: "ALREADY_PROCESSED" }, { status: 200 });
+          const { error: retryError } = await admin
+            .from("ueradar_billing_events")
+            .update({
+              status: "processing",
+              error_code: null,
+              attempts: ((prior as { attempts?: number } | null)?.attempts ?? 1) + 1,
+            })
+            .eq("event_id", eventId);
+          if (retryError)
+            return Response.json({ ok: false, code: "EVENT_RETRY_FAILED" }, { status: 500 });
+        }
+
+        /** Chiude l'evento: solo un esito riuscito lo consuma definitivamente. */
+        async function settle(code: string, ok: boolean, httpStatus = ok ? 200 : 500) {
+          await admin
+            .from("ueradar_billing_events")
+            .update({
+              status: ok ? "succeeded" : "failed",
+              error_code: ok ? null : code,
+              processed_at: ok ? new Date().toISOString() : null,
+            })
+            .eq("event_id", eventId);
+          return Response.json({ ok, code }, { status: httpStatus });
+        }
 
         const object = asObj(asObj(event["data"])?.["object"]) ?? {};
         const customerId =
@@ -93,7 +129,8 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           eventType === "customer.subscription.deleted"
         ) {
           const userId = await resolveUserId(asObj(object["metadata"]));
-          if (!userId) return Response.json({ ok: true, code: "USER_NOT_FOUND" });
+          // Nessun 200: l'evento resta ritentabile finché l'utente non è collegabile.
+          if (!userId) return settle("USER_NOT_FOUND", false);
           const update = subscriptionUpdateFromEvent({
             status:
               eventType === "customer.subscription.deleted" ? "canceled" : object["status"],
@@ -104,17 +141,23 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             customerId,
             priceMap: env.priceMap,
           });
-          await admin.from("ueradar_subscriptions").update(update).eq("user_id", userId);
-          return Response.json({ ok: true, code: "SUBSCRIPTION_SYNCED" });
+          const { error } = await admin
+            .from("ueradar_subscriptions")
+            .update(update)
+            .eq("user_id", userId);
+          if (error) return settle("SUBSCRIPTION_WRITE_FAILED", false);
+          return settle("SUBSCRIPTION_SYNCED", true);
         }
 
         if (eventType === "checkout.session.completed") {
           const userId = await resolveUserId(asObj(object["metadata"]));
           const subscriptionId =
             typeof object["subscription"] === "string" ? (object["subscription"] as string) : "";
-          if (!userId || !subscriptionId)
-            return Response.json({ ok: true, code: "SESSION_IGNORED" });
+          if (!subscriptionId) return settle("SESSION_WITHOUT_SUBSCRIPTION", true);
+          if (!userId) return settle("USER_NOT_FOUND", false);
           const fetched = await providerCall(`subscriptions/${subscriptionId}`, env.secretKey);
+          if (fetched.status !== 200 || !fetched.payload)
+            return settle("SUBSCRIPTION_FETCH_FAILED", false);
           const sub = fetched.payload ?? {};
           const update = subscriptionUpdateFromEvent({
             status: sub["status"],
@@ -125,13 +168,17 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             customerId,
             priceMap: env.priceMap,
           });
-          await admin.from("ueradar_subscriptions").update(update).eq("user_id", userId);
-          return Response.json({ ok: true, code: "CHECKOUT_SYNCED" });
+          const { error } = await admin
+            .from("ueradar_subscriptions")
+            .update(update)
+            .eq("user_id", userId);
+          if (error) return settle("CHECKOUT_WRITE_FAILED", false);
+          return settle("CHECKOUT_SYNCED", true);
         }
 
         if (eventType === "invoice.paid" || eventType === "invoice.payment_failed") {
           const userId = await resolveUserId(null);
-          if (!userId) return Response.json({ ok: true, code: "USER_NOT_FOUND" });
+          if (!userId) return settle("USER_NOT_FOUND", false);
           const status = eventType === "invoice.paid" ? "active" : "past_due";
           const hosted =
             typeof object["hosted_invoice_url"] === "string"
@@ -141,7 +188,7 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             ? (object["customer_tax_ids"] as unknown[])
             : [];
           const firstTax = asObj(taxIds[0]);
-          await admin
+          const { error } = await admin
             .from("ueradar_subscriptions")
             .update({
               status: normalizeStatus(status),
@@ -149,10 +196,11 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
               tax_id: typeof firstTax?.["value"] === "string" ? (firstTax["value"] as string) : null,
             })
             .eq("user_id", userId);
-          return Response.json({ ok: true, code: "INVOICE_SYNCED" });
+          if (error) return settle("INVOICE_WRITE_FAILED", false);
+          return settle("INVOICE_SYNCED", true);
         }
 
-        return Response.json({ ok: true, code: "EVENT_IGNORED" });
+        return settle("EVENT_IGNORED", true);
       },
     },
   },
