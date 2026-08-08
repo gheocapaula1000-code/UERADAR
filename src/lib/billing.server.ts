@@ -26,6 +26,35 @@ export type BillingEnv = {
   appUrl: string;
 };
 
+/**
+ * Il checkout TEST non è aperto al pubblico solo perché i segreti Sandbox
+ * esistono: serve un flag QA esplicito e una allowlist di indirizzi.
+ */
+export type CheckoutQaGate = { enabled: boolean; allowlist: string[] };
+
+export function readCheckoutQa(): CheckoutQaGate {
+  return {
+    // Default chiuso: qualunque valore diverso da "true" disabilita il checkout.
+    enabled: (process.env["UERADAR_CHECKOUT_QA_ENABLED"] ?? "").trim().toLowerCase() === "true",
+    allowlist: (process.env["UERADAR_CHECKOUT_QA_EMAILS"] ?? "")
+      .split(/[\s,;]+/)
+      .map((v) => v.trim().toLowerCase())
+      .filter((v) => v.includes("@")),
+  };
+}
+
+export function checkoutQaAllowed(
+  gate: CheckoutQaGate,
+  email: unknown,
+): { ok: boolean; code: string } {
+  if (!gate.enabled) return { ok: false, code: "CHECKOUT_QA_DISABLED" };
+  if (gate.allowlist.length === 0) return { ok: false, code: "CHECKOUT_QA_ALLOWLIST_EMPTY" };
+  const normalized = typeof email === "string" ? email.trim().toLowerCase() : "";
+  if (!normalized || !gate.allowlist.includes(normalized))
+    return { ok: false, code: "CHECKOUT_QA_NOT_ALLOWED" };
+  return { ok: true, code: "OK" };
+}
+
 export function readBillingEnv(): BillingEnv {
   const priceMap: Record<string, string> = {};
   const missingPriceEnvs: string[] = [];
