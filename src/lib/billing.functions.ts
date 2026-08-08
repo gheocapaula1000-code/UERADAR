@@ -346,7 +346,6 @@ export const inviteCompanyMember = createServerFn({ method: "POST" })
       _seats: entitlement.seats,
     });
     return mapInviteRpcResult(result as InviteRpcResult, error);
-    return { ok: true, code: "OK" };
   });
 
 /** Invito pendente destinato all'utente autenticato (match sull'email del token). */
