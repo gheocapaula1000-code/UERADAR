@@ -409,7 +409,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      ueradar_current_tenant: { Args: never; Returns: string }
+      ueradar_is_tenant_owner: { Args: never; Returns: boolean }
+      ueradar_tenant_owner: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       legal_form:
