@@ -12,6 +12,7 @@ import {
   idempotencyKey,
   isMemberRole,
   checkoutTarget,
+  isTestModeObject,
   isValidPriceId,
   MEMBER_ROLES,
   priceKey,
