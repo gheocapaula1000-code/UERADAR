@@ -233,7 +233,7 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       {
         _user_id: context.userId,
         _price_id: priceId,
-        _plan_code: CATALOG[data.plan].planCode ?? data.plan,
+        _plan_code: target.planCode,
         _ttl_seconds: 1800,
       },
     );
