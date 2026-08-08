@@ -131,7 +131,7 @@ describe("atomicità prenotazione checkout e primo binding", () => {
 
 describe("SQL e webhook allineati al modello", () => {
   it("l'apply consuma l'intento solo dopo l'UPDATE, nella stessa transazione", () => {
-    const fn = sql.slice(sql.lastIndexOf("FUNCTION public.ueradar_billing_apply_subscription"));
+    const fn = sql.slice(sql.lastIndexOf("CREATE OR REPLACE FUNCTION public.ueradar_billing_apply_subscription"));
     expect(fn).toContain("CHECKOUT_INTENT_MISSING");
     expect(fn).toContain("CHECKOUT_INTENT_EXPIRED");
     expect(fn.indexOf("UPDATE public.ueradar_subscriptions")).toBeLessThan(

@@ -573,6 +573,7 @@ export type Database = {
       }
       ueradar_billing_apply_subscription: {
         Args: {
+          _checkout_session_id: string
           _event_created_at: string
           _event_id: string
           _expected_customer: string
