@@ -164,8 +164,9 @@ describe("utenti nominativi della stessa impresa", () => {
       },
       NOW,
     );
-    expect(canAddMember(2, active).allowed).toBe(true);
-    expect(canAddMember(3, active).reason).toBe("SEATS_EXCEEDED");
+    // Il titolare occupa un posto: con 3 posti restano 2 collaboratori.
+    expect(canAddMember(1, active).allowed).toBe(true);
+    expect(canAddMember(2, active).reason).toBe("SEATS_EXCEEDED");
     expect(canAddMember(0, resolveEntitlement(null, NOW)).reason).toBe("NOT_ENTITLED");
   });
 });

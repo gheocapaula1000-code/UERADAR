@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
+  AVAILABLE_SOURCE_TIER,
   CATALOG,
   ENTERPRISE_FROM_CENTS,
   PRICE_ENV_NAMES,
@@ -73,28 +74,36 @@ describe("catalogo approvato", () => {
     expect(CATALOG.trial.limits.seats).toBe(1);
   });
 
-  it("cadenze, fonti, verifiche e dossier rispettano il catalogo", () => {
+  it("cadenze interne e dossier rispettano il catalogo", () => {
     expect(CATALOG.professional.limits.fullSearchIntervalMinutes).toBe(720);
     expect(CATALOG.professional.limits.urgentLaneIntervalMinutes).toBeNull();
-    expect(CATALOG.professional.limits.sourceTier).toBe("core");
-    expect(CATALOG.professional.limits.deepVerificationsPerMonth).toBe(25);
     expect(CATALOG.professional.limits.dossiersPerMonth).toBe(1);
 
     expect(CATALOG.business.limits.fullSearchIntervalMinutes).toBe(120);
     expect(CATALOG.business.limits.urgentLaneIntervalMinutes).toBe(15);
-    expect(CATALOG.business.limits.sourceTier).toBe("extended");
-    expect(CATALOG.business.limits.deepVerificationsPerMonth).toBe(100);
     expect(CATALOG.business.limits.dossiersPerMonth).toBe(5);
 
     expect(CATALOG.executive.limits.fullSearchIntervalMinutes).toBe(60);
     expect(CATALOG.executive.limits.urgentLaneIntervalMinutes).toBe(5);
-    expect(CATALOG.executive.limits.crossVerification).toBe(true);
-    expect(CATALOG.executive.limits.changeMonitoring).toBe(true);
-    expect(CATALOG.executive.limits.deepVerificationsPerMonth).toBe(300);
     expect(CATALOG.executive.limits.dossiersPerMonth).toBe(15);
 
-    expect(CATALOG.enterprise.limits.apiAccess).toBe(true);
     expect(CATALOG.enterprise.limits.companies).toBe(-1);
+  });
+
+  it("nessun piano dichiara o riceve una copertura fonti non verificabile", () => {
+    for (const id of ["trial", "professional", "business", "executive", "enterprise"] as const) {
+      expect(CATALOG[id].limits.sourceTier).toBe(AVAILABLE_SOURCE_TIER);
+      expect(CATALOG[id].limits.crossVerification).toBe(false);
+      expect(CATALOG[id].limits.changeMonitoring).toBe(false);
+      expect(CATALOG[id].limits.apiAccess).toBe(false);
+    }
+    // Nessuna promessa temporale o di copertura differenziata nel copy pubblico.
+    for (const file of UI_FILES) {
+      const src = readFileSync(file, "utf8");
+      expect(src, file).not.toMatch(/2 volte al giorno|ogni 2 ore|ogni 15 minuti|ogni 5 minuti/);
+      expect(src, file).not.toMatch(/verifica incrociata|monitoraggio delle modifiche/i);
+      expect(src, file).not.toMatch(/verifiche approfondite/i);
+    }
   });
 
   it("mappa i vecchi codici piano senza rompere le righe esistenti", () => {
@@ -171,7 +180,7 @@ describe("prova gratuita molto visibile e senza carta", () => {
 describe("valore, limiti e affermazioni verificabili", () => {
   it("non limita mai il numero di opportunità pertinenti", () => {
     expect(PRODUCT_BOUNDARIES[0]).toContain("non è mai limitato");
-    expect(ALL).toContain("non è\n            mai limitato");
+    expect(ALL).toContain("non è mai limitato");
   });
 
   it("definisce Verificato con tutti gli elementi richiesti", () => {
@@ -201,9 +210,9 @@ describe("valore, limiti e affermazioni verificabili", () => {
   it("mantiene una FAQ coerente con il catalogo", () => {
     const faq = PRICING_FAQ.map((f) => `${f.q} ${f.a}`).join(" ");
     expect(faq).toContain("senza carta di credito");
-    expect(faq).toContain("ogni 2 ore");
-    expect(faq).toContain("ogni 5 minuti");
-    expect(faq).toContain("300 verifiche");
+    expect(faq).toContain("aggiornamenti programmati");
+    expect(faq).toContain("15 con Executive");
+    expect(faq).not.toMatch(/verifiche approfondite/i);
     expect(PRICING_FAQ.length).toBeGreaterThanOrEqual(6);
   });
 
@@ -224,13 +233,15 @@ describe("enforcement lato server, non solo nella UI", () => {
     expect(feedFunctions).toContain("claimSearchLane");
     expect(feedFunctions).toContain("FEED_NOT_ENTITLED");
     expect(feedFunctions).toContain("REFRESH_RATE_LIMITED");
-    expect(feedFunctions).toContain('entitlement.limits.sourceTier !== "core"');
+    expect(feedFunctions).toContain("AVAILABLE_SOURCE_TIER");
+    // Il gate vale anche su refresh e cache, non solo sul fetch.
+    expect(feedFunctions.match(/FEED_NOT_ENTITLED/g)?.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("verifiche e dossier consumano quota lato server", () => {
-    expect(usageFunctions).toContain("consumeQuota");
+  it("i dossier consumano quota lato server, in modo idempotente", () => {
+    expect(usageFunctions).toContain("consumeQuotaOnce");
     expect(usageFunctions).toContain("requireSupabaseAuth");
-    expect(usageFunctions).toContain("deep_verifications");
+    expect(usageFunctions).toContain("opportunity_id");
     expect(usageFunctions).toContain("EXPORT_NOT_INCLUDED");
     expect(readFileSync("src/routes/_authenticated/bando.$id.tsx", "utf8")).toContain(
       "claimDossier",
