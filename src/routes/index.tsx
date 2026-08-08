@@ -217,8 +217,8 @@ function Landing() {
           </h2>
           <p className="mt-3 text-muted-foreground">
             Cambia la capienza di utenti operativi, i dossier inclusi e le verifiche
-            approfondite e i dossier inclusi. Le opportunità pertinenti mostrate non sono mai
-            limitate. Annuale con 2 mesi inclusi.
+            approfondite. Le opportunità pertinenti mostrate non sono mai limitate. Annuale
+            con 2 mesi inclusi.
           </p>
         </div>
         <div className="mb-8 max-w-2xl">
