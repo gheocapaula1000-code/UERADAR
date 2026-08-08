@@ -148,7 +148,7 @@ async function ensureCustomer(userId: string, email: string | undefined) {
   const existing = (data as { provider_customer_id: string | null } | null)?.provider_customer_id;
   if (existing) return existing;
 
-  let created: { status: number; payload: Record<string, unknown> | null };
+  let created: Awaited<ReturnType<typeof providerCall>>;
   try {
     created = await providerCall(
       "customers",
