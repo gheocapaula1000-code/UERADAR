@@ -42,5 +42,4 @@
     "Billing (TEST only) runs in the app server runtime: server functions in src/lib/billing.functions.ts and the signed webhook route /api/public/billing-webhook.",
     "Billing required secrets: STRIPE_SECRET_KEY (sk_test_*), STRIPE_WEBHOOK_SECRET (whsec_*), STRIPE_PRICE_BUSINESS, STRIPE_PRICE_TEAM, optional UERADAR_APP_URL. Live keys are rejected at runtime."
   ]
-  ]
 }
