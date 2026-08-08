@@ -99,6 +99,73 @@ export function isTestModeObject(payload: Record<string, unknown> | null | undef
   return payload["livemode"] === false;
 }
 
+/**
+ * Verdetto esplicito sul modo dell'oggetto creato: distingue un oggetto live
+ * (bloccato) da un payload il cui modo non è dichiarato (ignoto ⇒ fail-closed).
+ */
+export function testModeVerdict(
+  payload: Record<string, unknown> | null | undefined,
+  unknownCode: string,
+): { ok: boolean; code: string } {
+  if (!payload) return { ok: false, code: unknownCode };
+  if (payload["livemode"] === true) return { ok: false, code: "LIVE_MODE_BLOCKED" };
+  if (payload["livemode"] !== false) return { ok: false, code: unknownCode };
+  return { ok: true, code: "OK" };
+}
+
+/** Identificatore provider con prefisso atteso (cus_, cs_, ...). */
+export function isProviderObjectId(value: unknown, prefix: string): value is string {
+  return typeof value === "string" && new RegExp(`^${prefix}[A-Za-z0-9_]+$`).test(value.trim());
+}
+
+/** URL di redirect accettata solo se https assoluta. */
+export function isProviderUrl(value: unknown): value is string {
+  if (typeof value !== "string" || !value.trim()) return false;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+type ProviderResponse = { status: number; payload: Record<string, unknown> | null };
+
+/** Gate post-write sul Customer creato: id cus_, status 200, livemode false. */
+export function customerCreationGate(res: ProviderResponse): { ok: boolean; code: string } {
+  if (res.status !== 200 || !isProviderObjectId(res.payload?.["id"], "cus_"))
+    return { ok: false, code: "CUSTOMER_CREATE_FAILED" };
+  return testModeVerdict(res.payload, "CUSTOMER_MODE_UNKNOWN");
+}
+
+/** Gate post-write sulla Checkout Session creata: id cs_, url https, livemode false. */
+export function checkoutSessionGate(res: ProviderResponse): { ok: boolean; code: string } {
+  if (
+    res.status !== 200 ||
+    !isProviderObjectId(res.payload?.["id"], "cs_") ||
+    !isProviderUrl(res.payload?.["url"])
+  )
+    return { ok: false, code: "PAYMENT_SESSION_FAILED" };
+  return testModeVerdict(res.payload, "CHECKOUT_MODE_UNKNOWN");
+}
+
+/** Gate sulla ripresa di una Checkout Session esistente: deve essere aperta e di test. */
+export function checkoutResumeGate(res: ProviderResponse | null): { ok: boolean; code: string } {
+  if (!res || res.status !== 200 || !isProviderObjectId(res.payload?.["id"], "cs_"))
+    return { ok: false, code: "CHECKOUT_RESUME_UNAVAILABLE" };
+  const mode = testModeVerdict(res.payload, "CHECKOUT_MODE_UNKNOWN");
+  if (!mode.ok) return mode;
+  if (res.payload?.["status"] !== "open" || !isProviderUrl(res.payload?.["url"]))
+    return { ok: false, code: "CHECKOUT_RESUME_UNAVAILABLE" };
+  return { ok: true, code: "OK" };
+}
+
+/** Gate post-write sulla sessione Portal: url https e livemode false. */
+export function portalSessionGate(res: ProviderResponse): { ok: boolean; code: string } {
+  if (res.status !== 200 || !isProviderUrl(res.payload?.["url"]))
+    return { ok: false, code: "PORTAL_FAILED" };
+  return testModeVerdict(res.payload, "PORTAL_MODE_UNKNOWN");
+}
+
 export function validateRemotePrice(
   remote: Record<string, unknown> | null,
   expected: PlanPrice,

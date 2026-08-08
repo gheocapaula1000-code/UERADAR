@@ -12,7 +12,10 @@ import {
   idempotencyKey,
   isMemberRole,
   checkoutTarget,
-  isTestModeObject,
+  checkoutResumeGate,
+  checkoutSessionGate,
+  customerCreationGate,
+  portalSessionGate,
   isValidPriceId,
   MEMBER_ROLES,
   priceKey,
@@ -145,20 +148,25 @@ async function ensureCustomer(userId: string, email: string | undefined) {
   const existing = (data as { provider_customer_id: string | null } | null)?.provider_customer_id;
   if (existing) return existing;
 
-  const created = await providerCall(
-    "customers",
-    env.secretKey,
-    {
-      email: email ?? "",
-      "metadata[supabase_user_id]": userId,
-      "metadata[app]": "ueradar",
-    },
-    idempotencyKey("customer", userId),
-  );
-  const id = created.payload?.["id"];
-  if (created.status !== 200 || typeof id !== "string") throw new Error("CUSTOMER_CREATE_FAILED");
-  // Post-write fail-closed: mai legare un Customer non dichiarato test.
-  if (!isTestModeObject(created.payload)) throw new Error("CUSTOMER_MODE_BLOCKED");
+  let created: Awaited<ReturnType<typeof providerCall>>;
+  try {
+    created = await providerCall(
+      "customers",
+      env.secretKey,
+      {
+        email: email ?? "",
+        "metadata[supabase_user_id]": userId,
+        "metadata[app]": "ueradar",
+      },
+      idempotencyKey("customer", userId),
+    );
+  } catch {
+    throw new Error("CUSTOMER_CREATE_FAILED");
+  }
+  // Post-write fail-closed: nessuna scrittura DB prima del controllo di modo.
+  const customerGate = customerCreationGate(created);
+  if (!customerGate.ok) throw new Error(customerGate.code);
+  const id = created.payload?.["id"] as string;
   const { error: linkError } = await admin
     .from("ueradar_subscriptions")
     .update({ provider: "stripe", provider_customer_id: id, billing_mode: "test" })
@@ -227,7 +235,12 @@ export const createPaymentSession = createServerFn({ method: "POST" })
     );
     if (!guard.allowed) return { ok: false, code: guard.reason };
 
-    const customerId = await ensureCustomer(context.userId, email);
+    let customerId: string;
+    try {
+      customerId = await ensureCustomer(context.userId, email);
+    } catch (err) {
+      return { ok: false, code: (err as Error).message || "CUSTOMER_CREATE_FAILED" };
+    }
 
     // Prenotazione checkout (QA-only): un solo checkout per volta per utente,
     // con TTL, così il primo collegamento nasce coerente con il Price scelto.
@@ -251,18 +264,22 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       // Ripresa idempotente: una prenotazione viva con sessione gia'
       // registrata riusa quella sessione. Mai crearne una seconda.
       if (claimed.code === "CHECKOUT_ALREADY_IN_PROGRESS" && claimed.session_id) {
-        const existing = await providerCall(
-          `checkout/sessions/${encodeURIComponent(claimed.session_id)}`,
-          env.secretKey,
-        );
-        const existingUrl = existing.payload?.["url"];
-        if (
-          existing.status === 200 &&
-          isTestModeObject(existing.payload) &&
-          existing.payload?.["status"] === "open" &&
-          typeof existingUrl === "string"
-        )
-          return { ok: true, url: existingUrl, code: "CHECKOUT_RESUMED" };
+        let existing: Awaited<ReturnType<typeof providerCall>> | null = null;
+        try {
+          existing = await providerCall(
+            `checkout/sessions/${encodeURIComponent(claimed.session_id)}`,
+            env.secretKey,
+          );
+        } catch {
+          existing = null;
+        }
+        const resume = checkoutResumeGate(existing);
+        if (resume.ok)
+          return {
+            ok: true,
+            url: existing?.payload?.["url"] as string,
+            code: "CHECKOUT_RESUMED",
+          };
       }
       return { ok: false, code: claimed.code ?? "CHECKOUT_ALREADY_IN_PROGRESS" };
     }
@@ -275,7 +292,9 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       });
     }
 
-    const session = await providerCall(
+    let session: Awaited<ReturnType<typeof providerCall>>;
+    try {
+      session = await providerCall(
       "checkout/sessions",
       env.secretKey,
       {
@@ -300,25 +319,26 @@ export const createPaymentSession = createServerFn({ method: "POST" })
         cancel_url: `${env.appUrl}/abbonamento?esito=annullato`,
       },
       idempotencyKey("checkout", context.userId, data.plan, data.interval, priceId),
-    );
-    const url = session.payload?.["url"];
-    if (session.status !== 200 || typeof url !== "string") {
+      );
+    } catch {
+      // Errore di rete/eccezione: prenotazione rilasciata e fail-closed.
       await releaseIntent();
       return { ok: false, code: "PAYMENT_SESSION_FAILED" };
     }
-    // Post-write fail-closed: una sessione non dichiarata test non viene mai usata.
-    if (!isTestModeObject(session.payload)) {
+    // Post-write fail-closed: nessun URL restituito o sessione attaccata
+    // finché il provider non dichiara esplicitamente livemode false.
+    const sessionGate = checkoutSessionGate(session);
+    if (!sessionGate.ok) {
       await releaseIntent();
-      return { ok: false, code: "CHECKOUT_MODE_BLOCKED" };
+      return { ok: false, code: sessionGate.code };
     }
 
     // Sessione registrata sulla prenotazione: abilita solo la ripresa idempotente.
-    const sessionId = session.payload?.["id"];
-    if (typeof sessionId === "string" && sessionId) {
+    {
       await adminClient().rpc("ueradar_attach_checkout_session", {
         _user_id: context.userId,
         _price_id: priceId,
-        _session_id: sessionId,
+        _session_id: session.payload?.["id"] as string,
       });
     }
 
@@ -328,7 +348,7 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       .eq("user_id", context.userId);
     if (priceError) return { ok: false, code: "SUBSCRIPTION_UPDATE_FAILED" };
 
-    return { ok: true, url, code: "OK" };
+    return { ok: true, url: session.payload?.["url"] as string, code: "OK" };
   });
 
 /** Portale cliente: fatture, dati fiscali e disdetta online senza comunicazione scritta. */
@@ -375,20 +395,25 @@ export const createPortalSession = createServerFn({ method: "POST" })
 
     // Finestra oraria: chiave deterministica ma senza riusare un link scaduto.
     const window = Math.floor(Date.now() / 3_600_000);
-    const session = await providerCall(
-      "billing_portal/sessions",
-      env.secretKey,
-      {
-        customer: customerId,
-        configuration: env.portalConfiguration,
-        return_url: `${env.appUrl}/abbonamento`,
-      },
-      idempotencyKey("portal", context.userId, window),
-    );
-    const url = session.payload?.["url"];
-    if (session.status !== 200 || typeof url !== "string")
+    let session: Awaited<ReturnType<typeof providerCall>>;
+    try {
+      session = await providerCall(
+        "billing_portal/sessions",
+        env.secretKey,
+        {
+          customer: customerId,
+          configuration: env.portalConfiguration,
+          return_url: `${env.appUrl}/abbonamento`,
+        },
+        idempotencyKey("portal", context.userId, window),
+      );
+    } catch {
       return { ok: false, code: "PORTAL_FAILED" };
-    return { ok: true, url, code: "OK" };
+    }
+    // Post-write fail-closed: nessun link restituito senza livemode false.
+    const portalGate = portalSessionGate(session);
+    if (!portalGate.ok) return { ok: false, code: portalGate.code };
+    return { ok: true, url: session.payload?.["url"] as string, code: "OK" };
   });
 
 export type CompanyMember = {
