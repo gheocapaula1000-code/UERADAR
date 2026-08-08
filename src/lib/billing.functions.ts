@@ -148,20 +148,27 @@ async function ensureCustomer(userId: string, email: string | undefined) {
   const existing = (data as { provider_customer_id: string | null } | null)?.provider_customer_id;
   if (existing) return existing;
 
-  const created = await providerCall(
-    "customers",
-    env.secretKey,
-    {
-      email: email ?? "",
-      "metadata[supabase_user_id]": userId,
-      "metadata[app]": "ueradar",
-    },
-    idempotencyKey("customer", userId),
-  );
+  let created: { status: number; payload: Record<string, unknown> | null };
+  try {
+    created = await providerCall(
+      "customers",
+      env.secretKey,
+      {
+        email: email ?? "",
+        "metadata[supabase_user_id]": userId,
+        "metadata[app]": "ueradar",
+      },
+      idempotencyKey("customer", userId),
+    );
+  } catch {
+    throw new Error("CUSTOMER_CREATE_FAILED");
+  }
   const id = created.payload?.["id"];
-  if (created.status !== 200 || typeof id !== "string") throw new Error("CUSTOMER_CREATE_FAILED");
-  // Post-write fail-closed: mai legare un Customer non dichiarato test.
-  if (!isTestModeObject(created.payload)) throw new Error("CUSTOMER_MODE_BLOCKED");
+  if (created.status !== 200 || !isProviderObjectId(id, "cus_"))
+    throw new Error("CUSTOMER_CREATE_FAILED");
+  // Post-write fail-closed: nessuna scrittura DB prima del controllo di modo.
+  const customerMode = testModeVerdict(created.payload, "CUSTOMER_MODE_UNKNOWN");
+  if (!customerMode.ok) throw new Error(customerMode.code);
   const { error: linkError } = await admin
     .from("ueradar_subscriptions")
     .update({ provider: "stripe", provider_customer_id: id, billing_mode: "test" })
