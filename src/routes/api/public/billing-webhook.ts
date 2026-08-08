@@ -282,7 +282,9 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           eventType === "customer.subscription.updated" ||
           eventType === "customer.subscription.deleted"
         ) {
-          const userId = await resolveUserId(asObj(object["metadata"]));
+          const lookup = await resolveUserId(asObj(object["metadata"]));
+          if (!lookup.ok) return settle("USER_LOOKUP_FAILED", false);
+          const userId = lookup.userId;
           // Nessun 200: l'evento resta ritentabile finché l'utente non è collegabile.
           if (!userId) return settle("USER_NOT_FOUND", false);
           const subscriptionId = str(object["id"]);
@@ -291,7 +293,9 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         }
 
         if (eventType === "checkout.session.completed") {
-          const userId = await resolveUserId(asObj(object["metadata"]));
+          const lookup = await resolveUserId(asObj(object["metadata"]));
+          if (!lookup.ok) return settle("USER_LOOKUP_FAILED", false);
+          const userId = lookup.userId;
           const subscriptionId = str(object["subscription"]);
           if (!subscriptionId) return settle("SESSION_WITHOUT_SUBSCRIPTION", true);
           if (!userId) return settle("USER_NOT_FOUND", false);
@@ -299,7 +303,9 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         }
 
         if (eventType === "invoice.paid" || eventType === "invoice.payment_failed") {
-          const userId = await resolveUserId(null);
+          const lookup = await resolveUserId(null);
+          if (!lookup.ok) return settle("USER_LOOKUP_FAILED", false);
+          const userId = lookup.userId;
           if (!userId) return settle("USER_NOT_FOUND", false);
           const subscriptionId = str(object["subscription"]);
           if (!subscriptionId) return settle("INVOICE_WITHOUT_SUBSCRIPTION", false);
