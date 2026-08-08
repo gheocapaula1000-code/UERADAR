@@ -12,6 +12,7 @@ import {
   idempotencyKey,
   isMemberRole,
   checkoutTarget,
+  isTestModeObject,
   isValidPriceId,
   MEMBER_ROLES,
   priceKey,
@@ -156,6 +157,8 @@ async function ensureCustomer(userId: string, email: string | undefined) {
   );
   const id = created.payload?.["id"];
   if (created.status !== 200 || typeof id !== "string") throw new Error("CUSTOMER_CREATE_FAILED");
+  // Post-write fail-closed: mai legare un Customer non dichiarato test.
+  if (!isTestModeObject(created.payload)) throw new Error("CUSTOMER_MODE_BLOCKED");
   const { error: linkError } = await admin
     .from("ueradar_subscriptions")
     .update({ provider: "stripe", provider_customer_id: id, billing_mode: "test" })
@@ -255,6 +258,7 @@ export const createPaymentSession = createServerFn({ method: "POST" })
         const existingUrl = existing.payload?.["url"];
         if (
           existing.status === 200 &&
+          isTestModeObject(existing.payload) &&
           existing.payload?.["status"] === "open" &&
           typeof existingUrl === "string"
         )
@@ -301,6 +305,11 @@ export const createPaymentSession = createServerFn({ method: "POST" })
     if (session.status !== 200 || typeof url !== "string") {
       await releaseIntent();
       return { ok: false, code: "PAYMENT_SESSION_FAILED" };
+    }
+    // Post-write fail-closed: una sessione non dichiarata test non viene mai usata.
+    if (!isTestModeObject(session.payload)) {
+      await releaseIntent();
+      return { ok: false, code: "CHECKOUT_MODE_BLOCKED" };
     }
 
     // Sessione registrata sulla prenotazione: abilita solo la ripresa idempotente.
