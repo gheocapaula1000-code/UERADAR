@@ -160,19 +160,21 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           return (data as { user_id: string } | null)?.user_id ?? null;
         }
 
+        type SyncOutcome = { ok: boolean; code: string; skippable: boolean };
+
         /**
          * Percorso unico per ogni evento che riguarda una subscription: si
          * rilegge la Subscription canonica dal provider e si applica in RPC
          * atomica. Nessuno stato deriva dal payload dell'evento.
          */
-        async function syncFromCanonical(subscriptionId: string, userId: string, okCode: string) {
+        async function canonicalSync(subscriptionId: string, userId: string): Promise<SyncOutcome> {
           const record = await loadRecord(userId);
           const fetched = await providerCall(
             `subscriptions/${encodeURIComponent(subscriptionId)}`,
             env.secretKey,
           );
           if (fetched.status !== 200 || !fetched.payload)
-            return settle("SUBSCRIPTION_FETCH_FAILED", false);
+            return { ok: false, code: "SUBSCRIPTION_FETCH_FAILED", skippable: false };
           const sub = fetched.payload;
           const guard = canonicalSubscriptionGuard({
             subscription: sub,
@@ -181,7 +183,7 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             linkedCustomerId: record?.provider_customer_id ?? null,
             priceMap: env.priceMap,
           });
-          if (!guard.ok) return settle(guard.code, false);
+          if (!guard.ok) return { ok: false, code: guard.code, skippable: false };
 
           const mapped = subscriptionUpdateFromEvent({
             status: sub["status"],
@@ -192,7 +194,8 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             customerId: str(sub["customer"]),
             priceMap: env.priceMap,
           });
-          if (!mapped.ok || !mapped.patch) return settle(mapped.code, false);
+          if (!mapped.ok || !mapped.patch)
+            return { ok: false, code: mapped.code, skippable: false };
 
           const decision = orderingDecision({
             eventCreatedAt,
@@ -201,21 +204,37 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             nextStatus: String(mapped.patch["status"]),
           });
           // Evento superato: chiusura riuscita senza scrivere.
-          if (!decision.ok) return settle(decision.code, true);
+          if (!decision.ok) return { ok: false, code: decision.code, skippable: true };
 
           const { data, error } = await admin.rpc("ueradar_billing_apply_subscription", {
             _user_id: userId,
             _event_created_at: eventCreatedAt,
             _patch: mapped.patch as never,
           });
-          if (error) return settle("SUBSCRIPTION_WRITE_FAILED", false);
+          if (error) return { ok: false, code: "SUBSCRIPTION_WRITE_FAILED", skippable: false };
           const applied = (data ?? {}) as { ok?: boolean; code?: string };
           // La RPC è l'arbitro finale dell'ordine: uno scarto non è un errore.
           if (!applied.ok) {
+            const code = applied.code ?? "SUBSCRIPTION_WRITE_FAILED";
+            // Ordine, cancellazione terminale e conflitto canonico a pari
+            // istante sono esiti deterministici: ritentare non cambia nulla.
             const skippable =
-              applied.code === "EVENT_OUT_OF_ORDER" || applied.code === "CANCELED_NOT_REACTIVATED";
-            return settle(applied.code ?? "SUBSCRIPTION_WRITE_FAILED", skippable);
+              code === "EVENT_OUT_OF_ORDER" ||
+              code === "CANCELED_NOT_REACTIVATED" ||
+              code === "CANONICAL_CONFLICT";
+            return { ok: false, code, skippable };
           }
+          return { ok: true, code: "APPLIED", skippable: false };
+        }
+
+        /** Sincronizza e chiude l'evento in un unico settle. */
+        async function syncFromCanonical(
+          subscriptionId: string,
+          userId: string,
+          okCode: string,
+        ) {
+          const outcome = await canonicalSync(subscriptionId, userId);
+          if (!outcome.ok) return settle(outcome.code, outcome.skippable);
           return settle(okCode, true);
         }
 
@@ -245,8 +264,14 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           if (!userId) return settle("USER_NOT_FOUND", false);
           const subscriptionId = str(object["subscription"]);
           if (!subscriptionId) return settle("INVOICE_WITHOUT_SUBSCRIPTION", false);
-          // La fattura aggiorna solo documento e dato fiscale: lo stato resta
-          // quello della Subscription canonica.
+
+          // Prima lo stato canonico: una fattura più recente non deve mai
+          // "consumare" l'ordine e far scartare un subscription.updated
+          // precedente. Nessuno stato è dedotto dalla fattura.
+          const sync = await canonicalSync(subscriptionId, userId);
+          if (!sync.ok && !sync.skippable) return settle(sync.code, false);
+
+          // Poi solo i metadati documentali, con cursore fattura separato.
           const taxIds = Array.isArray(object["customer_tax_ids"])
             ? (object["customer_tax_ids"] as unknown[])
             : [];
@@ -263,8 +288,9 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           if (!applied.ok)
             return settle(
               applied.code ?? "INVOICE_WRITE_FAILED",
-              applied.code === "EVENT_OUT_OF_ORDER",
+              applied.code === "INVOICE_OUT_OF_ORDER",
             );
+          // Un unico settle chiude sia la sincronizzazione sia la fattura.
           return settle("INVOICE_DOCUMENT_SYNCED", true);
         }
 

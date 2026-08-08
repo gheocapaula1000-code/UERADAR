@@ -157,10 +157,14 @@ describe("webhook: percorso canonico, lease e RPC atomica", () => {
     expect(SQL).toContain("LEASE_LOST");
   });
 
-  it("la funzione fattura non tocca la colonna di stato", () => {
-    const fn = SQL.slice(SQL.lastIndexOf("CREATE OR REPLACE FUNCTION public.ueradar_billing_apply_invoice"));
-    const body = fn.slice(0, fn.indexOf("$$;") + 3);
+  it("la funzione fattura non tocca la colonna di stato né l'ordine degli eventi", () => {
+    const start = SQL.lastIndexOf(
+      "CREATE OR REPLACE FUNCTION public.ueradar_billing_apply_invoice",
+    );
+    const body = SQL.slice(start, SQL.indexOf("$function$;", start) + 11);
     expect(body).toContain("latest_invoice_url");
+    expect(body).toContain("last_invoice_event_at");
+    expect(body).not.toContain("last_event_created_at");
     expect(body).not.toMatch(/SET[\s\S]*?\bstatus =/);
   });
 });

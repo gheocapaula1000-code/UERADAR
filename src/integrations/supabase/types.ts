@@ -357,6 +357,7 @@ export type Database = {
           created_at: string
           current_period_end: string | null
           last_event_created_at: string | null
+          last_invoice_event_at: string | null
           latest_invoice_url: string | null
           plan_code: string
           plan_seats: number
@@ -379,6 +380,7 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           last_event_created_at?: string | null
+          last_invoice_event_at?: string | null
           latest_invoice_url?: string | null
           plan_code?: string
           plan_seats?: number
@@ -401,6 +403,7 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           last_event_created_at?: string | null
+          last_invoice_event_at?: string | null
           latest_invoice_url?: string | null
           plan_code?: string
           plan_seats?: number
