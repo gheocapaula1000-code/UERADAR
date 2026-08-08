@@ -38,6 +38,8 @@
   "notes": [
     "Email digest is opt-in. In-app notifications work without Resend.",
     "Do not expose server secrets through VITE_* variables.",
-    "trovabandi-feed uses verify_jwt=false only to verify the user JWT manually via supabase.auth.getUser(token); it is fail-closed without an authenticated user."
+    "trovabandi-feed uses verify_jwt=false only to verify the user JWT manually via supabase.auth.getUser(token); it is fail-closed without an authenticated user.",
+    "Billing (TEST only) runs in the app server runtime: server functions in src/lib/billing.functions.ts and the signed webhook route /api/public/billing-webhook.",
+    "Billing required secrets: STRIPE_SECRET_KEY (sk_test_*), STRIPE_WEBHOOK_SECRET (whsec_*), STRIPE_PRICE_BUSINESS, STRIPE_PRICE_TEAM, optional UERADAR_APP_URL. Live keys are rejected at runtime."
   ]
 }

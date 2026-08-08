@@ -19,6 +19,8 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedProfiloRouteImport } from './routes/_authenticated/profilo'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedAbbonamentoRouteImport } from './routes/_authenticated/abbonamento'
+import { Route as ApiPublicBillingWebhookRouteImport } from './routes/api/public/billing-webhook'
 import { Route as AuthenticatedBandoIdRouteImport } from './routes/_authenticated/bando.$id'
 
 const TerminiRoute = TerminiRouteImport.update({
@@ -70,6 +72,17 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAbbonamentoRoute =
+  AuthenticatedAbbonamentoRouteImport.update({
+    id: '/abbonamento',
+    path: '/abbonamento',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const ApiPublicBillingWebhookRoute = ApiPublicBillingWebhookRouteImport.update({
+  id: '/api/public/billing-webhook',
+  path: '/api/public/billing-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedBandoIdRoute = AuthenticatedBandoIdRouteImport.update({
   id: '/bando/$id',
   path: '/bando/$id',
@@ -84,9 +97,11 @@ export interface FileRoutesByFullPath {
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
   '/termini': typeof TerminiRoute
+  '/abbonamento': typeof AuthenticatedAbbonamentoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/profilo': typeof AuthenticatedProfiloRoute
   '/bando/$id': typeof AuthenticatedBandoIdRoute
+  '/api/public/billing-webhook': typeof ApiPublicBillingWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -96,9 +111,11 @@ export interface FileRoutesByTo {
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
   '/termini': typeof TerminiRoute
+  '/abbonamento': typeof AuthenticatedAbbonamentoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/profilo': typeof AuthenticatedProfiloRoute
   '/bando/$id': typeof AuthenticatedBandoIdRoute
+  '/api/public/billing-webhook': typeof ApiPublicBillingWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -110,9 +127,11 @@ export interface FileRoutesById {
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
   '/termini': typeof TerminiRoute
+  '/_authenticated/abbonamento': typeof AuthenticatedAbbonamentoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/profilo': typeof AuthenticatedProfiloRoute
   '/_authenticated/bando/$id': typeof AuthenticatedBandoIdRoute
+  '/api/public/billing-webhook': typeof ApiPublicBillingWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -124,9 +143,11 @@ export interface FileRouteTypes {
     | '/prezzi'
     | '/privacy'
     | '/termini'
+    | '/abbonamento'
     | '/dashboard'
     | '/profilo'
     | '/bando/$id'
+    | '/api/public/billing-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -136,9 +157,11 @@ export interface FileRouteTypes {
     | '/prezzi'
     | '/privacy'
     | '/termini'
+    | '/abbonamento'
     | '/dashboard'
     | '/profilo'
     | '/bando/$id'
+    | '/api/public/billing-webhook'
   id:
     | '__root__'
     | '/'
@@ -149,9 +172,11 @@ export interface FileRouteTypes {
     | '/prezzi'
     | '/privacy'
     | '/termini'
+    | '/_authenticated/abbonamento'
     | '/_authenticated/dashboard'
     | '/_authenticated/profilo'
     | '/_authenticated/bando/$id'
+    | '/api/public/billing-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -163,6 +188,7 @@ export interface RootRouteChildren {
   PrezziRoute: typeof PrezziRoute
   PrivacyRoute: typeof PrivacyRoute
   TerminiRoute: typeof TerminiRoute
+  ApiPublicBillingWebhookRoute: typeof ApiPublicBillingWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -237,6 +263,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/abbonamento': {
+      id: '/_authenticated/abbonamento'
+      path: '/abbonamento'
+      fullPath: '/abbonamento'
+      preLoaderRoute: typeof AuthenticatedAbbonamentoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/billing-webhook': {
+      id: '/api/public/billing-webhook'
+      path: '/api/public/billing-webhook'
+      fullPath: '/api/public/billing-webhook'
+      preLoaderRoute: typeof ApiPublicBillingWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/bando/$id': {
       id: '/_authenticated/bando/$id'
       path: '/bando/$id'
@@ -248,12 +288,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAbbonamentoRoute: typeof AuthenticatedAbbonamentoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedProfiloRoute: typeof AuthenticatedProfiloRoute
   AuthenticatedBandoIdRoute: typeof AuthenticatedBandoIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAbbonamentoRoute: AuthenticatedAbbonamentoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedProfiloRoute: AuthenticatedProfiloRoute,
   AuthenticatedBandoIdRoute: AuthenticatedBandoIdRoute,
@@ -271,6 +313,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrezziRoute: PrezziRoute,
   PrivacyRoute: PrivacyRoute,
   TerminiRoute: TerminiRoute,
+  ApiPublicBillingWebhookRoute: ApiPublicBillingWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

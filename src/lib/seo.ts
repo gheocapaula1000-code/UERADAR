@@ -97,6 +97,13 @@ export const ROUTE_SEO = {
       "Area riservata: dettaglio dell'opportunità, requisiti, documenti, scadenze, canale ufficiale e dossier di candidatura generato dai dati verificati.",
     indexable: false,
   },
+  "/abbonamento": {
+    path: "/abbonamento",
+    title: "Abbonamento e utenti — area riservata di UEradar.com",
+    description:
+      "Area riservata: stato della prova gratuita, attivazione dei piani Business e Team, fatture, dati fiscali, disdetta online e utenti nominativi della tua impresa.",
+    indexable: false,
+  },
 } satisfies Record<string, RouteSeo>;
 
 export type SeoKey = keyof typeof ROUTE_SEO;

@@ -2,11 +2,19 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Building2, CreditCard, LogOut } from "lucide-react";
 import { BrandLogo } from "@/components/bandocore/BrandLogo";
 import { SiteFooter } from "@/components/bandocore/SiteFooter";
+import { EntitlementGate } from "@/components/bandocore/EntitlementGate";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { ReactNode } from "react";
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  requireEntitlement = true,
+}: {
+  children: ReactNode;
+  /** false solo per le pagine che devono restare raggiungibili senza abbonamento. */
+  requireEntitlement?: boolean;
+}) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -19,7 +27,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const nav = [
     { to: "/dashboard", label: "Radar Bandi", icon: LayoutDashboard },
     { to: "/profilo", label: "Profilo Azienda", icon: Building2 },
-    { to: "/prezzi", label: "Piano e prezzi", icon: CreditCard },
+    { to: "/abbonamento", label: "Abbonamento", icon: CreditCard },
   ] as const;
 
   return (
@@ -91,7 +99,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
         </header>
 
-        <main id="contenuto-principale" className="safe-x safe-bottom flex-1 overflow-y-auto">{children}</main>
+        <main id="contenuto-principale" className="safe-x safe-bottom flex-1 overflow-y-auto">
+          {requireEntitlement ? <EntitlementGate>{children}</EntitlementGate> : children}
+        </main>
         <SiteFooter />
       </div>
     </div>
