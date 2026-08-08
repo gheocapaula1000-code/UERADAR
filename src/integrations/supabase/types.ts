@@ -596,6 +596,16 @@ export type Database = {
         Returns: Json
       }
       ueradar_is_tenant_owner: { Args: never; Returns: boolean }
+      ueradar_release_search_lane: {
+        Args: {
+          _claimed_at: string
+          _lane: string
+          _period: string
+          _previous_at: string
+          _tenant: string
+        }
+        Returns: Json
+      }
       ueradar_start_trial: {
         Args: { _domain: string; _user_id: string; _vat: string }
         Returns: Json
