@@ -589,17 +589,30 @@ export type Database = {
         Args: { _event_id: string; _lease_token: string }
         Returns: boolean
       }
-      ueradar_billing_claim_event: {
-        Args: {
-          _customer: string
-          _event_created_at: string
-          _event_id: string
-          _event_type: string
-          _lease_seconds: number
-          _object_id: string
-        }
-        Returns: Json
-      }
+      ueradar_billing_claim_event:
+        | {
+            Args: {
+              _customer: string
+              _event_created_at: string
+              _event_id: string
+              _event_type: string
+              _lease_seconds: number
+              _object_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _customer: string
+              _event_created_at: string
+              _event_id: string
+              _event_type: string
+              _lease_seconds: number
+              _livemode: boolean
+              _object_id: string
+            }
+            Returns: Json
+          }
       ueradar_billing_settle_event: {
         Args: {
           _code: string
