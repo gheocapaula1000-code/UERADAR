@@ -36,6 +36,11 @@ export type BillingStatus = {
   configured: boolean;
   /** Checkout TEST realmente disponibile per questo utente (flag QA + allowlist). */
   checkout_available: boolean;
+  /**
+   * Portale disponibile solo se esiste già un cliente presso il provider:
+   * durante la prova non viene creata alcuna anagrafica di pagamento.
+   */
+  portal_available: boolean;
 };
 
 const SUB_COLUMNS =
@@ -52,6 +57,16 @@ type SubRow = {
   latest_invoice_url: string | null;
   tax_id: string | null;
 };
+
+/** Il portale è utile solo con un'anagrafica cliente già esistente. */
+export function portalAvailable(
+  row: { provider_customer_id: string | null } | null,
+  configured: boolean,
+  canManageBilling: boolean,
+): boolean {
+  const customer = row?.provider_customer_id?.trim() ?? "";
+  return configured && canManageBilling && customer.startsWith("cus_");
+}
 
 function toSnapshot(row: SubRow | null): SubscriptionSnapshot | null {
   if (!row) return null;
@@ -108,6 +123,11 @@ export const getBillingStatus = createServerFn({ method: "POST" })
       tax_id: (row as SubRow | null)?.tax_id ?? null,
       configured: mode.ok,
       checkout_available: mode.ok && qa.ok,
+      portal_available: portalAvailable(
+        (row as SubRow | null) ?? null,
+        mode.ok,
+        tenant.can_manage_billing,
+      ),
     };
   });
 
