@@ -62,7 +62,12 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         // Idempotenza: l'inserimento fallisce se l'evento è già stato elaborato.
         const { error: dedupeError } = await admin
           .from("ueradar_billing_events")
-          .insert({ event_id: eventId, event_type: eventType, livemode: false, payload: event });
+          .insert({
+            event_id: eventId,
+            event_type: eventType,
+            livemode: false,
+            payload: event as never,
+          });
         if (dedupeError)
           return Response.json({ ok: true, code: "ALREADY_PROCESSED" }, { status: 200 });
 
