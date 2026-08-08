@@ -3,7 +3,11 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   canAddMember,
+  canStartNewSubscription,
+  idempotencyKey,
+  isMemberRole,
   isValidPriceId,
+  MEMBER_ROLES,
   PLANS,
   planFromInput,
   resolveEntitlement,
@@ -87,25 +91,32 @@ async function ensureCustomer(userId: string, email: string | undefined) {
   const { readBillingEnv, providerCall, adminClient } = await import("./billing.server");
   const env = readBillingEnv();
   const admin = adminClient();
-  const { data } = await admin
+  const { data, error } = await admin
     .from("ueradar_subscriptions")
     .select("provider_customer_id")
     .eq("user_id", userId)
     .maybeSingle();
+  if (error) throw new Error("CUSTOMER_LOOKUP_FAILED");
   const existing = (data as { provider_customer_id: string | null } | null)?.provider_customer_id;
   if (existing) return existing;
 
-  const created = await providerCall("customers", env.secretKey, {
-    email: email ?? "",
-    "metadata[supabase_user_id]": userId,
-    "metadata[app]": "ueradar",
-  });
+  const created = await providerCall(
+    "customers",
+    env.secretKey,
+    {
+      email: email ?? "",
+      "metadata[supabase_user_id]": userId,
+      "metadata[app]": "ueradar",
+    },
+    idempotencyKey("customer", userId),
+  );
   const id = created.payload?.["id"];
   if (created.status !== 200 || typeof id !== "string") throw new Error("CUSTOMER_CREATE_FAILED");
-  await admin
+  const { error: linkError } = await admin
     .from("ueradar_subscriptions")
     .update({ provider: "stripe", provider_customer_id: id, billing_mode: "test" })
     .eq("user_id", userId);
+  if (linkError) throw new Error("CUSTOMER_LINK_FAILED");
   return id;
 }
 
@@ -126,36 +137,54 @@ export const createPaymentSession = createServerFn({ method: "POST" })
     const priceId = env.priceMap[plan.id];
     if (!priceId || !isValidPriceId(priceId)) return { ok: false, code: "PRICE_NOT_CONFIGURED" };
 
+    // Nessuna seconda sottoscrizione se ne esiste già una attiva o in prova presso il provider.
+    const { data: current, error: currentError } = await context.supabase
+      .from("ueradar_subscriptions")
+      .select("status, provider_subscription_id")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (currentError) return { ok: false, code: "SUBSCRIPTION_LOOKUP_FAILED" };
+    const guard = canStartNewSubscription(
+      current as { status: string | null; provider_subscription_id: string | null } | null,
+    );
+    if (!guard.allowed) return { ok: false, code: guard.reason };
+
     const email = (context.claims as { email?: string } | undefined)?.email;
     const customerId = await ensureCustomer(context.userId, email);
 
-    const session = await providerCall("checkout/sessions", env.secretKey, {
-      mode: "subscription",
-      customer: customerId,
-      "line_items[0][price]": priceId,
-      "line_items[0][quantity]": "1",
-      // Prezzi 299/599 IVA esclusa: l'imposta è calcolata dal provider.
-      "automatic_tax[enabled]": "true",
-      "customer_update[address]": "auto",
-      "customer_update[name]": "auto",
-      tax_id_collection: "true",
-      billing_address_collection: "required",
-      "subscription_data[metadata][supabase_user_id]": context.userId,
-      "subscription_data[metadata][plan_id]": plan.id,
-      "metadata[supabase_user_id]": context.userId,
-      "metadata[plan_id]": plan.id,
-      client_reference_id: context.userId,
-      success_url: `${env.appUrl}/abbonamento?esito=ok`,
-      cancel_url: `${env.appUrl}/abbonamento?esito=annullato`,
-    });
+    const session = await providerCall(
+      "checkout/sessions",
+      env.secretKey,
+      {
+        mode: "subscription",
+        customer: customerId,
+        "line_items[0][price]": priceId,
+        "line_items[0][quantity]": "1",
+        // Prezzi 299/599 IVA esclusa: l'imposta è calcolata dal provider.
+        "automatic_tax[enabled]": "true",
+        "customer_update[address]": "auto",
+        "customer_update[name]": "auto",
+        "tax_id_collection[enabled]": "true",
+        billing_address_collection: "required",
+        "subscription_data[metadata][supabase_user_id]": context.userId,
+        "subscription_data[metadata][plan_id]": plan.id,
+        "metadata[supabase_user_id]": context.userId,
+        "metadata[plan_id]": plan.id,
+        client_reference_id: context.userId,
+        success_url: `${env.appUrl}/abbonamento?esito=ok`,
+        cancel_url: `${env.appUrl}/abbonamento?esito=annullato`,
+      },
+      idempotencyKey("checkout", context.userId, plan.id, priceId),
+    );
     const url = session.payload?.["url"];
     if (session.status !== 200 || typeof url !== "string")
       return { ok: false, code: "PAYMENT_SESSION_FAILED" };
 
-    await adminClient()
+    const { error: priceError } = await adminClient()
       .from("ueradar_subscriptions")
       .update({ stripe_price_id: priceId, plan_seats: PLANS[plan.id].seats })
       .eq("user_id", context.userId);
+    if (priceError) return { ok: false, code: "SUBSCRIPTION_UPDATE_FAILED" };
 
     return { ok: true, url, code: "OK" };
   });
@@ -171,10 +200,17 @@ export const createPortalSession = createServerFn({ method: "POST" })
 
     const email = (context.claims as { email?: string } | undefined)?.email;
     const customerId = await ensureCustomer(context.userId, email);
-    const session = await providerCall("billing_portal/sessions", env.secretKey, {
-      customer: customerId,
-      return_url: `${env.appUrl}/abbonamento`,
-    });
+    // Finestra oraria: chiave deterministica ma senza riusare un link scaduto.
+    const window = Math.floor(Date.now() / 3_600_000);
+    const session = await providerCall(
+      "billing_portal/sessions",
+      env.secretKey,
+      {
+        customer: customerId,
+        return_url: `${env.appUrl}/abbonamento`,
+      },
+      idempotencyKey("portal", context.userId, window),
+    );
     const url = session.payload?.["url"];
     if (session.status !== 200 || typeof url !== "string")
       return { ok: false, code: "PORTAL_FAILED" };
