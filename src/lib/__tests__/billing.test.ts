@@ -244,11 +244,12 @@ describe("sicurezza dell'integrazione di pagamento", () => {
 
   it("verifica firma e idempotenza prima di qualunque scrittura", () => {
     expect(webhook).toContain("verifyWebhookSignature");
-    expect(webhook).toContain("ueradar_billing_events");
+    // La presa in carico avviene tramite RPC atomica con lease, non con una scrittura diretta.
+    expect(webhook).toContain("ueradar_billing_claim_event");
     expect(webhook).toContain("ALREADY_PROCESSED");
     expect(webhook).toContain("LIVE_MODE_BLOCKED");
     expect(webhook.indexOf("verifyWebhookSignature")).toBeLessThan(
-      webhook.indexOf("ueradar_billing_events"),
+      webhook.indexOf("ueradar_billing_claim_event"),
     );
   });
 
@@ -332,17 +333,18 @@ describe("gate di review Stripe TEST", () => {
   it("il webhook non salva il payload completo e non brucia l'evento prima delle scritture", () => {
     const src = readFileSync("src/routes/api/public/billing-webhook.ts", "utf8");
     expect(src).not.toMatch(/payload:\s*event/);
-    expect(src).toContain('status: "processing"');
-    expect(src).toContain('status: ok ? "succeeded" : "failed"');
+    // Il claim marca processing e il settle chiude l'evento, entrambi lato database.
+    expect(src).toContain("ueradar_billing_claim_event");
+    expect(src).toContain("ueradar_billing_settle_event");
+    expect(src).toContain("_ok: ok");
     // Nessun 200 che consuma l'evento quando l'utente non è collegabile.
     expect(src).toContain('settle("USER_NOT_FOUND", false)');
     expect(src).not.toMatch(/Response\.json\(\{\s*ok:\s*true,\s*code:\s*"USER_NOT_FOUND"/);
     for (const guard of [
       "SUBSCRIPTION_WRITE_FAILED",
-      "CHECKOUT_WRITE_FAILED",
       "INVOICE_WRITE_FAILED",
       "SUBSCRIPTION_FETCH_FAILED",
-      "EVENT_RETRY_FAILED",
+      "EVENT_SETTLE_FAILED",
     ]) {
       expect(src).toContain(guard);
     }

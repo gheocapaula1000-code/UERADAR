@@ -14,12 +14,15 @@ export const TRIAL_COPY = {
   ctaNote: "Non ti chiederemo alcun metodo di pagamento.",
 } as const;
 
-/** Cosa offre temporaneamente la prova: livello Business, capienza minima. */
+/**
+ * Perimetro reale della prova, descritto senza riferimenti a un piano a
+ * pagamento: sono i limiti effettivamente applicati lato server.
+ */
 export const TRIAL_SCOPE: readonly string[] = [
-  "Livello Business per 7 giorni",
-  "1 impresa e 1 utente",
-  "2 obiettivi",
-  "1 anteprima dossier filigranata",
+  "7 giorni, nessuna carta e nessun addebito",
+  "1 impresa e 1 titolare",
+  "Massimo 2 obiettivi di investimento",
+  "1 dossier, in versione filigranata",
 ];
 
 /** Una prova ogni 12 mesi per Partita IVA e per dominio aziendale. */

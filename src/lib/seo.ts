@@ -33,7 +33,7 @@ export const ROUTE_SEO = {
     path: "/prezzi",
     title: "Prezzi UEradar.com — Professional, Business ed Executive",
     description:
-      "Professional, Business ed Executive: aggiornamenti programmati, utenti operativi e dossier inclusi a confronto. Prezzi IVA esclusa e 7 giorni gratuiti senza carta.",
+      "Professional, Business ed Executive a confronto: utenti operativi e dossier inclusi, con fonti ufficiali disponibili. Prezzi IVA esclusa e 7 giorni gratuiti senza carta.",
     indexable: true,
     ogType: "website",
   },
@@ -94,14 +94,14 @@ export const ROUTE_SEO = {
     path: "/bando",
     title: "Dettaglio del bando — area riservata di UEradar.com",
     description:
-      "Area riservata: dettaglio dell'opportunità, requisiti, documenti, scadenze, canale ufficiale e dossier di candidatura generato dai dati verificati.",
+      "Area riservata: dettaglio dell'opportunità, requisiti, documenti, scadenze, canale ufficiale e dossier di candidatura generato dai dati presenti dalla fonte ufficiale.",
     indexable: false,
   },
   "/abbonamento": {
     path: "/abbonamento",
     title: "Abbonamento e utenti — area riservata di UEradar.com",
     description:
-      "Area riservata: stato della prova gratuita, attivazione dei piani Business e Team, fatture, dati fiscali, disdetta online e utenti operativi della tua impresa.",
+      "Area riservata: stato della prova gratuita, piani disponibili, fatture, dati fiscali, disdetta online e utenti operativi della tua impresa.",
     indexable: false,
   },
 } satisfies Record<string, RouteSeo>;

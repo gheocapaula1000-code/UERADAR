@@ -73,7 +73,10 @@ export const ENTERPRISE_PLAN = {
 /** Compatibilità con la pagina abbonamento: stessa fonte, stesso testo. */
 export const CUSTOM_PLAN = ENTERPRISE_PLAN;
 
-/** Che cosa significa esattamente "Verificato" in UEradar. */
+/**
+ * Campi obbligatori dell'etichetta "Verificato": se anche uno manca, la
+ * label non viene mostrata (fail-closed). Non è una garanzia di ammissibilità.
+ */
 export const VERIFIED_DEFINITION: readonly string[] = [
   "Fonte ufficiale raggiungibile",
   "Data e versione del documento",
@@ -88,7 +91,6 @@ export const PRODUCT_BOUNDARIES: readonly string[] = [
   "Il numero di opportunità pertinenti mostrate non è mai limitato.",
   "Il dossier prepara e precompila per la tua revisione: non invia nulla agli enti.",
   "UEradar non sostituisce il consulente o il professionista incaricato.",
-  "I tempi di notifica si misurano dal momento del rilevamento da parte di UEradar.",
   "Gli utenti indicati nei piani sono capienza tecnica, non la leva di valore.",
 ];
 
@@ -97,7 +99,7 @@ export const TRIAL_TERMS: readonly string[] = [
   `${TRIAL_COPY.noCard}.`,
   TRIAL_COPY.noCharge,
   TRIAL_COPY.ctaNote,
-  "La prova offre temporaneamente il livello Business con 1 impresa, 1 utente, 2 obiettivi e 1 anteprima dossier filigranata.",
+  "Perimetro della prova: 1 impresa, 1 titolare, massimo 2 obiettivi e 1 dossier in versione filigranata.",
   "Una prova per Partita IVA e per dominio aziendale ogni 12 mesi.",
   "Cancellazione online, senza disdetta scritta e senza PEC.",
   "Tutti i prezzi sono IVA esclusa; l'annuale include 2 mesi.",
@@ -118,8 +120,8 @@ export const ARCHITECTURE_NOTES: readonly { t: string; d: string }[] = [
     d: "Profilo impresa, documenti, checklist compilate e dossier restano isolati per impresa e non sono mai condivisi con altre imprese.",
   },
   {
-    t: "Cadenze e verifiche misurate",
-    d: "Frequenza degli aggiornamenti e dossier inclusi sono applicati lato server secondo il piano attivo, non dal browser.",
+    t: "Limiti applicati lato server",
+    d: "I dossier inclusi e i limiti del piano attivo sono applicati dal servizio, non dal browser: il browser non può ampliarli.",
   },
 ];
 
@@ -134,11 +136,11 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Che differenza c'è tra Professional, Business ed Executive?",
-    a: "Le fonti ufficiali consultate sono le stesse per tutti i piani self-service. I piani si distinguono per capienza di utenti operativi e dossier inclusi: 1 dossier al mese con Professional, 5 con Business, 15 con Executive.",
+    a: "Le fonti ufficiali disponibili sono le stesse per tutti i piani self-service. I piani si distinguono per capienza di utenti operativi e dossier inclusi: 1 dossier al mese con Professional, 5 con Business, 15 con Executive.",
   },
   {
-    q: "Cosa significa Verificato?",
-    a: "Una opportunità è Verificata solo con fonte ufficiale raggiungibile, data e versione, stato, scadenza, beneficiari, territorio, intensità del contributo, spese ammissibili e documenti richiesti.",
+    q: "Cosa significa l'etichetta Verificato?",
+    a: "Indica soltanto che sono presenti i dati obbligatori provenienti dalla fonte ufficiale: fonte raggiungibile, data e versione, stato, scadenza, beneficiari, territorio, intensità del contributo, spese ammissibili e documenti richiesti. Se anche uno solo manca, l'etichetta non viene mostrata. Non è una garanzia assoluta di ammissibilità: la verifica finale resta sul documento dell'ente.",
   },
   {
     q: "Il dossier invia la domanda al posto mio?",
@@ -151,10 +153,6 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   {
     q: "Quanto costa l'annuale?",
     a: "L'annuale include 2 mesi: 4.990 € per Professional, 9.900 € per Business e 19.900 € per Executive, sempre IVA esclusa.",
-  },
-  {
-    q: "Da quando si misurano i tempi di notifica?",
-    a: "Dal momento del rilevamento da parte di UEradar, non dalla pubblicazione originale dell'ente.",
   },
   {
     q: "Posso gestire più imprese?",

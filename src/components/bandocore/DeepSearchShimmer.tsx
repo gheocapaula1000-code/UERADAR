@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { Radar, FileSearch, Landmark, ScrollText, Building2 } from "lucide-react";
 
 const STAGES: { icon: typeof Radar; label: string }[] = [
-  { icon: Radar, label: "Consultazione fonti ufficiali territoriali…" },
-  { icon: ScrollText, label: "Lettura bollettini e avvisi ufficiali…" },
-  { icon: FileSearch, label: "Analisi degli allegati ufficiali…" },
-  { icon: Landmark, label: "Verifica provvedimenti ministeriali pubblicati…" },
-  { icon: Building2, label: "Verifica fonti locali e specialistiche…" },
+  { icon: Radar, label: "Aggiornamento catalogo in corso…" },
+  { icon: ScrollText, label: "Lettura delle fonti ufficiali disponibili…" },
+  { icon: FileSearch, label: "Raccolta dei dati presenti nei documenti…" },
+  { icon: Landmark, label: "Confronto con il profilo della tua impresa…" },
+  { icon: Building2, label: "Preparazione dei risultati con fonte e dati presenti…" },
 ];
 
 /** Stato di caricamento del catalogo aggiornato dal servizio. */

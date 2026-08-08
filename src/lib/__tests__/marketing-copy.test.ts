@@ -33,6 +33,17 @@ const FORBIDDEN: RegExp[] = [
   /Proxy[- ]Core/i,
   /Sommers[ae]/i,
   /Click Day Fantasma/i,
+  // Cadenze, invii e verifiche non dimostrabili: fail-closed sul copy.
+  /aggiornamenti programmati/i,
+  /avvisi automatici/i,
+  /notifiche automatiche/i,
+  /verifiche approfondite/i,
+  /in tempo reale/i,
+  /ogni ora/i,
+  /24\/7/,
+  /quotidian[ao]/i,
+  /tempi di notifica/i,
+  /ti avvisiamo/i,
 ];
 
 /** Ignora import e path di modulo: il test verifica il copy, non i nomi tecnici interni. */
@@ -44,6 +55,15 @@ function copyOnly(src: string): string {
 }
 
 describe("copy pubblico e autenticato", () => {
+  it("descrive la prova con il perimetro reale, senza rimandi a un piano a pagamento", async () => {
+    const { TRIAL_SCOPE } = await import("@/lib/trial");
+    const joined = TRIAL_SCOPE.join(" | ");
+    expect(joined).not.toMatch(/Business/i);
+    expect(joined).toMatch(/1 impresa/i);
+    expect(joined).toMatch(/2 obiettivi/i);
+    expect(joined).toMatch(/filigranat/i);
+  });
+
   it("non contiene claim non dimostrabili né riferimenti al fornitore tecnico", () => {
     const hits: string[] = [];
     for (const f of UI_FILES) {

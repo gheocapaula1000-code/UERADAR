@@ -187,7 +187,7 @@ function Pricing() {
 
         <section className="mt-12 grid gap-6 md:grid-cols-2">
           <div className="rounded-2xl border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold">Quando una opportunità è "Verificata"</h2>
+            <h2 className="text-lg font-semibold">Quando compare l'etichetta "Verificato"</h2>
             <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
               {VERIFIED_DEFINITION.map((v) => (
                 <li key={v} className="flex items-start gap-2">

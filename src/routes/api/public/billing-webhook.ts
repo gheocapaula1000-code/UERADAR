@@ -1,33 +1,31 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   billingEventMetadata,
+  canonicalPriceId,
+  canonicalSubscriptionGuard,
   eventIsApplicable,
-  invoiceUpdateAllowed,
-  normalizeStatus,
+  orderingDecision,
   subscriptionUpdateFromEvent,
   verifyWebhookSignature,
 } from "@/lib/billing";
 
 type Obj = Record<string, unknown>;
 
-/** Oltre questa finestra un evento "processing" è considerato appeso. */
-const PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
+/** Durata della presa in carico dell'evento: oltre, un retry può reclamarlo. */
+const LEASE_SECONDS = 300;
 
 function asObj(value: unknown): Obj | null {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Obj) : null;
 }
 
-function priceFromSubscription(sub: Obj): string | null {
-  const items = asObj(sub["items"]);
-  const data = Array.isArray(items?.["data"]) ? (items["data"] as unknown[]) : [];
-  const first = asObj(data[0]);
-  const price = asObj(first?.["price"]);
-  return typeof price?.["id"] === "string" ? (price["id"] as string) : null;
+function str(value: unknown): string | null {
+  return typeof value === "string" && value ? value : null;
 }
 
 /**
- * Webhook di fatturazione: firmato, idempotente e limitato alla modalità test.
- * Nessuna scrittura avviene prima della verifica della firma.
+ * Webhook di fatturazione: firmato, in sola modalità test, con presa in carico
+ * esclusiva a scadenza e stato derivato unicamente dalla Subscription canonica
+ * recuperata dal provider. Nessuna scrittura prima della verifica della firma.
  */
 export const Route = createFileRoute("/api/public/billing-webhook")({
   server: {
@@ -67,103 +65,88 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         if (event["livemode"] !== false)
           return Response.json({ ok: false, code: "LIVE_MODE_BLOCKED" }, { status: 400 });
 
-        const eventId = typeof event["id"] === "string" ? (event["id"] as string) : "";
-        const eventType = typeof event["type"] === "string" ? (event["type"] as string) : "";
+        const eventId = str(event["id"]);
+        const eventType = str(event["type"]);
         if (!eventId || !eventType)
           return Response.json({ ok: false, code: "INVALID_EVENT" }, { status: 400 });
 
-        const admin = adminClient();
-        const meta = billingEventMetadata(event);
-        // Ordinamento: senza timestamp l'evento non è applicabile.
         const ordering = eventIsApplicable(event["created"], null);
         if (!ordering.createdAt)
           return Response.json({ ok: false, code: ordering.code }, { status: 400 });
         const eventCreatedAt = ordering.createdAt;
 
-        // Prenotazione dell'evento: solo i metadati minimi, mai il contenuto ricevuto.
-        const { error: reserveError } = await admin
-          .from("ueradar_billing_events")
-          .insert({
-            ...meta,
-            livemode: false,
-            status: "processing",
-            attempts: 1,
-            event_created_at: eventCreatedAt,
-          });
+        const admin = adminClient();
+        const meta = billingEventMetadata(event);
 
-        if (reserveError) {
-          // Riga già presente: elaborata → nessun lavoro. Altrimenti la ripresa
-          // è concessa a un solo worker, e solo se il precedente è fallito o
-          // è rimasto appeso oltre la finestra di elaborazione.
-          const { data: prior, error: priorError } = await admin
-            .from("ueradar_billing_events")
-            .select("status, attempts")
-            .eq("event_id", eventId)
-            .maybeSingle();
-          if (priorError)
-            return Response.json({ ok: false, code: "EVENT_STATE_UNAVAILABLE" }, { status: 500 });
-          if ((prior as { status: string } | null)?.status === "succeeded")
+        // Presa in carico esclusiva con lease: solo i metadati minimi.
+        const { data: claimData, error: claimError } = await admin.rpc(
+          "ueradar_billing_claim_event",
+          {
+            _event_id: eventId,
+            _event_type: meta.event_type,
+            _object_id: meta.object_id ?? "",
+            _customer: meta.provider_customer_id ?? "",
+            _event_created_at: eventCreatedAt,
+            _lease_seconds: LEASE_SECONDS,
+          },
+        );
+        if (claimError)
+          return Response.json({ ok: false, code: "EVENT_STATE_UNAVAILABLE" }, { status: 500 });
+        const claim = (claimData ?? {}) as { ok?: boolean; code?: string; lease_token?: string };
+        if (!claim.ok) {
+          if (claim.code === "ALREADY_PROCESSED")
             return Response.json({ ok: true, code: "ALREADY_PROCESSED" }, { status: 200 });
-          const staleBefore = new Date(Date.now() - PROCESSING_TIMEOUT_MS).toISOString();
-          const { data: claimed, error: retryError } = await admin
-            .from("ueradar_billing_events")
-            .update({
-              status: "processing",
-              error_code: null,
-              attempts: ((prior as { attempts?: number } | null)?.attempts ?? 1) + 1,
-            })
-            .eq("event_id", eventId)
-            .or(`status.eq.failed,and(status.eq.processing,updated_at.lt.${staleBefore})`)
-            .select("event_id");
-          if (retryError)
-            return Response.json({ ok: false, code: "EVENT_RETRY_FAILED" }, { status: 500 });
-          // Nessuna riga rivendicata: un altro worker sta già elaborando l'evento.
-          if (!claimed || claimed.length === 0)
-            return Response.json(
-              { ok: false, code: "EVENT_ALREADY_IN_PROGRESS" },
-              { status: 409 },
-            );
+          return Response.json(
+            { ok: false, code: claim.code ?? "EVENT_ALREADY_IN_PROGRESS" },
+            { status: 409 },
+          );
         }
+        const leaseToken = claim.lease_token ?? "";
 
-        /** Chiude l'evento: solo un esito riuscito lo consuma definitivamente. */
+        /**
+         * Chiude l'evento solo se la presa in carico è ancora nostra: un worker
+         * scaduto non può sovrascrivere l'esito di chi ha reclamato l'evento.
+         */
         async function settle(code: string, ok: boolean, httpStatus = ok ? 200 : 500) {
-          const { error: settleError } = await admin
-            .from("ueradar_billing_events")
-            .update({
-              status: ok ? "succeeded" : "failed",
-              error_code: ok ? null : code,
-              processed_at: ok ? new Date().toISOString() : null,
-            })
-            .eq("event_id", eventId);
-          // La chiusura non può essere ignorata: senza conferma l'evento resta
-          // ritentabile e il chiamante riceve un errore esplicito.
-          if (settleError)
+          const { data, error } = await admin.rpc("ueradar_billing_settle_event", {
+            _event_id: eventId!,
+            _lease_token: leaseToken,
+            _ok: ok,
+            _code: code,
+          });
+          if (error)
             return Response.json(
               { ok: false, code: "EVENT_SETTLE_FAILED", outcome: code },
               { status: 500 },
             );
+          const settled = (data ?? {}) as { ok?: boolean; code?: string };
+          // Lease perso: l'esito appartiene al worker che ha reclamato l'evento.
+          if (!settled.ok)
+            return Response.json(
+              { ok: false, code: "EVENT_LEASE_LOST", outcome: code },
+              { status: 409 },
+            );
           return Response.json({ ok, code }, { status: httpStatus });
         }
 
-        /**
-         * Lettura del record con il timestamp dell'ultimo evento applicato:
-         * un evento più vecchio non retrocede né riattiva lo stato.
-         */
         async function loadRecord(userId: string) {
           const { data } = await admin
             .from("ueradar_subscriptions")
-            .select("provider_subscription_id, last_event_created_at")
+            .select("status, provider_customer_id, provider_subscription_id, last_event_created_at")
             .eq("user_id", userId)
             .maybeSingle();
-          return (data as {
-            provider_subscription_id: string | null;
-            last_event_created_at: string | null;
-          } | null) ?? null;
+          return (
+            (data as {
+              status: string | null;
+              provider_customer_id: string | null;
+              provider_subscription_id: string | null;
+              last_event_created_at: string | null;
+            } | null) ?? null
+          );
         }
 
         const object = asObj(asObj(event["data"])?.["object"]) ?? {};
-        const customerId =
-          typeof object["customer"] === "string" ? (object["customer"] as string) : null;
+        const customerId = str(object["customer"]);
 
         async function resolveUserId(metadata: Obj | null): Promise<string | null> {
           const fromMeta = metadata?.["supabase_user_id"];
@@ -177,6 +160,65 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           return (data as { user_id: string } | null)?.user_id ?? null;
         }
 
+        /**
+         * Percorso unico per ogni evento che riguarda una subscription: si
+         * rilegge la Subscription canonica dal provider e si applica in RPC
+         * atomica. Nessuno stato deriva dal payload dell'evento.
+         */
+        async function syncFromCanonical(subscriptionId: string, userId: string, okCode: string) {
+          const record = await loadRecord(userId);
+          const fetched = await providerCall(
+            `subscriptions/${encodeURIComponent(subscriptionId)}`,
+            env.secretKey,
+          );
+          if (fetched.status !== 200 || !fetched.payload)
+            return settle("SUBSCRIPTION_FETCH_FAILED", false);
+          const sub = fetched.payload;
+          const guard = canonicalSubscriptionGuard({
+            subscription: sub,
+            expectedSubscriptionId: subscriptionId,
+            expectedCustomerId: customerId,
+            linkedCustomerId: record?.provider_customer_id ?? null,
+            priceMap: env.priceMap,
+          });
+          if (!guard.ok) return settle(guard.code, false);
+
+          const mapped = subscriptionUpdateFromEvent({
+            status: sub["status"],
+            currentPeriodEnd: sub["current_period_end"],
+            cancelAtPeriodEnd: sub["cancel_at_period_end"],
+            priceId: canonicalPriceId(sub),
+            subscriptionId,
+            customerId: str(sub["customer"]),
+            priceMap: env.priceMap,
+          });
+          if (!mapped.ok || !mapped.patch) return settle(mapped.code, false);
+
+          const decision = orderingDecision({
+            eventCreatedAt,
+            lastAppliedAt: record?.last_event_created_at ?? null,
+            currentStatus: record?.status ?? null,
+            nextStatus: String(mapped.patch["status"]),
+          });
+          // Evento superato: chiusura riuscita senza scrivere.
+          if (!decision.ok) return settle(decision.code, true);
+
+          const { data, error } = await admin.rpc("ueradar_billing_apply_subscription", {
+            _user_id: userId,
+            _event_created_at: eventCreatedAt,
+            _patch: mapped.patch as never,
+          });
+          if (error) return settle("SUBSCRIPTION_WRITE_FAILED", false);
+          const applied = (data ?? {}) as { ok?: boolean; code?: string };
+          // La RPC è l'arbitro finale dell'ordine: uno scarto non è un errore.
+          if (!applied.ok) {
+            const skippable =
+              applied.code === "EVENT_OUT_OF_ORDER" || applied.code === "CANCELED_NOT_REACTIVATED";
+            return settle(applied.code ?? "SUBSCRIPTION_WRITE_FAILED", skippable);
+          }
+          return settle(okCode, true);
+        }
+
         if (
           eventType === "customer.subscription.created" ||
           eventType === "customer.subscription.updated" ||
@@ -185,105 +227,45 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           const userId = await resolveUserId(asObj(object["metadata"]));
           // Nessun 200: l'evento resta ritentabile finché l'utente non è collegabile.
           if (!userId) return settle("USER_NOT_FOUND", false);
-          const record = await loadRecord(userId);
-          const order = eventIsApplicable(event["created"], record?.last_event_created_at);
-          if (!order.ok) return settle(order.code, true);
-          const mapped = subscriptionUpdateFromEvent({
-            status:
-              eventType === "customer.subscription.deleted" ? "canceled" : object["status"],
-            currentPeriodEnd: object["current_period_end"],
-            cancelAtPeriodEnd: object["cancel_at_period_end"],
-            priceId: priceFromSubscription(object),
-            subscriptionId: object["id"],
-            customerId,
-            priceMap: env.priceMap,
-          });
-          if (!mapped.ok || !mapped.patch) return settle(mapped.code, false);
-          const { error } = await admin
-            .from("ueradar_subscriptions")
-            .update({ ...mapped.patch, last_event_created_at: eventCreatedAt })
-            .eq("user_id", userId);
-          if (error) return settle("SUBSCRIPTION_WRITE_FAILED", false);
-          return settle("SUBSCRIPTION_SYNCED", true);
+          const subscriptionId = str(object["id"]);
+          if (!subscriptionId) return settle("SUBSCRIPTION_WITHOUT_ID", false);
+          return syncFromCanonical(subscriptionId, userId, "SUBSCRIPTION_SYNCED");
         }
 
         if (eventType === "checkout.session.completed") {
           const userId = await resolveUserId(asObj(object["metadata"]));
-          const subscriptionId =
-            typeof object["subscription"] === "string" ? (object["subscription"] as string) : "";
+          const subscriptionId = str(object["subscription"]);
           if (!subscriptionId) return settle("SESSION_WITHOUT_SUBSCRIPTION", true);
           if (!userId) return settle("USER_NOT_FOUND", false);
-          const checkoutRecord = await loadRecord(userId);
-          const checkoutOrder = eventIsApplicable(
-            event["created"],
-            checkoutRecord?.last_event_created_at,
-          );
-          if (!checkoutOrder.ok) return settle(checkoutOrder.code, true);
-          const fetched = await providerCall(`subscriptions/${subscriptionId}`, env.secretKey);
-          if (fetched.status !== 200 || !fetched.payload)
-            return settle("SUBSCRIPTION_FETCH_FAILED", false);
-          const sub = fetched.payload ?? {};
-          const mapped = subscriptionUpdateFromEvent({
-            status: sub["status"],
-            currentPeriodEnd: sub["current_period_end"],
-            cancelAtPeriodEnd: sub["cancel_at_period_end"],
-            priceId: priceFromSubscription(sub),
-            subscriptionId,
-            customerId,
-            priceMap: env.priceMap,
-          });
-          if (!mapped.ok || !mapped.patch) return settle(mapped.code, false);
-          const { error } = await admin
-            .from("ueradar_subscriptions")
-            .update({ ...mapped.patch, last_event_created_at: eventCreatedAt })
-            .eq("user_id", userId);
-          if (error) return settle("CHECKOUT_WRITE_FAILED", false);
-          return settle("CHECKOUT_SYNCED", true);
+          return syncFromCanonical(subscriptionId, userId, "CHECKOUT_SYNCED");
         }
 
         if (eventType === "invoice.paid" || eventType === "invoice.payment_failed") {
           const userId = await resolveUserId(null);
           if (!userId) return settle("USER_NOT_FOUND", false);
-          const invoiceRecord = await loadRecord(userId);
-          const invoiceOrder = eventIsApplicable(
-            event["created"],
-            invoiceRecord?.last_event_created_at,
-          );
-          if (!invoiceOrder.ok) return settle(invoiceOrder.code, true);
-          // Il solo customer non basta: subscription e Price devono coincidere.
-          const invoiceLines = asObj(object["lines"]);
-          const lineData = Array.isArray(invoiceLines?.["data"])
-            ? (invoiceLines["data"] as unknown[])
-            : [];
-          const firstLine = asObj(lineData[0]);
-          const linePrice = asObj(firstLine?.["price"]);
-          const guard = invoiceUpdateAllowed({
-            invoiceSubscriptionId: object["subscription"],
-            invoicePriceId: linePrice?.["id"],
-            recordSubscriptionId: invoiceRecord?.provider_subscription_id,
-            priceMap: env.priceMap,
-          });
-          if (!guard.ok) return settle(guard.code, false);
-          const status = eventType === "invoice.paid" ? "active" : "past_due";
-          const hosted =
-            typeof object["hosted_invoice_url"] === "string"
-              ? (object["hosted_invoice_url"] as string)
-              : null;
+          const subscriptionId = str(object["subscription"]);
+          if (!subscriptionId) return settle("INVOICE_WITHOUT_SUBSCRIPTION", false);
+          // La fattura aggiorna solo documento e dato fiscale: lo stato resta
+          // quello della Subscription canonica.
           const taxIds = Array.isArray(object["customer_tax_ids"])
             ? (object["customer_tax_ids"] as unknown[])
             : [];
           const firstTax = asObj(taxIds[0]);
-          const { error } = await admin
-            .from("ueradar_subscriptions")
-            .update({
-              status: normalizeStatus(status),
-              latest_invoice_url: hosted,
-              tax_id: typeof firstTax?.["value"] === "string" ? (firstTax["value"] as string) : null,
-              last_event_created_at: eventCreatedAt,
-            })
-            .eq("user_id", userId);
+          const { data, error } = await admin.rpc("ueradar_billing_apply_invoice", {
+            _user_id: userId,
+            _event_created_at: eventCreatedAt,
+            _subscription_id: subscriptionId,
+            _invoice_url: str(object["hosted_invoice_url"]) ?? "",
+            _tax_id: str(firstTax?.["value"]) ?? "",
+          });
           if (error) return settle("INVOICE_WRITE_FAILED", false);
-          return settle("INVOICE_SYNCED", true);
+          const applied = (data ?? {}) as { ok?: boolean; code?: string };
+          if (!applied.ok)
+            return settle(
+              applied.code ?? "INVOICE_WRITE_FAILED",
+              applied.code === "EVENT_OUT_OF_ORDER",
+            );
+          return settle("INVOICE_DOCUMENT_SYNCED", true);
         }
 
         return settle("EVENT_IGNORED", true);
