@@ -22,6 +22,10 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
   .validator((input: unknown) => InputSchema.parse(input ?? {}))
   .handler(async ({ data, context }): Promise<FeedResponse> => {
     const { supabase, userId } = context;
+    const { resolveTenantContext } = await import("./tenant.server");
+    // Tutte le letture/scritture di cache sono confinate all'impresa risolta.
+    const tenant = await resolveTenantContext(supabase, userId);
+    const tenantId = tenant.tenant_owner_id;
     const deepSearch = data.deep_search ?? true;
 
     let bandi: Bando[] | null = null;
@@ -57,7 +61,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       const { data: previousRow, error: previousError } = await supabase
         .from("feed_cache")
         .select("payload, fetched_at")
-        .eq("user_id", userId)
+        .eq("user_id", tenantId)
         .order("fetched_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -82,7 +86,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       if (cacheDecision === "persist") {
         persistHiddenCache = true;
         const { error: cacheWriteError } = await supabase.from("feed_cache").insert({
-          user_id: userId,
+          user_id: tenantId,
           payload: next as unknown as Json,
           fetched_at: fetchedAt,
         });
@@ -94,7 +98,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       const { data: cached, error: cacheFallbackError } = await supabase
         .from("feed_cache")
         .select("payload, fetched_at")
-        .eq("user_id", userId)
+        .eq("user_id", tenantId)
         .gte("fetched_at", cutoff)
         .order("fetched_at", { ascending: false })
         .limit(1)
@@ -121,7 +125,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
     const hidden = (bandi ?? []).filter((b) => b.is_hidden);
     if (persistHiddenCache && hidden.length > 0) {
       const rows = hidden.map((b) => ({
-        user_id: userId,
+        user_id: tenantId,
         bando_id: b.id,
         payload: b as unknown as Json,
         fonte_extratestuale: b.fonte_extratestuale ?? null,
@@ -162,11 +166,13 @@ export const requestFeedRefresh = createServerFn({ method: "POST" })
 export const loadCachedFeed = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<FeedResponse | null> => {
+    const { resolveTenantContext } = await import("./tenant.server");
+    const tenant = await resolveTenantContext(context.supabase, context.userId);
     const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data, error: feedCacheError } = await context.supabase
       .from("feed_cache")
       .select("payload, fetched_at")
-      .eq("user_id", context.userId)
+      .eq("user_id", tenant.tenant_owner_id)
       .gte("fetched_at", cutoff)
       .order("fetched_at", { ascending: false })
       .limit(1)
@@ -176,7 +182,7 @@ export const loadCachedFeed = createServerFn({ method: "GET" })
     const { data: hiddenRows, error: hiddenCacheError } = await context.supabase
       .from("cached_hidden_bandi")
       .select("payload")
-      .eq("user_id", context.userId)
+      .eq("user_id", tenant.tenant_owner_id)
       .gte("discovered_at", cutoff)
       .order("discovered_at", { ascending: false });
     if (hiddenCacheError) throw new Error("HIDDEN_CACHE_READ_FAILED");
