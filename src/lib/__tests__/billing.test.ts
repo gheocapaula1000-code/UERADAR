@@ -90,7 +90,7 @@ describe("catalogo piani UEradar", () => {
       active: true,
       currency: "eur",
       unit_amount: 99000,
-      recurring: { interval: "month" },
+      recurring: { interval: "month", interval_count: 1 },
       tax_behavior: "exclusive",
     };
     expect(validateRemotePrice(good, expected).ok).toBe(true);
@@ -101,9 +101,15 @@ describe("catalogo piani UEradar", () => {
     expect(validateRemotePrice({ ...good, currency: "usd" }, expected).code).toBe(
       "PRICE_CURRENCY_MISMATCH",
     );
-    expect(validateRemotePrice({ ...good, recurring: { interval: "year" } }, expected).code).toBe(
-      "PRICE_INTERVAL_MISMATCH",
-    );
+    expect(
+      validateRemotePrice({ ...good, recurring: { interval: "year", interval_count: 1 } }, expected)
+        .code,
+    ).toBe("PRICE_INTERVAL_MISMATCH");
+    // "Ogni 2 mesi" non è il piano approvato: ricorrenza a periodo singolo.
+    expect(
+      validateRemotePrice({ ...good, recurring: { interval: "month", interval_count: 2 } }, expected)
+        .code,
+    ).toBe("PRICE_INTERVAL_COUNT_MISMATCH");
     expect(validateRemotePrice({ ...good, active: false }, expected).code).toBe("PRICE_NOT_ACTIVE");
     expect(validateRemotePrice({ ...good, tax_behavior: "inclusive" }, expected).code).toBe(
       "PRICE_TAX_BEHAVIOR_MISMATCH",
