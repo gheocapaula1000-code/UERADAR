@@ -139,7 +139,9 @@ describe("gestione posti server-only", () => {
 
   it("owner_user_id non è mai un input del client", () => {
     expect(billingFns).not.toMatch(/owner_user_id:\s*data\./);
-    expect(billingFns).toContain("owner_user_id: context.userId");
+    // L'invito passa dalla RPC atomica: il titolare arriva dal token, mai dal client.
+    expect(billingFns).not.toMatch(/_owner:\s*data\./);
+    expect(billingFns).toContain("_owner: context.userId");
   });
 
   it("il membro non può invitare né rimuovere", () => {
