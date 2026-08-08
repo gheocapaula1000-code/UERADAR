@@ -156,6 +156,8 @@ async function ensureCustomer(userId: string, email: string | undefined) {
   );
   const id = created.payload?.["id"];
   if (created.status !== 200 || typeof id !== "string") throw new Error("CUSTOMER_CREATE_FAILED");
+  // Post-write fail-closed: mai legare un Customer non dichiarato test.
+  if (!isTestModeObject(created.payload)) throw new Error("CUSTOMER_MODE_BLOCKED");
   const { error: linkError } = await admin
     .from("ueradar_subscriptions")
     .update({ provider: "stripe", provider_customer_id: id, billing_mode: "test" })
