@@ -28,6 +28,30 @@ export function EntitlementGate({ children }: { children: ReactNode }) {
   if (billing.data?.entitlement.entitled) return <>{children}</>;
 
   const state = billing.data?.entitlement.state ?? "NONE";
+  // Prova mai avviata: la strada è il profilo, non l'abbonamento.
+  if (state === "TRIAL_NOT_STARTED") {
+    return (
+      <div className="mx-auto max-w-2xl p-6">
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <AlertTriangle aria-hidden="true" className="h-5 w-5 text-accent" />
+            Completa profilo e attiva i 7 giorni
+          </h2>
+          <p className="mt-3 text-sm text-muted-foreground">
+            La prova gratuita di 7 giorni parte dopo il salvataggio del profilo con una partita IVA
+            valida. Nessuna carta richiesta.
+          </p>
+          <Link
+            to="/profilo"
+            className="tap mt-6 inline-flex rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
+          >
+            Completa profilo e attiva i 7 giorni
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const message =
     state === "TRIAL_EXPIRED"
       ? "La prova gratuita di 7 giorni è terminata. Attiva un piano per continuare a usare il radar."
