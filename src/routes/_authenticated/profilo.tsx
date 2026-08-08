@@ -171,12 +171,20 @@ function Profilo() {
       // nessuna carta, nessun metodo di pagamento, decisione server-side.
       try {
         const trial = await activateTrial({});
-        if (trial.ok && trial.code === "TRIAL_STARTED") toast.success(trialStartMessage(trial.code));
-        else if (!trial.ok && trial.code !== "MEMBER_USES_TENANT_PLAN")
-          toast.message(trialStartMessage(trial.code));
+        if (trial.ok && trial.code === "TRIAL_STARTED") {
+          toast.success(trialStartMessage(trial.code));
+        } else if (!trial.ok && trial.code !== "MEMBER_USES_TENANT_PLAN") {
+          // Senza prova attivata il dashboard resterebbe bloccato dal gate:
+          // l'utente resta sul profilo con il motivo esplicito.
+          toast.error(trialStartMessage(trial.code));
+          await billingQ.refetch();
+          return;
+        }
       } catch {
-        toast.message(trialStartMessage("TRIAL_START_FAILED"));
+        toast.error(trialStartMessage("TRIAL_START_FAILED"));
+        return;
       }
+      await billingQ.refetch();
       navigate({ to: "/dashboard" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Salvataggio non riuscito");
@@ -187,7 +195,7 @@ function Profilo() {
 
   if (loading) {
     return (
-      <AppShell>
+      <AppShell requireEntitlement={false}>
         <div className="p-8">
           <div className="skeleton-shimmer h-8 w-64 rounded" />
           <div className="skeleton-shimmer mt-6 h-96 w-full rounded-2xl" />
@@ -197,7 +205,7 @@ function Profilo() {
   }
 
   return (
-    <AppShell>
+    <AppShell requireEntitlement={false}>
       <div className="mx-auto max-w-4xl px-4 md:px-8 py-6 md:py-10">
         <header className="flex items-center gap-3 mb-8">
           <div className="grid h-11 w-11 place-items-center rounded-lg gradient-primary">
