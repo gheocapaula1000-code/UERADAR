@@ -345,7 +345,7 @@ describe("gate di review Stripe TEST", () => {
       "CHECKOUT_WRITE_FAILED",
       "INVOICE_WRITE_FAILED",
       "SUBSCRIPTION_FETCH_FAILED",
-      "EVENT_RETRY_FAILED",
+      "EVENT_SETTLE_FAILED",
     ]) {
       expect(src).toContain(guard);
     }
