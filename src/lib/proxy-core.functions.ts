@@ -169,9 +169,10 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
 export const requestFeedRefresh = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ queued: true }> => {
-    // Stesso gate del feed: entitlement e cadenza sono applicati lato server.
+    // Stesso gate del feed. La cadenza è riservata dentro la Edge Function,
+    // così non esiste un secondo consumo della stessa corsia.
     const { resolveTenantContext } = await import("./tenant.server");
-    const { entitlementForTenant, claimSearchLane } = await import("./usage.server");
+    const { entitlementForTenant } = await import("./usage.server");
     const nowIso = new Date().toISOString();
     const tenant = await resolveTenantContext(context.supabase, context.userId);
     const entitlement = await entitlementForTenant(
@@ -180,14 +181,6 @@ export const requestFeedRefresh = createServerFn({ method: "POST" })
       nowIso,
     );
     if (!entitlement.entitled) throw new Error(`FEED_NOT_ENTITLED:${entitlement.reason}`);
-    const lane = await claimSearchLane(
-      tenant.tenant_owner_id,
-      entitlement.limits.urgentLaneIntervalMinutes === null ? "full" : "urgent",
-      entitlement.limits.urgentLaneIntervalMinutes ??
-        entitlement.limits.fullSearchIntervalMinutes,
-      nowIso,
-    );
-    if (!lane.allowed) throw new Error(`REFRESH_RATE_LIMITED:${lane.code}`);
     // Accoda una singola richiesta di refresh, senza leggere il feed.
     const { data, error } = await context.supabase.functions.invoke("trovabandi-feed", {
       body: { action: "request_refresh" },
@@ -204,12 +197,14 @@ export const loadCachedFeed = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<FeedResponse | null> => {
     const { resolveTenantContext } = await import("./tenant.server");
     const { entitlementForTenant } = await import("./usage.server");
+    const { cacheClient } = await import("./cache.server");
+    const cache = cacheClient();
     const tenant = await resolveTenantContext(context.supabase, context.userId);
     // Anche la cache è contenuto premium: prova scaduta o piano non attivo non legge.
     const entitlement = await entitlementForTenant(context.supabase, tenant.tenant_owner_id);
     if (!entitlement.entitled) throw new Error(`FEED_NOT_ENTITLED:${entitlement.reason}`);
     const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data, error: feedCacheError } = await context.supabase
+    const { data, error: feedCacheError } = await cache
       .from("feed_cache")
       .select("payload, fetched_at")
       .eq("user_id", tenant.tenant_owner_id)
@@ -219,7 +214,7 @@ export const loadCachedFeed = createServerFn({ method: "GET" })
       .maybeSingle();
     if (feedCacheError) throw new Error("CACHE_READ_FAILED");
 
-    const { data: hiddenRows, error: hiddenCacheError } = await context.supabase
+    const { data: hiddenRows, error: hiddenCacheError } = await cache
       .from("cached_hidden_bandi")
       .select("payload")
       .eq("user_id", tenant.tenant_owner_id)
