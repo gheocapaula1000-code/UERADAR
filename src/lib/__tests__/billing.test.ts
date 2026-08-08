@@ -295,8 +295,8 @@ describe("gate di review Stripe TEST", () => {
       canStartNewSubscription({ status: "trialing", provider_subscription_id: "sub_1" }).reason,
     ).toBe("SUBSCRIPTION_ALREADY_ACTIVE");
     expect(
-      canStartNewSubscription({ status: "canceled", provider_subscription_id: "sub_1" }).allowed,
-    ).toBe(true);
+      canStartNewSubscription({ status: "canceled", provider_subscription_id: "sub_1" }),
+    ).toEqual({ allowed: false, reason: "RESUBSCRIBE_FLOW_REQUIRED" });
     // Prova senza sottoscrizione presso il provider: il checkout resta possibile.
     expect(
       canStartNewSubscription({ status: "trialing", provider_subscription_id: null }).allowed,
