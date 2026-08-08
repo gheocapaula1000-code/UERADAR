@@ -208,7 +208,14 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
 
           const { data, error } = await admin.rpc("ueradar_billing_apply_subscription", {
             _user_id: userId,
+            _event_id: eventId!,
+            _lease_token: leaseToken,
             _event_created_at: eventCreatedAt,
+            // Il legame utente/cliente/abbonamento/prezzo è ri-deciso dal DB
+            // sotto lock: il guard TypeScript resta solo difesa preliminare.
+            _expected_customer: str(sub["customer"]) ?? customerId ?? "",
+            _expected_subscription: subscriptionId,
+            _expected_price: canonicalPriceId(sub) ?? "",
             _patch: mapped.patch as never,
           });
           if (error) return { ok: false, code: "SUBSCRIPTION_WRITE_FAILED", skippable: false };
@@ -221,7 +228,10 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             const skippable =
               code === "EVENT_OUT_OF_ORDER" ||
               code === "CANCELED_NOT_REACTIVATED" ||
-              code === "CANONICAL_CONFLICT";
+              code === "CANONICAL_CONFLICT" ||
+              code === "CUSTOMER_MISMATCH" ||
+              code === "SUBSCRIPTION_REASSIGNMENT_BLOCKED" ||
+              code === "PRICE_MISMATCH";
             return { ok: false, code, skippable };
           }
           return { ok: true, code: "APPLIED", skippable: false };
@@ -278,7 +288,10 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           const firstTax = asObj(taxIds[0]);
           const { data, error } = await admin.rpc("ueradar_billing_apply_invoice", {
             _user_id: userId,
+            _event_id: eventId!,
+            _lease_token: leaseToken,
             _event_created_at: eventCreatedAt,
+            _expected_customer: customerId ?? "",
             _subscription_id: subscriptionId,
             _invoice_url: str(object["hosted_invoice_url"]) ?? "",
             _tax_id: str(firstTax?.["value"]) ?? "",
