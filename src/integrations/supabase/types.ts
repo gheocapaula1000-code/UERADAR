@@ -305,6 +305,7 @@ export type Database = {
           expires_at: string
           plan_code: string
           price_id: string
+          session_id: string | null
           updated_at: string
           user_id: string
         }
@@ -313,6 +314,7 @@ export type Database = {
           expires_at: string
           plan_code: string
           price_id: string
+          session_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -321,6 +323,7 @@ export type Database = {
           expires_at?: string
           plan_code?: string
           price_id?: string
+          session_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -551,6 +554,10 @@ export type Database = {
         Args: { _email: string; _member_id: string; _user_id: string }
         Returns: Json
       }
+      ueradar_attach_checkout_session: {
+        Args: { _price_id: string; _session_id: string; _user_id: string }
+        Returns: Json
+      }
       ueradar_billing_apply_invoice: {
         Args: {
           _event_created_at: string
@@ -655,6 +662,10 @@ export type Database = {
         Returns: Json
       }
       ueradar_is_tenant_owner: { Args: never; Returns: boolean }
+      ueradar_release_checkout_intent: {
+        Args: { _price_id: string; _user_id: string }
+        Returns: Json
+      }
       ueradar_release_search_lane: {
         Args: {
           _claimed_at: string
