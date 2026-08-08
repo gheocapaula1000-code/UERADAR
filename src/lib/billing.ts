@@ -393,7 +393,10 @@ export function canStartNewSubscription(
   ];
   if (!TERMINAL.includes(status))
     return { allowed: false, reason: "SUBSCRIPTION_ALREADY_ACTIVE" };
-  return { allowed: true, reason: "PREVIOUS_SUBSCRIPTION_INACTIVE" };
+  // Il binding provider è immutabile. Finché non esiste un flusso esplicito
+  // di re-subscribe con storico separato, aprire una nuova Session creerebbe
+  // un abbonamento fatturabile ma non collegabile dal webhook.
+  return { allowed: false, reason: "RESUBSCRIBE_FLOW_REQUIRED" };
 }
 
 /**
