@@ -502,13 +502,14 @@ function Profilo() {
 
           <div className="flex justify-end">
             <button
-              disabled={saving}
+              disabled={saving || isMember}
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110 disabled:opacity-60"
             >
               <Save className="h-4 w-4" />
               {saving ? "Salvo…" : "Salva profilo e attiva radar"}
             </button>
           </div>
+          </fieldset>
         </form>
       </div>
     </AppShell>
