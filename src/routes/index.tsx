@@ -5,6 +5,15 @@ import { ENTERPRISE_PLAN, PRODUCT_BOUNDARIES, PUBLIC_PLANS, TRIAL_TERMS } from "
 import { TrialBanner, TrialStickyBar } from "@/components/bandocore/TrialBanner";
 import { ORGANIZATION_JSONLD, SOFTWARE_APPLICATION_JSONLD, seoHead } from "@/lib/seo";
 import {
+  COVERAGE_HEADLINE,
+  COVERAGE_LEVELS,
+  DRAFT_COPY,
+  MONITORING_COPY,
+  RESEARCH_COPY,
+  TRIAL_HIGHLIGHT,
+  VALUE_STATEMENT,
+} from "@/lib/coverage";
+import {
   Radar,
   Target,
   Sparkles,
@@ -77,7 +86,7 @@ function Landing() {
           <div className="max-w-3xl">
             <div className="inline-flex items-start gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground">
               <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-              Unione Europea Radar — opportunità da fonti ufficiali
+              Unione Europea Radar — {COVERAGE_HEADLINE}
             </div>
             <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl md:text-6xl">
               Il radar dei{" "}
@@ -86,14 +95,29 @@ function Landing() {
               </span>{" "}
               per la tua impresa.
             </h1>
-            <p className="mt-6 text-base text-muted-foreground sm:text-lg md:text-xl">
-              Fondo perduto, PNRR, programmi UE, credito d'imposta e finanza agevolata per Partite
-              IVA e PMI — ricercati e ordinati su ATECO, sede, dimensione, età e caratteristiche
-              reali dell'impresa.
+            <p className="mt-6 text-base text-foreground sm:text-lg md:text-xl">
+              {VALUE_STATEMENT}
             </p>
+            <p className="mt-4 text-sm text-muted-foreground sm:text-base">
+              {RESEARCH_COPY}
+            </p>
+            <ul
+              aria-label="Livelli coperti dalla ricerca"
+              className="mt-6 flex flex-wrap gap-2"
+            >
+              {COVERAGE_LEVELS.map((level) => (
+                <li
+                  key={level}
+                  className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+                >
+                  {level}
+                </li>
+              ))}
+            </ul>
             <div className="mt-8 max-w-xl">
               <TrialBanner />
             </div>
+            <p className="mt-3 text-sm font-semibold text-accent">{TRIAL_HIGHLIGHT}</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <a
                 href="#come-funziona"
@@ -110,8 +134,8 @@ function Landing() {
             </div>
             <div className="mt-10 grid max-w-xl grid-cols-1 gap-6 sm:grid-cols-3">
               {[
-                { k: "Italia + UE", v: "Copertura separata" },
-                { k: "Fonti ufficiali", v: "Disponibili nel servizio" },
+                { k: "Cinque livelli", v: "Da locale a europeo" },
+                { k: "Fonti ufficiali", v: "E fonti specialistiche" },
                 { k: "Risultati motivati", v: "Ordinati sul tuo profilo" },
               ].map((s) => (
                 <div key={s.v}>
