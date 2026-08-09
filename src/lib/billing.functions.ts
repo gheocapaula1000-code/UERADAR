@@ -91,12 +91,15 @@ function toSnapshot(row: SubRow | null): SubscriptionSnapshot | null {
 export const getBillingStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<BillingStatus> => {
-    const { readBillingEnv, billingConfigured, checkoutAccessAllowed } = await import(
-      "./billing.server"
-    );
+    const { readBillingEnv, billingConfigured, checkoutAccessAllowed, portalAccessAllowed } =
+      await import("./billing.server");
     const env = readBillingEnv();
     const mode = billingConfigured(env);
     const access = checkoutAccessAllowed(
+      env,
+      (context.claims as { email?: string } | undefined)?.email,
+    );
+    const portalAccess = portalAccessAllowed(
       env,
       (context.claims as { email?: string } | undefined)?.email,
     );
@@ -168,7 +171,7 @@ export const getBillingStatus = createServerFn({ method: "POST" })
       checkout_available: mode.ok && access.ok,
       portal_available: portalAvailable(
         (row as SubRow | null) ?? null,
-        mode.ok && access.ok,
+        mode.ok && portalAccess.ok,
         tenant.can_manage_billing,
       ),
     };

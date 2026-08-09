@@ -46,7 +46,8 @@ describe("portale di fatturazione", () => {
   it("createPortalSession non crea clienti ed è protetto dal gate della modalità", () => {
     const src = readFileSync("src/lib/billing.functions.ts", "utf8");
     const portal = src.slice(src.indexOf("export const createPortalSession"));
-    expect(portal).toContain("checkoutAccessAllowed");
+    expect(portal).toContain("portalAccessAllowed");
+    expect(portal).not.toContain("checkoutAccessAllowed");
     expect(portal).toContain("PORTAL_NOT_AVAILABLE");
     expect(portal).not.toContain("ensureCustomer");
   });
