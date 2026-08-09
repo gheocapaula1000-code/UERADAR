@@ -128,7 +128,7 @@ export const ARCHITECTURE_NOTES: readonly { t: string; d: string }[] = [
 export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   {
     q: "La prova gratuita richiede la carta di credito?",
-    a: "No. Sono 7 giorni completamente gratuiti, senza carta di credito e senza dati bancari. Al termine non partirà alcun addebito: sarai tu a decidere se abbonarti.",
+    a: "No. Sono 7 giorni completamente gratuiti, senza carta di credito né dati bancari e senza dover dare disdetta. Al termine non partirà alcun addebito: sarai tu a decidere se abbonarti.",
   },
   {
     q: "Quante opportunità posso vedere?",

@@ -102,7 +102,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       watermarkedDossier: true,
     },
     highlights: [
-      "7 giorni, nessuna carta e nessun addebito",
+      "7 giorni gratuiti, senza carta di credito né dati bancari e senza dover dare disdetta",
       "1 impresa, 1 titolare, massimo 2 obiettivi",
       "1 dossier in versione filigranata",
       NO_LIMITS_NOTE,
