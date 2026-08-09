@@ -26,19 +26,18 @@ describe("copertura su cinque livelli", () => {
     for (const l of COVERAGE_LEVELS) expect(COVERAGE_HEADLINE.toLowerCase()).toContain(l.toLowerCase());
   });
 
-  it("il messaggio principale è quello approvato, senza promesse di tempo reale", () => {
+  it("il messaggio principale è quello approvato, con monitoraggio in tempo reale", () => {
     expect(VALUE_STATEMENT).toContain("miliardi di euro restano inutilizzati o non intercettati");
     expect(VALUE_STATEMENT).toContain(
       "fonti locali, provinciali, regionali, nazionali ed europee",
     );
     expect(VALUE_STATEMENT).toContain("pronta per verifica e invio");
-    expect(VALUE_STATEMENT).not.toMatch(/tempo reale/i);
+    expect(VALUE_STATEMENT).toMatch(/tempo reale/i);
   });
 
-  it("usa monitoraggio continuo e aggiornamenti tempestivi", () => {
-    expect(MONITORING_COPY).toMatch(/monitoraggio continuo/i);
-    expect(MONITORING_COPY).toMatch(/aggiornamenti tempestivi/i);
-    expect(MONITORING_COPY).not.toMatch(/tempo reale/i);
+  it("usa monitoraggio in tempo reale", () => {
+    expect(MONITORING_COPY).toMatch(/monitoraggio in tempo reale/i);
+    expect(MONITORING_COPY).toMatch(/cinque livelli/i);
   });
 
   it("descrive ricerca profonda su fonti ufficiali e specialistiche", () => {
