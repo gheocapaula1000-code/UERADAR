@@ -165,13 +165,13 @@ function Landing() {
             },
             {
               icon: Radar,
-              t: "2. Ricerca sulle fonti ufficiali",
-              d: "La ricerca consulta le fonti ufficiali disponibili nel servizio, usando i segnali del profilo della tua impresa.",
+              t: "2. Ricerca su cinque livelli",
+              d: "La ricerca copre fonti locali, provinciali, regionali, nazionali ed europee, ufficiali e specialistiche, incrociando profilo, territorio e requisiti.",
             },
             {
               icon: Target,
-              t: "3. Compatibilità motivata",
-              d: "Ogni risultato mostra requisiti confermati, punti da verificare, scadenza e fonte ufficiale presente.",
+              t: "3. Compatibilità e bozza",
+              d: "Ogni risultato mostra requisiti confermati, punti da verificare, scadenza e fonte; la domanda viene precompilata in bozza, da verificare prima dell'invio.",
             },
           ].map((f) => (
             <div
@@ -185,6 +185,14 @@ function Landing() {
               <p className="mt-2 text-sm text-muted-foreground">{f.d}</p>
             </div>
           ))}
+        </div>
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <p className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
+            {MONITORING_COPY}
+          </p>
+          <p className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
+            {DRAFT_COPY}
+          </p>
         </div>
       </section>
 
