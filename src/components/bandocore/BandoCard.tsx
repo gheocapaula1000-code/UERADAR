@@ -88,7 +88,7 @@ export function BandoCard({ bando }: { bando: Bando }) {
 
   return (
     <div
-      className={`group rounded-2xl border bg-card p-5 shadow-elevated transition hover:border-primary/50 flex flex-col ${
+      className={`group card-enter rounded-2xl border bg-card p-5 shadow-elevated transition hover:border-primary/50 flex flex-col ${
         bando.is_hidden ? "border-accent/50 ring-1 ring-accent/25" : "border-border"
       }`}
     >
@@ -122,7 +122,7 @@ export function BandoCard({ bando }: { bando: Bando }) {
           </span>
         )}
         {!expired && bando.flash && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-warning/20 text-warning px-2 py-0.5 text-xs font-semibold">
+          <span className="urgent-pulse inline-flex items-center gap-1 rounded-full bg-warning/20 text-warning px-2 py-0.5 text-xs font-semibold">
             <Zap className="h-3 w-3" /> Flash
           </span>
         )}
@@ -201,7 +201,7 @@ export function BandoCard({ bando }: { bando: Bando }) {
         ) : null}
         {bando.scadenza ? (
           <div
-            className={`flex items-center gap-1.5 ${urgent ? "text-warning font-medium" : "text-muted-foreground"}`}
+            className={`flex items-center gap-1.5 ${urgent ? "text-warning font-medium urgent-pulse" : "text-muted-foreground"}`}
           >
             <Calendar className="h-3.5 w-3.5" />
             {expired
@@ -229,7 +229,7 @@ export function BandoCard({ bando }: { bando: Bando }) {
         params={{ id: bando.id }}
         aria-label={`Genera dossier candidatura per ${bando.titolo} — bozza informativa da verificare`}
         title="Genera un dossier di candidatura in bozza: contenuto informativo da verificare, nessuna domanda viene inviata"
-        className="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
+        className="cta-lift mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
       >
         {partial ? "Genera dossier parziale" : "Genera dossier candidatura"}{" "}
         <ArrowRight className="h-4 w-4" />
