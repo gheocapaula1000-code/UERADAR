@@ -6,6 +6,15 @@ import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { TrialBanner, TrialStickyBar } from "@/components/bandocore/TrialBanner";
 import { PRICING_FAQ_JSONLD, seoHead } from "@/lib/seo";
 import {
+  COVERAGE_HEADLINE,
+  COVERAGE_LEVELS,
+  DRAFT_COPY,
+  MONITORING_COPY,
+  RESEARCH_COPY,
+  TRIAL_HIGHLIGHT,
+  VALUE_STATEMENT,
+} from "@/lib/coverage";
+import {
   ARCHITECTURE_NOTES,
   ENTERPRISE_PLAN,
   PRICING_FAQ,
@@ -53,14 +62,45 @@ function Pricing() {
             Piani per imprese
           </p>
           <h1 className="mt-3 text-3xl font-bold sm:text-4xl md:text-5xl">
-            Provalo per 7 giorni, senza carta.
+            Provalo per 7 giorni gratuiti, senza carta.
           </h1>
+          <p className="mx-auto mt-5 max-w-3xl text-base text-foreground sm:text-lg">
+            {VALUE_STATEMENT}
+          </p>
+          <ul
+            aria-label="Livelli coperti dalla ricerca"
+            className="mx-auto mt-6 flex flex-wrap justify-center gap-2"
+          >
+            {COVERAGE_LEVELS.map((level) => (
+              <li
+                key={level}
+                className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+              >
+                {level}
+              </li>
+            ))}
+          </ul>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
             I piani si distinguono per capienza di
             utenti operativi (titolare incluso) e dossier inclusi. Il numero di opportunità
             pertinenti mostrate non è mai limitato. Tutti i prezzi sono IVA esclusa e l'annuale include 2 mesi.
           </p>
+          <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold text-accent">
+            {TRIAL_HIGHLIGHT}
+          </p>
         </div>
+
+        <section
+          aria-label="Copertura della ricerca"
+          className="mt-10 grid gap-4 rounded-2xl border border-border bg-card p-6 sm:p-8 md:grid-cols-3"
+        >
+          <div>
+            <h2 className="text-lg font-semibold">{COVERAGE_HEADLINE}</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{RESEARCH_COPY}</p>
+          </div>
+          <p className="text-sm text-muted-foreground">{MONITORING_COPY}</p>
+          <p className="text-sm text-muted-foreground">{DRAFT_COPY}</p>
+        </section>
 
         <div className="mx-auto mt-8 max-w-2xl">
           <TrialBanner />

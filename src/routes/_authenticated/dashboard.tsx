@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { seoHead } from "@/lib/seo";
+import { COVERAGE_HEADLINE, MONITORING_COPY } from "@/lib/coverage";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => seoHead("/dashboard"),
@@ -230,8 +231,8 @@ function Dashboard() {
               <Radar className="h-7 w-7 text-accent" /> Radar Bandi
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Risultati con fonte e dati presenti, dalle fonti ufficiali disponibili, ordinati
-              sul profilo della tua impresa.
+              {COVERAGE_HEADLINE} Risultati da fonti ufficiali e specialistiche, con fonte e dati
+              presenti, ordinati sul profilo della tua impresa. {MONITORING_COPY}
               {query.data?.fetched_at && (
                 <span className="ml-2 text-xs">
                   · Aggiornato {new Date(query.data.fetched_at).toLocaleString("it-IT")}
