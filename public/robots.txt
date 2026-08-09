@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /profilo
+Disallow: /bando
+Disallow: /abbonamento
+Disallow: /api/
+
+Sitemap: https://ueradar.com/sitemap.xml
