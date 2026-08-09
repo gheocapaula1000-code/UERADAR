@@ -72,7 +72,7 @@ describe("copertura su cinque livelli", () => {
 
   it("la formula completa compare nei punti decisivi e non resta la formula abbreviata", () => {
     for (const src of [HOME, PRICING, AUTH]) {
-      expect(src).toContain(TRIAL_HIGHLIGHT);
+      expect(src).toContain("TRIAL_HIGHLIGHT");
       // nessuna formula abbreviata "senza carta." isolata
       expect(src).not.toMatch(/senza carta\./);
     }
