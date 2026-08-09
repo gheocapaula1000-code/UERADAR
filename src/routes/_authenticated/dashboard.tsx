@@ -365,7 +365,7 @@ function Dashboard() {
                 nuova ricerca sulle fonti ufficiali.
               </div>
             ) : (
-              flashBandi.map((b) => <BandoCard key={b.id} bando={b} />)
+              flashBandi.map((b, i) => <BandoCard key={b.id} bando={b} index={i} />)
             )}
           </div>
         </section>
@@ -452,7 +452,7 @@ function Dashboard() {
                 Nessun bando corrisponde ai filtri.
               </div>
             ) : (
-              filtered.map((b: Bando) => <BandoCard key={b.id} bando={b} />)
+              filtered.map((b: Bando, i: number) => <BandoCard key={b.id} bando={b} index={i} />)
             )}
           </div>
         </section>
