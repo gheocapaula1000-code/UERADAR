@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/bandocore/AppShell";
 import { BandoCard, BandoCardSkeleton } from "@/components/bandocore/BandoCard";
 import { DeepSearchShimmer } from "@/components/bandocore/DeepSearchShimmer";
+import { RadarIntro } from "@/components/bandocore/RadarIntro";
 import { fetchFeedFromProxyCore, requestFeedRefresh } from "@/lib/proxy-core.functions";
 import { supabase } from "@/integrations/supabase/client";
 import type { Bando, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
@@ -223,6 +224,7 @@ function Dashboard() {
 
   return (
     <AppShell>
+      <RadarIntro />
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-6 md:py-10 space-y-8">
         {/* HEADER */}
         <header className="flex flex-wrap items-end justify-between gap-4">
