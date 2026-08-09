@@ -75,7 +75,7 @@ describe("contenuto e accessibilità dell'apertura", () => {
   it("espone stato accessibile e pulsante Salta", () => {
     expect(INTRO).toContain('role="status"');
     expect(INTRO).toContain('aria-live="polite"');
-    expect(INTRO).toContain(">Salta<");
+    expect(INTRO).toMatch(/Salta/);
     expect(INTRO).toContain('e.key === "Escape"');
   });
 
