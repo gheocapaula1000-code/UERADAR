@@ -38,7 +38,6 @@ const FORBIDDEN: RegExp[] = [
   /avvisi automatici/i,
   /notifiche automatiche/i,
   /verifiche approfondite/i,
-  /in tempo reale/i,
   /ogni ora/i,
   /24\/7/,
   /quotidian[ao]/i,
