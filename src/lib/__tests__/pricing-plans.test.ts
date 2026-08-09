@@ -159,7 +159,7 @@ describe("prova gratuita molto visibile e senza carta", () => {
   it("è applicativa: nessun checkout, customer o metodo di pagamento all'avvio", () => {
     const t = TRIAL_TERMS.join(" ");
     expect(t).toContain("7 GIORNI COMPLETAMENTE GRATUITI");
-    expect(t).toContain("NESSUNA CARTA DI CREDITO");
+    expect(t).toContain("SENZA CARTA DI CREDITO");
     expect(t).toContain("dossier in versione filigranata");
     expect(t).toContain("ogni 12 mesi");
     expect(terms).toContain("prova applicativa");
