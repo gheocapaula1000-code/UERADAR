@@ -138,12 +138,15 @@ describe("catalogo approvato", () => {
 describe("prova gratuita molto visibile e senza carta", () => {
   it("usa i testi obbligatori nel banner riusato da hero, prezzi e sticky bar", () => {
     expect(TRIAL_COPY.headline).toBe("7 GIORNI COMPLETAMENTE GRATUITI");
-    expect(TRIAL_COPY.noCard).toBe("NESSUNA CARTA DI CREDITO · NESSUN DATO BANCARIO");
+    expect(TRIAL_COPY.noCard).toBe(
+      "SENZA CARTA DI CREDITO, NÉ DATI BANCARI E NÉ DISDETTA",
+    );
     expect(TRIAL_COPY.noCharge).toBe(
       "Al termine non partirà alcun addebito. Sarai tu a decidere se abbonarti.",
     );
     expect(TRIAL_COPY.cta).toBe("INIZIA I 7 GIORNI GRATIS");
-    expect(TRIAL_COPY.ctaNote).toBe("Non ti chiederemo alcun metodo di pagamento.");
+    expect(TRIAL_COPY.ctaNote).toContain("Nessun metodo di pagamento");
+    expect(TRIAL_COPY.ctaNote).toContain("né disdetta");
     for (const key of ["headline", "noCard", "noCharge", "cta", "ctaNote"] as const)
       expect(banner).toContain(`TRIAL_COPY.${key}`);
     expect(banner).toContain("TrialStickyBar");

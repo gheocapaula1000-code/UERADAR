@@ -10,10 +10,12 @@ describe("completamento frontend UEradar.com", () => {
     }
   });
 
-  it("dichiara trial di 7 giorni senza carta e addebiti disabilitati", () => {
+  it("dichiara trial di 7 giorni senza carta, dati bancari né disdetta e addebiti disabilitati", () => {
     const pricing = readFileSync("src/routes/prezzi.tsx", "utf8");
     expect(pricing).toContain("7 giorni");
     expect(pricing).toContain("senza carta");
+    expect(pricing).toContain("dati bancari");
+    expect(pricing).toContain("disdetta");
     expect(pricing).toContain('VITE_BILLING_ENABLED === "true"');
     expect(pricing).toContain("Gli addebiti sono disabilitati");
   });

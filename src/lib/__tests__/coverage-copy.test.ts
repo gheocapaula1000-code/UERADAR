@@ -52,18 +52,30 @@ describe("copertura su cinque livelli", () => {
     expect(DRAFT_COPY).toMatch(/non invia domande/i);
   });
 
-  it("home e prezzi mostrano il messaggio una sola volta, senza duplicazioni", () => {
+  it("home, prezzi e auth mostrano il messaggio principale una sola volta e la prova una sola volta, senza duplicazioni", () => {
     for (const src of [HOME, PRICING]) {
       expect(src).toContain("VALUE_STATEMENT");
       expect(src.match(/\{VALUE_STATEMENT\}/g) ?? []).toHaveLength(1);
       expect(src).not.toContain("miliardi di euro restano inutilizzati");
       expect(src).toContain("COVERAGE_LEVELS");
       expect(src).toContain("TRIAL_HIGHLIGHT");
+      expect(src.match(/\{TRIAL_HIGHLIGHT\}/g) ?? []).toHaveLength(1);
     }
+    expect(AUTH).toContain("TRIAL_HIGHLIGHT");
   });
 
-  it("la prova gratuita resta evidente", () => {
-    expect(TRIAL_HIGHLIGHT).toBe("7 giorni gratuiti, senza carta");
+  it("la prova gratuita resta evidente con la formula completa", () => {
+    expect(TRIAL_HIGHLIGHT).toBe(
+      "7 giorni gratuiti, senza carta di credito né dati bancari e senza dover dare disdetta",
+    );
+  });
+
+  it("la formula completa compare nei punti decisivi e non resta la formula abbreviata", () => {
+    for (const src of [HOME, PRICING, AUTH]) {
+      expect(src).toContain(TRIAL_HIGHLIGHT);
+      // nessuna formula abbreviata "senza carta." isolata
+      expect(src).not.toMatch(/senza carta\./);
+    }
   });
 
   it("la dashboard dichiara i cinque livelli e il monitoraggio continuo", () => {
