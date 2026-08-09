@@ -16,6 +16,8 @@ import {
 import type { Bando } from "@/lib/bandocore-types";
 import { daysLeft as daysLeftOf, isExpired, matchStatusMeta } from "@/lib/bando-status";
 import { missingOfficialData } from "@/lib/dossier";
+import { cardEnterDelayMs } from "@/lib/motion";
+import { MatchScore } from "@/components/bandocore/MatchScore";
 
 const categoryStyles: Record<Bando["categoria"], { label: string; class: string }> = {
   FONDO_PERDUTO: { label: "Fondo Perduto", class: "bg-primary/15 text-primary border-primary/30" },
@@ -76,7 +78,7 @@ const scopeLabels: Record<Bando["scope"], string> = {
   EUROPEO: "Europeo",
 };
 
-export function BandoCard({ bando }: { bando: Bando }) {
+export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }) {
   const cat = categoryStyles[bando.categoria] ?? categoryStyles.ALTRO;
   const daysLeft = daysLeftOf(bando);
   const expired = isExpired(bando);
@@ -88,6 +90,7 @@ export function BandoCard({ bando }: { bando: Bando }) {
 
   return (
     <div
+      style={{ animationDelay: `${cardEnterDelayMs(index)}ms` }}
       className={`group card-enter rounded-2xl border bg-card p-5 shadow-elevated transition hover:border-primary/50 flex flex-col ${
         bando.is_hidden ? "border-accent/50 ring-1 ring-accent/25" : "border-border"
       }`}
@@ -176,7 +179,7 @@ export function BandoCard({ bando }: { bando: Bando }) {
               )}
               {matchMeta.label}
             </span>
-            <span className="font-semibold">{match.score}%</span>
+            <MatchScore score={match.score} />
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">
             {(matchMeta.tone === "negative" ? match.blockers?.[0] : undefined) ??
