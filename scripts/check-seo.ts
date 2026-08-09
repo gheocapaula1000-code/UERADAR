@@ -184,6 +184,43 @@ if (!pricingSrc.includes("PRICING_FAQ.map")) fail("FAQPage dichiarata ma FAQ non
 if (!pricingSrc.includes("PRICING_FAQ_JSONLD")) fail("pagina prezzi senza JSON-LD FAQPage");
 ok("JSON-LD valido e coerente con il contenuto visibile");
 
+// robots.txt e sitemap.xml: presenza, coerenza col dominio e con le rotte indicizzabili
+const robots = readFileSync("public/robots.txt", "utf8");
+if (!/^User-agent: \*$/m.test(robots)) fail("robots.txt: manca il blocco User-agent: *");
+if (!/^Allow: \/$/m.test(robots)) fail("robots.txt: manca Allow: /");
+if (/^Disallow: \/$/m.test(robots)) fail("robots.txt: blocca l'intero sito");
+if (!robots.includes(`Sitemap: ${SITE_URL}/sitemap.xml`))
+  fail("robots.txt: direttiva Sitemap assente o su dominio errato");
+for (const key of Object.keys(ROUTE_SEO) as SeoKey[]) {
+  const r = ROUTE_SEO[key];
+  if (r.indexable) continue;
+  if (!new RegExp(`^Disallow: ${r.path}$`, "m").test(robots))
+    fail(`robots.txt: rotta non indicizzabile ${r.path} non esclusa`);
+}
+ok("robots.txt presente e coerente con le rotte indicizzabili");
+
+const sitemapSrc = readFileSync("src/routes/sitemap[.]xml.ts", "utf8");
+if (!sitemapSrc.includes('createFileRoute("/sitemap.xml")'))
+  fail("sitemap: rotta /sitemap.xml non dichiarata");
+if (!sitemapSrc.includes("ROUTE_SEO")) fail("sitemap: non derivata dai metadata SEO centralizzati");
+ok("sitemap.xml servita dalla rotta dedicata");
+
+// header di sicurezza applicati dall'entry SSR
+const securitySrc = readFileSync("src/lib/security-headers.ts", "utf8");
+for (const needle of [
+  "frame-ancestors",
+  "object-src 'none'",
+  "Permissions-Policy",
+  "Strict-Transport-Security",
+  "Referrer-Policy",
+  "nosniff",
+]) {
+  if (!securitySrc.includes(needle)) fail(`security headers: manca "${needle}"`);
+}
+if (!readFileSync("src/server.ts", "utf8").includes("withSecurityHeaders"))
+  fail("security headers: non applicati dall'entry SSR");
+ok("header di sicurezza (CSP, frame-ancestors, Permissions-Policy) applicati in SSR");
+
 if (errors.length) {
   console.error("\nSEO check FALLITO:");
   for (const e of errors) console.error(`  - ${e}`);
