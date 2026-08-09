@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TerminiRouteImport } from './routes/termini'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PrezziRouteImport } from './routes/prezzi'
 import { Route as CookieRouteImport } from './routes/cookie'
@@ -26,6 +27,11 @@ import { Route as AuthenticatedBandoIdRouteImport } from './routes/_authenticate
 const TerminiRoute = TerminiRouteImport.update({
   id: '/termini',
   path: '/termini',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/cookie': typeof CookieRoute
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termini': typeof TerminiRoute
   '/abbonamento': typeof AuthenticatedAbbonamentoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/cookie': typeof CookieRoute
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termini': typeof TerminiRoute
   '/abbonamento': typeof AuthenticatedAbbonamentoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/cookie': typeof CookieRoute
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termini': typeof TerminiRoute
   '/_authenticated/abbonamento': typeof AuthenticatedAbbonamentoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/cookie'
     | '/prezzi'
     | '/privacy'
+    | '/sitemap.xml'
     | '/termini'
     | '/abbonamento'
     | '/dashboard'
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/cookie'
     | '/prezzi'
     | '/privacy'
+    | '/sitemap.xml'
     | '/termini'
     | '/abbonamento'
     | '/dashboard'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/cookie'
     | '/prezzi'
     | '/privacy'
+    | '/sitemap.xml'
     | '/termini'
     | '/_authenticated/abbonamento'
     | '/_authenticated/dashboard'
@@ -187,6 +199,7 @@ export interface RootRouteChildren {
   CookieRoute: typeof CookieRoute
   PrezziRoute: typeof PrezziRoute
   PrivacyRoute: typeof PrivacyRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TerminiRoute: typeof TerminiRoute
   ApiPublicBillingWebhookRoute: typeof ApiPublicBillingWebhookRoute
 }
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       path: '/termini'
       fullPath: '/termini'
       preLoaderRoute: typeof TerminiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -312,19 +332,10 @@ const rootRouteChildren: RootRouteChildren = {
   CookieRoute: CookieRoute,
   PrezziRoute: PrezziRoute,
   PrivacyRoute: PrivacyRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TerminiRoute: TerminiRoute,
   ApiPublicBillingWebhookRoute: ApiPublicBillingWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
