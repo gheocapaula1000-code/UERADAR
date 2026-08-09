@@ -12,6 +12,7 @@ import {
 
 const HOME = readFileSync("src/routes/index.tsx", "utf8");
 const PRICING = readFileSync("src/routes/prezzi.tsx", "utf8");
+const AUTH = readFileSync("src/routes/auth.tsx", "utf8");
 const DASHBOARD = readFileSync("src/routes/_authenticated/dashboard.tsx", "utf8");
 
 describe("copertura su cinque livelli", () => {
