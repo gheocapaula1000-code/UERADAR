@@ -177,7 +177,7 @@ function BandoDetail() {
           <ArrowLeft className="h-4 w-4" /> Radar bandi
         </Link>
 
-        <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="card-enter mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
           <div className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-elevated">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-block rounded-full bg-primary/15 border border-primary/30 text-primary px-2.5 py-0.5 text-xs font-medium">
