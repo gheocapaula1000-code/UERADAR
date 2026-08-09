@@ -87,6 +87,22 @@ export function checkoutAccessAllowed(
   return { ok: true, code: "OK" };
 }
 
+/**
+ * Il Portal non crea nulla presso il provider: serve solo a chi ha già un
+ * Customer collegato. Resta fail-closed su modalità e flag LIVE, ma non
+ * dipende da `UERADAR_CHECKOUT_PUBLIC_ENABLED`, che governa esclusivamente
+ * l'apertura del checkout pubblico (creazione di nuovi oggetti Stripe).
+ */
+export function portalAccessAllowed(
+  env: Pick<BillingEnv, "mode" | "liveEnabled">,
+  email: unknown,
+): { ok: boolean; code: string } {
+  if (env.mode === "test") return checkoutQaAllowed(readCheckoutQa(), email);
+  if (env.mode !== "live") return { ok: false, code: "BILLING_MODE_INVALID" };
+  if (!env.liveEnabled) return { ok: false, code: "LIVE_MODE_DISABLED" };
+  return { ok: true, code: "OK" };
+}
+
 export function readBillingEnv(): BillingEnv {
   const mode = parseBillingMode(process.env["UERADAR_BILLING_MODE"]);
   const priceMap: Record<string, string> = {};

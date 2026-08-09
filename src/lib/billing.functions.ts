@@ -91,12 +91,15 @@ function toSnapshot(row: SubRow | null): SubscriptionSnapshot | null {
 export const getBillingStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<BillingStatus> => {
-    const { readBillingEnv, billingConfigured, checkoutAccessAllowed } = await import(
-      "./billing.server"
-    );
+    const { readBillingEnv, billingConfigured, checkoutAccessAllowed, portalAccessAllowed } =
+      await import("./billing.server");
     const env = readBillingEnv();
     const mode = billingConfigured(env);
     const access = checkoutAccessAllowed(
+      env,
+      (context.claims as { email?: string } | undefined)?.email,
+    );
+    const portalAccess = portalAccessAllowed(
       env,
       (context.claims as { email?: string } | undefined)?.email,
     );
@@ -168,7 +171,7 @@ export const getBillingStatus = createServerFn({ method: "POST" })
       checkout_available: mode.ok && access.ok,
       portal_available: portalAvailable(
         (row as SubRow | null) ?? null,
-        mode.ok && access.ok,
+        mode.ok && portalAccess.ok,
         tenant.can_manage_billing,
       ),
     };
@@ -464,15 +467,16 @@ export const createPortalSession = createServerFn({ method: "POST" })
       billingConfigured,
       providerCall,
       fetchPortalConfiguration,
-      checkoutAccessAllowed,
+      portalAccessAllowed,
     } = await import("./billing.server");
     const env = readBillingEnv();
     const mode = billingConfigured(env);
     if (!mode.ok) return { ok: false, code: mode.code };
 
-    // Stesso gate QA del checkout: in TEST il portale non è aperto al pubblico.
+    // Gate dedicato al Portal: stesso rigore su modalità/LIVE e allowlist QA in
+    // TEST, ma indipendente dal flag di checkout pubblico (nessuna creazione).
     const email = (context.claims as { email?: string } | undefined)?.email;
-    const access = checkoutAccessAllowed(env, email);
+    const access = portalAccessAllowed(env, email);
     if (!access.ok) return { ok: false, code: access.code };
     if (!env.mode || env.expectedLivemode === null)
       return { ok: false, code: "BILLING_MODE_INVALID" };
