@@ -464,15 +464,16 @@ export const createPortalSession = createServerFn({ method: "POST" })
       billingConfigured,
       providerCall,
       fetchPortalConfiguration,
-      checkoutAccessAllowed,
+      portalAccessAllowed,
     } = await import("./billing.server");
     const env = readBillingEnv();
     const mode = billingConfigured(env);
     if (!mode.ok) return { ok: false, code: mode.code };
 
-    // Stesso gate QA del checkout: in TEST il portale non è aperto al pubblico.
+    // Gate dedicato al Portal: stesso rigore su modalità/LIVE e allowlist QA in
+    // TEST, ma indipendente dal flag di checkout pubblico (nessuna creazione).
     const email = (context.claims as { email?: string } | undefined)?.email;
-    const access = checkoutAccessAllowed(env, email);
+    const access = portalAccessAllowed(env, email);
     if (!access.ok) return { ok: false, code: access.code };
     if (!env.mode || env.expectedLivemode === null)
       return { ok: false, code: "BILLING_MODE_INVALID" };
