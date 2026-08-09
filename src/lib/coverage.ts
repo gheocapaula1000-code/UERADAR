@@ -32,4 +32,4 @@ export const DRAFT_COPY =
   "La preparazione automatizzata produce una bozza e una modulistica precompilata, soggetta alla tua verifica prima dell'invio: UEradar non invia domande agli enti.";
 
 /** Prova gratuita: sempre ben evidente. */
-export const TRIAL_HIGHLIGHT = "7 giorni gratuiti, senza carta";
+export const TRIAL_HIGHLIGHT = "7 giorni gratuiti, senza carta di credito né dati bancari e senza dover dare disdetta";

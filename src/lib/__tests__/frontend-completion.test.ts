@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { TRIAL_HIGHLIGHT } from "@/lib/coverage";
 
 describe("completamento frontend UEradar.com", () => {
   it("espone pagine legali e prezzi pubbliche", () => {
@@ -10,10 +11,13 @@ describe("completamento frontend UEradar.com", () => {
     }
   });
 
-  it("dichiara trial di 7 giorni senza carta e addebiti disabilitati", () => {
+  it("dichiara trial di 7 giorni senza carta, dati bancari né disdetta e addebiti disabilitati", () => {
     const pricing = readFileSync("src/routes/prezzi.tsx", "utf8");
-    expect(pricing).toContain("7 giorni");
-    expect(pricing).toContain("senza carta");
+    expect(pricing).toContain("TRIAL_HIGHLIGHT");
+    expect(TRIAL_HIGHLIGHT).toContain("7 giorni");
+    expect(TRIAL_HIGHLIGHT).toContain("senza carta");
+    expect(TRIAL_HIGHLIGHT).toContain("dati bancari");
+    expect(TRIAL_HIGHLIGHT).toContain("disdetta");
     expect(pricing).toContain('VITE_BILLING_ENABLED === "true"');
     expect(pricing).toContain("Gli addebiti sono disabilitati");
   });

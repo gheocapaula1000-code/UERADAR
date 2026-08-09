@@ -6,6 +6,7 @@ import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { BrandLogo } from "@/components/bandocore/BrandLogo";
 import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { seoHead } from "@/lib/seo";
+import { TRIAL_HIGHLIGHT } from "@/lib/coverage";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -116,7 +117,7 @@ function AuthPage() {
           <p className="mt-2 text-sm text-muted-foreground">
             {mode === "signin"
               ? "Accedi al tuo radar bandi."
-              : "7 giorni gratuiti senza carta. Registrati con la tua email aziendale."}
+              : TRIAL_HIGHLIGHT}
           </p>
 
           <button

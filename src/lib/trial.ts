@@ -8,10 +8,10 @@ export const TRIAL_DAYS = 7;
 /** Testi obbligatori: hero, sezione prezzi, card piani e sticky bar mobile. */
 export const TRIAL_COPY = {
   headline: "7 GIORNI COMPLETAMENTE GRATUITI",
-  noCard: "NESSUNA CARTA DI CREDITO · NESSUN DATO BANCARIO",
+  noCard: "SENZA CARTA DI CREDITO, NÉ DATI BANCARI E NÉ DISDETTA",
   noCharge: "Al termine non partirà alcun addebito. Sarai tu a decidere se abbonarti.",
   cta: "INIZIA I 7 GIORNI GRATIS",
-  ctaNote: "Non ti chiederemo alcun metodo di pagamento.",
+  ctaNote: "Nessun metodo di pagamento né disdetta richiesti.",
 } as const;
 
 /**
@@ -19,7 +19,7 @@ export const TRIAL_COPY = {
  * pagamento: sono i limiti effettivamente applicati lato server.
  */
 export const TRIAL_SCOPE: readonly string[] = [
-  "7 giorni, nessuna carta e nessun addebito",
+  "7 giorni gratuiti, senza carta di credito né dati bancari e senza dover dare disdetta",
   "1 impresa e 1 titolare",
   "Massimo 2 obiettivi di investimento",
   "1 dossier, in versione filigranata",
@@ -96,7 +96,7 @@ export function mapStartTrialResult(data: unknown, error: unknown): StartTrialRe
 
 /** Messaggi utente per gli esiti dell'avvio prova. */
 export const TRIAL_START_MESSAGES: Record<string, string> = {
-  TRIAL_STARTED: "Prova gratuita di 7 giorni attivata. Nessun addebito, nessuna carta.",
+  TRIAL_STARTED: "Prova gratuita di 7 giorni attivata. Nessuna carta, nessun addebito, nessuna disdetta.",
   TRIAL_ALREADY_ACTIVE: "La tua prova gratuita è già in corso.",
   VAT_REQUIRED: "Inserisci una Partita IVA valida per attivare la prova gratuita.",
   TRIAL_COOLDOWN_ACTIVE:

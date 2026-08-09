@@ -62,7 +62,7 @@ function Pricing() {
             Piani per imprese
           </p>
           <h1 className="mt-3 text-3xl font-bold sm:text-4xl md:text-5xl">
-            Provalo per 7 giorni gratuiti, senza carta.
+            {TRIAL_HIGHLIGHT}
           </h1>
           <p className="mx-auto mt-5 max-w-3xl text-base text-foreground sm:text-lg">
             {VALUE_STATEMENT}
@@ -84,9 +84,6 @@ function Pricing() {
             I piani si distinguono per capienza di
             utenti operativi (titolare incluso) e dossier inclusi. Il numero di opportunità
             pertinenti mostrate non è mai limitato. Tutti i prezzi sono IVA esclusa e l'annuale include 2 mesi.
-          </p>
-          <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold text-accent">
-            {TRIAL_HIGHLIGHT}
           </p>
         </div>
 
