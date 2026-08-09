@@ -47,7 +47,12 @@ const FORBIDDEN: RegExp[] = [
   // Automatismi non dimostrabili lato prodotto.
   /aggiorna in automatico/i,
   /automaticamente aggiornat/i,
-  /monitoraggio continuo/i,
+  // Terminologia vietata nella UI.
+  /\bAI\b/,
+  /\bIA\b/,
+  /\bML\b/,
+  /\bsmart\b/i,
+  /\bCore\b/,
 ];
 
 /**
