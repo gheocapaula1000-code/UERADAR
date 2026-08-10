@@ -437,17 +437,50 @@ function Dashboard() {
 
         {/* FILTRI */}
         <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-lg font-semibold">Tutti i bandi</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">
+              Tutti i Bandi{" "}
+              <span className="text-sm font-normal text-muted-foreground">
+                ({filtered.length}
+                {activeFilters > 0 ? ` di ${bandi.length}` : ""})
+              </span>
+            </h2>
+            <div className="flex items-center gap-2">
+              {activeFilters > 0 && (
+                <button
+                  onClick={resetFilters}
+                  className="tap rounded-lg border border-border px-3 py-2 text-sm"
+                >
+                  Azzera filtri
+                </button>
+              )}
+              <button
+                onClick={() => setFiltersOpen((v) => !v)}
+                aria-expanded={filtersOpen}
+                className="tap inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium"
+              >
+                <Filter className="h-4 w-4" />
+                Filtra
+                {activeFilters > 0 && (
+                  <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+                    {activeFilters}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
 
-          {/* Filtri speciali: iper-locale + solo sommersi */}
+          {filtersOpen && (
+          <div className="space-y-4 rounded-2xl border border-border bg-card p-4">
+          <p className="text-sm text-muted-foreground">
+            I filtri restringono l'elenco qui sotto. Se non sei sicuro, lasciali come sono.
+          </p>
+          {/* Filtri per zona */}
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setHyperlocalOnly((v) => !v)}
               disabled={!profile}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs border transition ${
+              className={`tap inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm border transition ${
                 hyperlocalOnly
                   ? "bg-accent text-accent-foreground border-accent shadow-glow"
                   : "bg-card border-border text-muted-foreground hover:text-foreground"
@@ -461,21 +494,25 @@ function Dashboard() {
               }
             >
               <MapPinned className="h-3.5 w-3.5" />
-              Iper-locale
+              Solo la mia zona
               {profile?.comune ? ` · ${profile.comune}` : ""}
             </button>
             <button
               onClick={() => setHiddenOnly((v) => !v)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs border transition ${
+              className={`tap inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm border transition ${
                 hiddenOnly
                   ? "bg-accent text-accent-foreground border-accent shadow-glow"
                   : "bg-card border-border text-muted-foreground hover:text-foreground"
               }`}
             >
               <Radar className="h-3.5 w-3.5" />
-              Solo fonti locali
+              Solo fonti poco conosciute
             </button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            «Solo la mia zona» mostra i bandi del tuo Comune o della tua Provincia. «Solo fonti poco
+            conosciute» mostra i bandi pubblicati da enti minori, spesso con meno domande.
+          </p>
 
           <div className="flex flex-wrap gap-2">
             {CATEGORY_FILTERS.map((c) => (
@@ -508,19 +545,34 @@ function Dashboard() {
               </button>
             ))}
           </div>
+          </div>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {query.isLoading ? (
               Array.from({ length: 6 }).map((_, i) => <BandoCardSkeleton key={i} />)
             ) : filtered.length === 0 ? (
               <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Nessun bando corrisponde ai filtri.
+                Nessun Bando corrisponde ai filtri scelti.
+                {activeFilters > 0 && (
+                  <button
+                    onClick={resetFilters}
+                    className="tap ml-2 font-semibold text-primary underline"
+                  >
+                    Azzera i filtri
+                  </button>
+                )}
               </div>
             ) : (
               filtered.map((b: Bando, i: number) => <BandoCard key={b.id} bando={b} index={i} />)
             )}
           </div>
         </section>
+
+        <p className="rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground">
+          {COVERAGE_HEADLINE} {MONITORING_COPY} I risultati arrivano da fonti ufficiali e
+          specialistiche e sono ordinati sul profilo della tua impresa.
+        </p>
       </div>
     </AppShell>
   );
