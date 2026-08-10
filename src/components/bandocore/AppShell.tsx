@@ -4,6 +4,7 @@ import { BrandLogo } from "@/components/bandocore/BrandLogo";
 import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { EntitlementGate } from "@/components/bandocore/EntitlementGate";
 import { BottomNav } from "@/components/bandocore/BottomNav";
+import { PullToRefresh } from "@/components/bandocore/PullToRefresh";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { ReactNode } from "react";
@@ -81,9 +82,11 @@ export function AppShell({
           </div>
         </header>
 
-        <main id="contenuto-principale" className="safe-x flex-1 overflow-y-auto pb-24 lg:pb-10">
-          {requireEntitlement ? <EntitlementGate>{children}</EntitlementGate> : children}
-        </main>
+        <PullToRefresh>
+          <main id="contenuto-principale" className="safe-x pb-24 lg:pb-10">
+            {requireEntitlement ? <EntitlementGate>{children}</EntitlementGate> : children}
+          </main>
+        </PullToRefresh>
         <div className="bottom-nav-gap">
           <SiteFooter />
         </div>
