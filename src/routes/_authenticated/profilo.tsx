@@ -11,7 +11,8 @@ import { startTrial } from "@/lib/trial.functions";
 import { getBillingStatus } from "@/lib/billing.functions";
 import { TRIAL_OBJECTIVES } from "@/lib/catalog";
 import { trialStartMessage } from "@/lib/trial";
-import { Building2, Save, Sparkles } from "lucide-react";
+import { Save, Sparkles } from "lucide-react";
+import { BrandMark } from "@/components/bandocore/BrandLogo";
 import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/profilo")({
@@ -208,9 +209,7 @@ function Profilo() {
     <AppShell requireEntitlement={false}>
       <div className="mx-auto max-w-4xl px-4 md:px-8 py-6 md:py-10">
         <header className="flex items-center gap-3 mb-8">
-          <div className="grid h-11 w-11 place-items-center rounded-lg gradient-primary">
-            <Building2 className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <BrandMark />
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">
               {isNew ? "Configura la tua azienda" : "Profilo Azienda"}
