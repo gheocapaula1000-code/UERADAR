@@ -234,13 +234,6 @@
 @utility urgent-pulse {
   animation: urgent-pulse 2.4s ease-in-out infinite;
 }
-/* CTA: nessun salto di layout, solo luminosità e ombra. */
-@utility cta-lift {
-  transition:
-    filter 180ms ease,
-    box-shadow 180ms ease;
-}
-
 /* ---------------------------------------------------------------
    Navigazione inferiore: ingresso dal basso e pillola morbida.
    --------------------------------------------------------------- */
@@ -280,6 +273,13 @@
 }
 .bottom-nav-icon-active {
   animation: bottom-nav-pill 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* CTA: nessun salto di layout, solo luminosità e ombra. */
+@utility cta-lift {
+  transition:
+    filter 180ms ease,
+    box-shadow 180ms ease;
 }
 
 /* ---------------------------------------------------------------
