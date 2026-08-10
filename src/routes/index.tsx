@@ -133,6 +133,7 @@ function Landing() {
       {/* PROVA — sezione separata e meno aggressiva */}
       <section className="mx-auto w-full max-w-3xl px-4 pb-12 sm:px-6 sm:pb-16">
         <TrialBanner compact />
+        <p className="mt-3 text-center text-sm text-muted-foreground">{TRIAL_HIGHLIGHT}</p>
       </section>
 
       {/* TRUST SIGNALS */}
