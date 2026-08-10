@@ -23,39 +23,39 @@ export type RouteSeo = {
 export const ROUTE_SEO = {
   "/": {
     path: "/",
-    title: "UEradar.com — radar bandi e incentivi per PMI e P.IVA",
+    title: "UEradar.com — Bandi, Incentivi e Finanziamenti per PMI e Partita IVA",
     description:
-      "Radar dei bandi per imprese italiane: fondo perduto, PNRR, programmi dell'Unione Europea e finanza agevolata filtrati su ATECO, sede e profilo della tua impresa.",
+      "Radar dei Bandi per Imprese italiane: Fondo Perduto, PNRR, Fondi Europei e Finanziamenti Agevolati filtrati su ATECO, sede e Profilo Aziendale della tua Impresa.",
     indexable: true,
     ogType: "website",
   },
   "/prezzi": {
     path: "/prezzi",
-    title: "Prezzi UEradar.com — Professional, Business ed Executive",
+    title: "Prezzi UEradar.com — Piani Professional, Business ed Executive",
     description:
-      "Professional, Business ed Executive: prezzi IVA esclusa e 7 giorni gratuiti, senza carta di credito né dati bancari e senza dover dare disdetta.",
+      "Piani Professional, Business ed Executive per Partita IVA e PMI: prezzi IVA esclusa e 7 Giorni Gratuiti, senza carta di credito né dati bancari e senza dover dare disdetta.",
     indexable: true,
     ogType: "website",
   },
   "/privacy": {
     path: "/privacy",
-    title: "Informativa privacy — UEradar.com per le imprese",
+    title: "Informativa Privacy — UEradar.com per le Imprese",
     description:
-      "Come UEradar.com tratta i dati di account e profilo aziendale: finalità, basi giuridiche, conservazione, isolamento dei dati per impresa e diritti esercitabili.",
+      "Come UEradar.com tratta i dati di account e Profilo Aziendale: finalità, basi giuridiche, conservazione, isolamento dei dati per Impresa e diritti esercitabili.",
     indexable: true,
     ogType: "article",
   },
   "/termini": {
     path: "/termini",
-    title: "Termini e condizioni del servizio — UEradar.com",
+    title: "Termini e Condizioni del Servizio — UEradar.com",
     description:
-      "Termini d'uso di UEradar.com: servizio riservato a Partite IVA e imprese, piani e prezzi IVA esclusa, prova gratuita di 7 giorni e cancellazione online.",
+      "Termini d'uso di UEradar.com: servizio riservato a Partite IVA e Imprese, Piani e prezzi IVA esclusa, Prova Gratuita di 7 giorni e cancellazione online.",
     indexable: true,
     ogType: "article",
   },
   "/cookie": {
     path: "/cookie",
-    title: "Cookie e memoria locale del servizio — UEradar.com",
+    title: "Cookie e Memoria Locale del Servizio — UEradar.com",
     description:
       "Quali cookie e quale memoria locale usa UEradar.com per autenticazione, sicurezza, installazione dell'app e consultazione offline dell'ultimo feed disponibile.",
     indexable: true,
@@ -63,9 +63,9 @@ export const ROUTE_SEO = {
   },
   "/contatti": {
     path: "/contatti",
-    title: "Contatti UEradar.com — assistenza e dati del titolare",
+    title: "Contatti UEradar.com — Assistenza e dati del Titolare",
     description:
-      "Contatti ufficiali di UEradar.com: email, PEC, telefono e sede legale del titolare Pi.Gi Service di Gheoca Paula per assistenza, privacy e questioni amministrative.",
+      "Contatti ufficiali di UEradar.com: email, PEC, telefono e sede legale del Titolare Pi.Gi Service di Gheoca Paula per Assistenza, Privacy e questioni amministrative.",
     indexable: true,
     ogType: "article",
   },
@@ -166,7 +166,7 @@ export const ORGANIZATION_JSONLD = {
     availableLanguage: "it",
   },
   description:
-    "Servizio B2B che aiuta Partite IVA e imprese italiane a individuare bandi e incentivi pubblici da fonti ufficiali.",
+    "Servizio B2B che aiuta Partite IVA, PMI e Imprese italiane a individuare Bandi e Incentivi pubblici da Fonti Ufficiali.",
 };
 
 /** SoftwareApplication: nessun prezzo dichiarato come offerta attiva, nessun download store. */
@@ -178,7 +178,7 @@ export const SOFTWARE_APPLICATION_JSONLD = {
   operatingSystem: "Web",
   url: `${SITE_URL}/`,
   description:
-    "Applicazione web per imprese che raccoglie bandi, fondo perduto e incentivi da fonti ufficiali e li filtra sul profilo dell'impresa.",
+    "Applicazione web per Imprese che raccoglie Bandi, Fondo Perduto e Incentivi da Fonti Ufficiali e li filtra sul Profilo Aziendale dell'Impresa.",
 };
 
 /** FAQPage generata dalla stessa fonte dati resa visibile nella pagina prezzi. */

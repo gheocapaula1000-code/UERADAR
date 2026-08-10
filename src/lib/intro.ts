@@ -15,7 +15,7 @@ export const INTRO_WATCHDOG_MS = 4000;
 
 /** Frase reale mostrata nell'apertura (nessun dato inventato). */
 export const INTRO_TAGLINE =
-  "Cinque livelli di ricerca: locale, provinciale, regionale, nazionale ed europeo.";
+  "Cinque Livelli di Ricerca: Locale, Provinciale, Regionale, Nazionale ed Europeo.";
 
 export function introDurations(reducedMotion: boolean) {
   if (reducedMotion) return { scene: 0, fade: 0, watchdog: 0 };

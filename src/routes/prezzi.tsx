@@ -59,7 +59,7 @@ function Pricing() {
       <main id="contenuto-principale" className="safe-x mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
         <div className="text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-            Piani per imprese
+            Piani per Partite IVA e Imprese
           </p>
           <h1 className="mt-3 text-3xl font-bold sm:text-4xl md:text-5xl">
             {TRIAL_HIGHLIGHT}
@@ -81,14 +81,14 @@ function Pricing() {
             ))}
           </ul>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            I piani si distinguono per capienza di
-            utenti operativi (titolare incluso) e dossier inclusi. Il numero di opportunità
+            I Piani si distinguono per capienza di
+            Utenti Operativi (titolare incluso) e Dossier inclusi. Il numero di opportunità
             pertinenti mostrate non è mai limitato. Tutti i prezzi sono IVA esclusa e l'annuale include 2 mesi.
           </p>
         </div>
 
         <section
-          aria-label="Copertura della ricerca"
+          aria-label="Copertura della Ricerca"
           className="mt-10 grid gap-4 rounded-2xl border border-border bg-card p-6 sm:p-8 md:grid-cols-3"
         >
           <div>
@@ -212,7 +212,7 @@ function Pricing() {
         </section>
 
         <section className="mt-12 rounded-2xl border border-primary/30 bg-card p-6 sm:p-8">
-          <h2 className="text-lg font-semibold">La prova gratuita, senza sorprese</h2>
+          <h2 className="text-lg font-semibold">La Prova Gratuita, senza sorprese</h2>
           <ul className="mt-4 grid gap-3 text-sm text-muted-foreground md:grid-cols-2">
             {TRIAL_TERMS.map((t) => (
               <li key={t} className="flex items-start gap-2">
@@ -224,7 +224,7 @@ function Pricing() {
 
         <section className="mt-12 grid gap-6 md:grid-cols-2">
           <div className="rounded-2xl border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold">Quando compare l'etichetta "Verificato"</h2>
+            <h2 className="text-lg font-semibold">Quando compare l'Etichetta "Verificato"</h2>
             <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
               {VERIFIED_DEFINITION.map((v) => (
                 <li key={v} className="flex items-start gap-2">
@@ -244,7 +244,7 @@ function Pricing() {
         </section>
 
         <section className="mt-12">
-          <h2 className="text-2xl font-bold">Come funziona il motore</h2>
+          <h2 className="text-2xl font-bold">Come Funziona il Motore di Ricerca</h2>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {ARCHITECTURE_NOTES.map((n) => (
               <div key={n.t} className="rounded-xl border border-border bg-card p-5">
@@ -256,7 +256,7 @@ function Pricing() {
         </section>
 
         <section className="mt-12">
-          <h2 className="text-2xl font-bold">Domande frequenti</h2>
+          <h2 className="text-2xl font-bold">Domande Frequenti su Bandi e Piani</h2>
           <div className="mt-6 space-y-4">
             {PRICING_FAQ.map((item) => (
               <div key={item.q} className="rounded-xl border border-border bg-card p-5">

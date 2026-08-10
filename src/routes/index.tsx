@@ -55,10 +55,10 @@ function Landing() {
             className="hidden items-center gap-8 text-sm text-muted-foreground md:flex"
           >
             <a href="#come-funziona" className="hover:text-foreground transition">
-              Come funziona
+              Come Funziona
             </a>
             <a href="#per-chi" className="hover:text-foreground transition">
-              Per chi
+              Per Chi
             </a>
             <a href="#sicurezza" className="hover:text-foreground transition">
               Sicurezza
@@ -89,11 +89,11 @@ function Landing() {
               Unione Europea Radar — {COVERAGE_HEADLINE}
             </div>
             <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl md:text-6xl">
-              Il radar dei{" "}
+              Il Radar dei{" "}
               <span className="bg-gradient-to-r from-primary via-warning to-accent bg-clip-text text-transparent">
-                bandi
+                Bandi
               </span>{" "}
-              per la tua impresa.
+              per la tua Impresa.
             </h1>
             <p className="mt-6 text-base text-foreground sm:text-lg md:text-xl">
               {VALUE_STATEMENT}
@@ -123,7 +123,7 @@ function Landing() {
                 href="#come-funziona"
                 className="tap inline-flex items-center gap-2 rounded-lg border border-border bg-card/50 px-6 py-3 text-base font-medium text-foreground transition hover:bg-card"
               >
-                Come funziona
+                Come Funziona
               </a>
               <Link
                 to="/prezzi"
@@ -134,9 +134,9 @@ function Landing() {
             </div>
             <div className="mt-10 grid max-w-xl grid-cols-1 gap-6 sm:grid-cols-3">
               {[
-                { k: "Cinque livelli", v: "Da locale a europeo" },
-                { k: "Fonti ufficiali", v: "E fonti specialistiche" },
-                { k: "Risultati motivati", v: "Ordinati sul tuo profilo" },
+                { k: "Cinque Livelli", v: "Da Locale a Europeo" },
+                { k: "Fonti Ufficiali", v: "E Fonti Specialistiche" },
+                { k: "Risultati Motivati", v: "Ordinati sul tuo Profilo" },
               ].map((s) => (
                 <div key={s.v}>
                   <div className="text-xl font-bold text-primary md:text-2xl">{s.k}</div>
@@ -152,26 +152,26 @@ function Landing() {
       <section id="come-funziona" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
         <div className="mb-12 max-w-2xl">
           <div className="text-xs uppercase tracking-widest text-primary font-semibold">
-            Come funziona
+            Come Funziona
           </div>
-          <h2 className="mt-2 text-3xl font-bold md:text-4xl">Tre step essenziali.</h2>
+          <h2 className="mt-2 text-3xl font-bold md:text-4xl">Tre Passaggi Essenziali.</h2>
         </div>
         <div className="grid gap-6 md:grid-cols-3">
           {[
             {
               icon: Building2,
-              t: "1. Profilo azienda",
-              d: "Inserisci P.IVA, ATECO, sede, dimensione, investimenti e caratteristiche femminili, giovanili o innovative.",
+              t: "1. Profilo Azienda",
+              d: "Inserisci Partita IVA, Codice ATECO, sede, dimensione, investimenti e caratteristiche di Imprenditoria Femminile, Giovanile o Innovativa.",
             },
             {
               icon: Radar,
-              t: "2. Ricerca su cinque livelli",
-              d: "La ricerca copre fonti locali, provinciali, regionali, nazionali ed europee, ufficiali e specialistiche, incrociando profilo, territorio e requisiti.",
+              t: "2. Ricerca su Cinque Livelli",
+              d: "La ricerca copre Fonti Locali, Provinciali, Regionali, Nazionali ed Europee, Ufficiali e Specialistiche, incrociando Profilo, Territorio e Requisiti.",
             },
             {
               icon: Target,
-              t: "3. Compatibilità e bozza",
-              d: "Ogni risultato mostra requisiti confermati, punti da verificare, scadenza e fonte; la domanda viene precompilata in bozza, da verificare prima dell'invio.",
+              t: "3. Compatibilità e Bozza",
+              d: "Ogni risultato mostra Requisiti confermati, punti da verificare, Scadenza e Fonte Ufficiale; la domanda viene precompilata in Bozza, da verificare prima dell'invio.",
             },
           ].map((f) => (
             <div
@@ -202,20 +202,20 @@ function Landing() {
           <div className="grid gap-10 md:grid-cols-2">
             <div>
               <div className="text-xs uppercase tracking-widest text-accent font-semibold">
-                Per chi
+                Per Chi
               </div>
-              <h2 className="mt-2 text-3xl font-bold md:text-4xl">Solo Partite IVA e imprese.</h2>
+              <h2 className="mt-2 text-3xl font-bold md:text-4xl">Solo Partite IVA e Imprese.</h2>
               <p className="mt-4 text-muted-foreground">
-                UEradar.com è un servizio B2B: niente incentivi per privati, solo strumenti verticali
-                per chi ha una posizione fiscale attiva.
+                UEradar.com è un servizio B2B: niente Incentivi per privati, solo strumenti
+                verticali per chi ha una Partita IVA attiva.
               </p>
               <ul className="mt-6 space-y-3 text-sm">
                 {[
                   "Partite IVA & Ditte Individuali",
                   "SRL, SRLS, SPA, SAS, SNC",
-                  "PMI innovative e startup",
-                  "Imprese femminili (corsia preferenziale)",
-                  "Imprese giovanili e consorzi europei",
+                  "PMI Innovative e Startup",
+                  "Imprenditoria Femminile (corsia preferenziale)",
+                  "Imprese Giovanili e Consorzi Europei",
                 ].map((i) => (
                   <li key={i} className="flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary" /> {i}
@@ -228,7 +228,7 @@ function Landing() {
                 { icon: Euro, l: "Fondo Perduto", c: "text-primary" },
                 { icon: Rocket, l: "Tasso Zero", c: "text-info" },
                 { icon: ShieldCheck, l: "Credito d'Imposta", c: "text-accent" },
-                { icon: Sparkles, l: "PNRR & Fondi UE", c: "text-femminile" },
+                { icon: Sparkles, l: "PNRR & Fondi Europei", c: "text-femminile" },
               ].map((c) => (
                 <div key={c.l} className="rounded-xl border border-border bg-card p-5">
                   <c.icon className={`h-6 w-6 ${c.c}`} />
@@ -245,10 +245,10 @@ function Landing() {
         <div className="mb-10 max-w-2xl">
           <div className="text-xs uppercase tracking-widest text-primary font-semibold">Piani</div>
           <h2 className="mt-2 text-3xl font-bold md:text-4xl">
-            Tre piani self-service, IVA esclusa.
+            Tre Piani self-service, IVA esclusa.
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Cambia la capienza di utenti operativi e i dossier inclusi. Le opportunità
+            Cambia la capienza di Utenti Operativi e i Dossier inclusi. Le opportunità
             pertinenti mostrate non sono mai limitate. Annuale con 2 mesi inclusi.
           </p>
         </div>
@@ -304,17 +304,17 @@ function Landing() {
           to="/prezzi"
           className="tap mt-8 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium transition hover:bg-surface-elevated"
         >
-          Vedi i dettagli dei piani <ArrowRight className="h-4 w-4" />
+          Vedi i dettagli dei Piani <ArrowRight className="h-4 w-4" />
         </Link>
       </section>
 
       {/* CTA */}
       <section id="sicurezza" className="mx-auto max-w-7xl px-4 py-20 text-center sm:px-6 sm:py-24">
         <h2 className="mx-auto max-w-2xl text-3xl font-bold md:text-4xl">
-          Tieni sotto controllo le opportunità aperte.
+          Tieni sotto controllo i Bandi aperti.
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-          Configura il profilo aziendale e consulta il feed filtrato sulla tua impresa.
+          Configura il Profilo Aziendale e consulta le Opportunità filtrate sulla tua Impresa.
         </p>
         <Link
           to="/auth"
