@@ -30,16 +30,22 @@ describe("onboarding di un account pending", () => {
 
   it("il gate indica il percorso esplicito verso il profilo", () => {
     expect(gate).toContain('state === "TRIAL_NOT_STARTED"');
-    expect(gate).toContain("Completa profilo e attiva i 7 giorni");
+    expect(gate).toContain("Completa il profilo");
+    expect(gate).toContain("prova gratuita di 7 giorni");
     expect(gate).toContain('to="/profilo"');
   });
 
   it("il salvataggio non porta al dashboard se la prova non parte", () => {
-    const save = profilo.slice(profilo.indexOf("const save ="), profilo.indexOf("const save =") + 2600);
+    const save = profilo.slice(
+      profilo.indexOf("const save ="),
+      profilo.indexOf("const save =") + 2800,
+    );
     const failureBranch = save.slice(save.indexOf("trialStartMessage(trial.code)"));
     expect(failureBranch).toContain("return;");
-    expect(save.indexOf("return;")).toBeLessThan(save.indexOf('navigate({ to: "/dashboard" })'));
-    expect(save).toContain('toast.error(trialStartMessage("TRIAL_START_FAILED"))');
+    // La conferma di successo (e quindi il passaggio al dashboard) arriva solo
+    // dopo i return dei rami di errore.
+    expect(save.indexOf("return;")).toBeLessThan(save.indexOf("setDone("));
+    expect(save).toContain('setBlockingError(trialStartMessage("TRIAL_START_FAILED"))');
   });
 
   it("ogni esito di avvio prova ha un messaggio comprensibile", () => {
