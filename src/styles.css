@@ -91,8 +91,8 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family:
-      "Plus Jakarta Sans",
       "Inter",
+      "Plus Jakarta Sans",
       ui-sans-serif,
       system-ui,
       -apple-system,
@@ -100,6 +100,9 @@
       Roboto,
       sans-serif;
     font-feature-settings: "ss01", "cv02", "cv03", "cv04", "cv11";
+    hyphens: none;
+    -webkit-hyphens: none;
+    -ms-hyphens: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -108,7 +111,7 @@
   h2,
   h3,
   h4 {
-    font-family: "Sora", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    font-family: "Outfit", "Inter", ui-sans-serif, system-ui, sans-serif;
     letter-spacing: -0.025em;
     text-wrap: balance;
   }
