@@ -152,7 +152,7 @@ describe("prova gratuita molto visibile e senza carta", () => {
     expect(banner).toContain("TrialStickyBar");
     expect(pricingPage).toContain("<TrialStickyBar />");
     expect(pricingPage).toContain("<TrialBanner />");
-    expect(landing).toContain("<TrialBanner />");
+    expect(landing).toMatch(/<TrialBanner(\s+|\/)/);
     expect(pricingPage).toContain("TRIAL_COPY.cta");
   });
 
