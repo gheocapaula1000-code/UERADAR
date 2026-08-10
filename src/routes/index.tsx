@@ -46,7 +46,7 @@ function Landing() {
     <div className="min-h-screen bg-background pb-44 text-foreground md:pb-0">
       {/* NAV */}
       <header className="safe-x safe-top border-b border-border/60 bg-background/70 backdrop-blur sticky top-0 z-40">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
           <Link to="/" className="flex min-w-0 items-center gap-2" aria-label="UEradar.com, home">
             <BrandLogo />
           </Link>
@@ -82,8 +82,9 @@ function Landing() {
         <div className="absolute inset-0 gradient-hero opacity-90" />
         <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
         <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
-        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 md:py-32">
-          <div className="max-w-3xl">
+        <div className="relative mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-24 md:py-32">
+          <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="min-w-0">
             <div className="inline-flex items-start gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground">
               <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
               Unione Europea Radar — {COVERAGE_HEADLINE}
@@ -114,11 +115,7 @@ function Landing() {
                 </li>
               ))}
             </ul>
-            <div className="mt-8 max-w-xl">
-              <TrialBanner />
-            </div>
-            <p className="mt-3 text-sm font-semibold text-accent">{TRIAL_HIGHLIGHT}</p>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href="#come-funziona"
                 className="tap inline-flex items-center gap-2 rounded-lg border border-border bg-card/50 px-6 py-3 text-base font-medium text-foreground transition hover:bg-card"
@@ -132,7 +129,12 @@ function Landing() {
                 Prezzi <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
-            <div className="mt-10 grid max-w-xl grid-cols-1 gap-6 sm:grid-cols-3">
+          </div>
+
+          <div className="min-w-0 rounded-2xl border border-border bg-card/60 p-6 shadow-elevated sm:p-8">
+            <TrialBanner />
+            <p className="mt-3 text-sm font-semibold text-accent">{TRIAL_HIGHLIGHT}</p>
+            <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-1">
               {[
                 { k: "Cinque Livelli", v: "Da Locale a Europeo" },
                 { k: "Fonti Ufficiali", v: "E Fonti Specialistiche" },
@@ -145,12 +147,13 @@ function Landing() {
               ))}
             </div>
           </div>
+          </div>
         </div>
       </section>
 
       {/* FEATURES */}
-      <section id="come-funziona" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
-        <div className="mb-12 max-w-2xl">
+      <section id="come-funziona" className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto mb-12 max-w-2xl text-center">
           <div className="text-xs uppercase tracking-widest text-primary font-semibold">
             Come Funziona
           </div>
@@ -198,8 +201,8 @@ function Landing() {
 
       {/* PER CHI */}
       <section id="per-chi" className="border-y border-border bg-surface-elevated/50">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
-          <div className="grid gap-10 md:grid-cols-2">
+        <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+          <div className="grid items-center gap-10 md:grid-cols-2">
             <div>
               <div className="text-xs uppercase tracking-widest text-accent font-semibold">
                 Per Chi
@@ -241,8 +244,8 @@ function Landing() {
       </section>
 
       {/* PREZZI */}
-      <section id="prezzi" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
-        <div className="mb-10 max-w-2xl">
+      <section id="prezzi" className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto mb-10 max-w-2xl text-center">
           <div className="text-xs uppercase tracking-widest text-primary font-semibold">Piani</div>
           <h2 className="mt-2 text-3xl font-bold md:text-4xl">
             Tre Piani self-service, IVA esclusa.
@@ -252,7 +255,7 @@ function Landing() {
             pertinenti mostrate non sono mai limitate. Annuale con 2 mesi inclusi.
           </p>
         </div>
-        <div className="mb-8 max-w-2xl">
+        <div className="mx-auto mb-8 max-w-2xl">
           <TrialBanner compact />
         </div>
         <div className="grid gap-6 md:grid-cols-3">
@@ -286,30 +289,32 @@ function Landing() {
             </div>
           ))}
         </div>
-        <p className="mt-6 text-sm text-muted-foreground">
+        <p className="mx-auto mt-6 max-w-3xl text-center text-sm text-muted-foreground">
           {ENTERPRISE_PLAN.name} — {ENTERPRISE_PLAN.headline}: {ENTERPRISE_PLAN.price}{" "}
           {ENTERPRISE_PLAN.vatNote}. {ENTERPRISE_PLAN.cta} a {ENTERPRISE_PLAN.contact}.
         </p>
-        <ul className="mt-6 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
+        <ul className="mx-auto mt-6 grid max-w-4xl gap-2 text-xs text-muted-foreground md:grid-cols-2">
           {TRIAL_TERMS.map((t) => (
             <li key={t}>· {t}</li>
           ))}
         </ul>
-        <ul className="mt-4 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
+        <ul className="mx-auto mt-4 grid max-w-4xl gap-2 text-xs text-muted-foreground md:grid-cols-2">
           {PRODUCT_BOUNDARIES.map((b) => (
             <li key={b}>· {b}</li>
           ))}
         </ul>
-        <Link
-          to="/prezzi"
-          className="tap mt-8 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium transition hover:bg-surface-elevated"
-        >
-          Vedi i dettagli dei Piani <ArrowRight className="h-4 w-4" />
-        </Link>
+        <div className="mt-8 flex justify-center">
+          <Link
+            to="/prezzi"
+            className="tap inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium transition hover:bg-surface-elevated"
+          >
+            Vedi i dettagli dei Piani <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </section>
 
       {/* CTA */}
-      <section id="sicurezza" className="mx-auto max-w-7xl px-4 py-20 text-center sm:px-6 sm:py-24">
+      <section id="sicurezza" className="mx-auto w-full max-w-6xl px-4 py-20 text-center sm:px-6 sm:py-24">
         <h2 className="mx-auto max-w-2xl text-3xl font-bold md:text-4xl">
           Tieni sotto controllo i Bandi aperti.
         </h2>
