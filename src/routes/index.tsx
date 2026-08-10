@@ -77,77 +77,100 @@ function Landing() {
       </header>
 
       <main id="contenuto-principale" className="safe-x">
-      {/* HERO */}
+      {/* HERO — mobile-first, verticale, valore prima */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 gradient-hero opacity-90" />
         <div className="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
         <div className="absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
-        <div className="relative mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-24 md:py-32">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="min-w-0">
-            <div className="inline-flex items-start gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-sm text-muted-foreground">
-              <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-              Unione Europea Radar — {COVERAGE_HEADLINE}
-            </div>
-            <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl md:text-6xl">
-              Il Radar dei{" "}
-              <span className="bg-gradient-to-r from-primary via-warning to-accent bg-clip-text text-transparent">
-                Bandi
-              </span>{" "}
-              per la tua Impresa.
-            </h1>
-            <p className="mt-6 text-base text-foreground sm:text-lg md:text-xl">
-              {VALUE_STATEMENT}
-            </p>
-            <p className="mt-4 text-base text-muted-foreground sm:text-lg">
-              {RESEARCH_COPY}
-            </p>
-            <ul
-              aria-label="Livelli coperti dalla ricerca"
-              className="mt-6 flex flex-wrap gap-2"
+        <div className="relative mx-auto w-full max-w-3xl px-4 py-14 text-center sm:px-6 sm:py-20 md:py-28">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1.5 text-sm text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+            Unione Europea Radar — {COVERAGE_HEADLINE}
+          </div>
+          <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl md:text-6xl">
+            Il Radar dei{" "}
+            <span className="bg-gradient-to-r from-primary via-warning to-accent bg-clip-text text-transparent">
+              Bandi
+            </span>{" "}
+            per la tua Impresa.
+          </h1>
+          <p className="mt-6 text-base text-foreground sm:text-lg md:text-xl">
+            {VALUE_STATEMENT}
+          </p>
+          <p className="mt-4 text-base text-muted-foreground sm:text-lg">
+            {RESEARCH_COPY}
+          </p>
+          <ul
+            aria-label="Livelli coperti dalla ricerca"
+            className="mt-6 flex flex-wrap justify-center gap-2"
+          >
+            {COVERAGE_LEVELS.map((level) => (
+              <li
+                key={level}
+                className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+              >
+                {level}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link
+              to="/auth"
+              className="tap inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-base font-bold text-primary-foreground shadow-glow transition hover:brightness-110"
             >
-              {COVERAGE_LEVELS.map((level) => (
-                <li
-                  key={level}
-                  className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
-                >
-                  {level}
-                </li>
-              ))}
-            </ul>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <a
-                href="#come-funziona"
-                className="tap inline-flex items-center gap-2 rounded-lg border border-border bg-card/50 px-6 py-3 text-base font-medium text-foreground transition hover:bg-card"
-              >
-                Come Funziona
-              </a>
-              <Link
-                to="/prezzi"
-                className="tap inline-flex items-center gap-2 rounded-lg border border-border bg-card/50 px-6 py-3 text-base font-medium text-foreground transition hover:bg-card"
-              >
-                Prezzi <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+              Inizia Gratis <ArrowRight className="h-4 w-4" />
+            </Link>
+            <a
+              href="#come-funziona"
+              className="tap inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card/50 px-6 py-3 text-base font-medium text-foreground transition hover:bg-card"
+            >
+              Come Funziona
+            </a>
           </div>
+        </div>
+      </section>
 
-          <div className="min-w-0 rounded-2xl border border-border bg-card/60 p-6 shadow-elevated sm:p-8">
-            <TrialBanner />
-            <p className="mt-3 text-base font-semibold text-accent">{TRIAL_HIGHLIGHT}</p>
-            <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-1">
-              {[
-                { k: "Cinque Livelli", v: "Da Locale a Europeo" },
-                { k: "Fonti Ufficiali", v: "E Fonti Specialistiche" },
-                { k: "Risultati Motivati", v: "Ordinati sul tuo Profilo" },
-              ].map((s) => (
-                <div key={s.v}>
-                  <div className="text-xl font-bold text-primary md:text-2xl">{s.k}</div>
-                  <div className="text-sm text-muted-foreground mt-1">{s.v}</div>
-                </div>
-              ))}
+      {/* PROVA — sezione separata e meno aggressiva */}
+      <section className="mx-auto w-full max-w-3xl px-4 pb-12 sm:px-6 sm:pb-16">
+        <div className="rounded-2xl border border-accent/30 bg-accent/5 p-5 sm:p-6">
+          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-accent/15">
+              <ShieldCheck className="h-6 w-6 text-accent" />
             </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-base font-semibold text-accent sm:text-lg">
+                {TRIAL_HIGHLIGHT}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Crea il Profilo Aziendale e inizia a esplorare le Opportunità.
+              </p>
+            </div>
+            <Link
+              to="/auth"
+              className="tap inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-glow transition hover:brightness-110 sm:w-auto"
+            >
+              Attiva Ora <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
-          </div>
+        </div>
+      </section>
+
+      {/* TRUST SIGNALS */}
+      <section className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6 sm:pb-20">
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[
+            { k: "Cinque Livelli", v: "Da Locale a Europeo" },
+            { k: "Fonti Ufficiali", v: "E Fonti Specialistiche" },
+            { k: "Risultati Motivati", v: "Ordinati sul tuo Profilo" },
+          ].map((s) => (
+            <div
+              key={s.v}
+              className="rounded-2xl border border-border bg-card/60 p-5 text-center shadow-sm"
+            >
+              <div className="text-xl font-bold text-primary md:text-2xl">{s.k}</div>
+              <div className="mt-1 text-sm text-muted-foreground">{s.v}</div>
+            </div>
+          ))}
         </div>
       </section>
 
