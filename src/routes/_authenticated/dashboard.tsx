@@ -252,13 +252,10 @@ function Dashboard() {
               <Radar className="h-7 w-7 text-accent" /> Radar Bandi
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {COVERAGE_HEADLINE} Risultati da fonti ufficiali e specialistiche, con fonte e dati
-              presenti, ordinati sul profilo della tua impresa. {MONITORING_COPY}
-              {query.data?.fetched_at && (
-                <span className="ml-2 text-xs">
-                  · Aggiornato {new Date(query.data.fetched_at).toLocaleString("it-IT")}
-                </span>
-              )}
+              I Bandi selezionati per la tua impresa.
+              {query.data?.fetched_at
+                ? ` · Aggiornato il ${new Date(query.data.fetched_at).toLocaleString("it-IT")}`
+                : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -270,15 +267,43 @@ function Dashboard() {
             <button
               onClick={handleManualRefresh}
               disabled={query.isFetching || isRefreshing}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110 disabled:opacity-60"
+              className="tap inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-base font-semibold text-primary-foreground shadow-glow transition hover:brightness-110 disabled:opacity-60"
             >
               <RefreshCw
-                className={`h-4 w-4 ${query.isFetching || isRefreshing ? "animate-spin" : ""}`}
+                className={`h-5 w-5 ${query.isFetching || isRefreshing ? "animate-spin" : ""}`}
               />
-              {isRefreshing ? "Aggiornamento in corso…" : "Aggiorna risultati"}
+              {isRefreshing ? "Ricerca in corso…" : "Cerca nuovi Bandi"}
             </button>
           </div>
         </header>
+
+        {/* Esito persistente dell'ultima ricerca */}
+        {refreshNotice && (
+          <div
+            role="status"
+            className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${
+              refreshNotice.tone === "ok"
+                ? "border-success/40 bg-success/10"
+                : refreshNotice.tone === "error"
+                  ? "border-destructive/40 bg-destructive/10"
+                  : "border-primary/40 bg-primary/10"
+            }`}
+          >
+            {refreshNotice.tone === "ok" ? (
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden="true" />
+            ) : (
+              <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+            )}
+            <p className="flex-1">{refreshNotice.text}</p>
+            <button
+              onClick={() => setRefreshNotice(null)}
+              aria-label="Chiudi il messaggio"
+              className="tap shrink-0 rounded-lg p-1 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         {/* Deep Search shimmer con messaggi dinamici */}
         {(query.isFetching || isRefreshing) && <DeepSearchShimmer />}
