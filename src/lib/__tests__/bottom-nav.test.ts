@@ -64,6 +64,15 @@ describe("resa e accessibilità", () => {
 
   it("il contenuto non finisce sotto la barra", () => {
     expect(SHELL).toMatch(/pb-24/);
+    // Anche il footer resta sopra la barra dove la barra è visibile.
+    expect(SHELL).toContain("bottom-nav-gap");
+    expect(CSS).toContain("@utility bottom-nav-gap");
+    expect(CSS).toMatch(/calc\(4\.75rem \+ env\(safe-area-inset-bottom\)\)/);
+  });
+
+  it("su desktop resta la sidebar e la barra è nascosta", () => {
+    expect(NAV).toMatch(/lg:hidden/);
+    expect(SHELL).toMatch(/hidden lg:flex w-64/);
   });
 
   it("l'ingresso è coordinato con l'apertura radar e disattivato da reduced-motion", () => {
