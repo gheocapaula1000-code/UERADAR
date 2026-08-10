@@ -327,10 +327,10 @@
     overflow-x: clip;
     overflow-y: visible;
   }
-  /* Italiano: sillabazione naturale, mai troncamento di frasi. */
   body {
-    hyphens: auto;
-    -webkit-hyphens: auto;
+    hyphens: none;
+    -webkit-hyphens: none;
+    -ms-hyphens: none;
     overflow-wrap: break-word;
     text-wrap: pretty;
   }
@@ -338,7 +338,8 @@
   h2,
   h3 {
     text-wrap: balance;
-    hyphens: manual;
+    hyphens: none;
+    -webkit-hyphens: none;
   }
   /* Su iOS input < 16px provocano zoom automatico. */
   input,
