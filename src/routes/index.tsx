@@ -132,27 +132,7 @@ function Landing() {
 
       {/* PROVA — sezione separata e meno aggressiva */}
       <section className="mx-auto w-full max-w-3xl px-4 pb-12 sm:px-6 sm:pb-16">
-        <div className="rounded-2xl border border-accent/30 bg-accent/5 p-5 sm:p-6">
-          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-accent/15">
-              <ShieldCheck className="h-6 w-6 text-accent" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-base font-semibold text-accent sm:text-lg">
-                {TRIAL_HIGHLIGHT}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Crea il Profilo Aziendale e inizia a esplorare le Opportunità.
-              </p>
-            </div>
-            <Link
-              to="/auth"
-              className="tap inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-glow transition hover:brightness-110 sm:w-auto"
-            >
-              Attiva Ora <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
+        <TrialBanner compact />
       </section>
 
       {/* TRUST SIGNALS */}
