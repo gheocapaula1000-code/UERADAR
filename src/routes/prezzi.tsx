@@ -93,10 +93,10 @@ function Pricing() {
         >
           <div>
             <h2 className="text-lg font-semibold">{COVERAGE_HEADLINE}</h2>
-            <p className="mt-2 text-sm text-muted-foreground">{RESEARCH_COPY}</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground sm:text-base">{RESEARCH_COPY}</p>
           </div>
-          <p className="text-sm text-muted-foreground">{MONITORING_COPY}</p>
-          <p className="text-sm text-muted-foreground">{DRAFT_COPY}</p>
+          <p className="text-[15px] leading-relaxed text-muted-foreground sm:text-base">{MONITORING_COPY}</p>
+          <p className="text-[15px] leading-relaxed text-muted-foreground sm:text-base">{DRAFT_COPY}</p>
         </section>
 
         <div className="mx-auto mt-8 max-w-2xl">
@@ -138,7 +138,7 @@ function Pricing() {
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <h2 className="text-2xl font-semibold">{plan.name}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">{plan.audience}</p>
+                  <p className="mt-1 text-[15px] text-muted-foreground">{plan.audience}</p>
                 </div>
                 {plan.highlighted ? (
                   <span className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground">
@@ -157,7 +157,7 @@ function Pricing() {
                   {interval === "month" ? plan.vatNote : plan.annualNote}
                 </span>
               </div>
-              <ul className="mt-6 space-y-3 text-sm">
+              <ul className="mt-6 space-y-3 text-[15px] sm:text-base">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {f}
@@ -167,17 +167,17 @@ function Pricing() {
               <p className="mt-6 text-xs font-semibold uppercase tracking-wide text-accent">
                 {TRIAL_COPY.headline}
               </p>
-              <p className="text-xs uppercase text-muted-foreground">{TRIAL_COPY.noCard}</p>
+              <p className="text-sm uppercase text-muted-foreground">{TRIAL_COPY.noCard}</p>
               <Link
                 to="/auth"
                 className="tap mt-4 flex items-center justify-center rounded-lg bg-primary px-5 py-3 text-center font-bold text-primary-foreground shadow-glow"
               >
                 {TRIAL_COPY.cta}
               </Link>
-              <p className="mt-3 text-center text-xs text-muted-foreground">
+              <p className="mt-3 text-center text-sm text-muted-foreground">
                 {TRIAL_COPY.ctaNote}
               </p>
-              <p className="mt-1 text-center text-xs text-muted-foreground">
+              <p className="mt-1 text-center text-sm text-muted-foreground">
                 {billingEnabled
                   ? "L'abbonamento si attiva solo con conferma esplicita."
                   : "Gli addebiti sono disabilitati: la prova non richiede pagamento."}
@@ -197,8 +197,8 @@ function Pricing() {
                 <span className="text-2xl font-bold">{ENTERPRISE_PLAN.price}</span>{" "}
                 <span className="text-muted-foreground">{ENTERPRISE_PLAN.vatNote}</span>
               </p>
-              <p className="mt-2 text-sm text-muted-foreground">{ENTERPRISE_PLAN.description}</p>
-              <ul className="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+              <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground sm:text-base">{ENTERPRISE_PLAN.description}</p>
+              <ul className="mt-3 grid gap-2 text-[15px] text-muted-foreground sm:grid-cols-2">
                 {ENTERPRISE_PLAN.features.map((f) => (
                   <li key={f}>· {f}</li>
                 ))}
@@ -213,7 +213,7 @@ function Pricing() {
 
         <section className="mt-12 rounded-2xl border border-primary/30 bg-card p-6 sm:p-8">
           <h2 className="text-lg font-semibold">La Prova Gratuita, senza sorprese</h2>
-          <ul className="mt-4 grid gap-3 text-sm text-muted-foreground md:grid-cols-2">
+          <ul className="mt-4 grid gap-3 text-[15px] leading-relaxed text-muted-foreground sm:text-base md:grid-cols-2">
             {TRIAL_TERMS.map((t) => (
               <li key={t} className="flex items-start gap-2">
                 <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {t}
@@ -225,7 +225,7 @@ function Pricing() {
         <section className="mt-12 grid gap-6 md:grid-cols-2">
           <div className="rounded-2xl border border-border bg-card p-6">
             <h2 className="text-lg font-semibold">Quando compare l'Etichetta "Verificato"</h2>
-            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+            <ul className="mt-4 space-y-2 text-[15px] text-muted-foreground">
               {VERIFIED_DEFINITION.map((v) => (
                 <li key={v} className="flex items-start gap-2">
                   <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {v}
@@ -235,7 +235,7 @@ function Pricing() {
           </div>
           <div className="rounded-2xl border border-border bg-card p-6">
             <h2 className="text-lg font-semibold">Cosa UEradar non fa</h2>
-            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+            <ul className="mt-4 space-y-2 text-[15px] text-muted-foreground">
               {PRODUCT_BOUNDARIES.map((b) => (
                 <li key={b}>· {b}</li>
               ))}
@@ -248,8 +248,8 @@ function Pricing() {
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {ARCHITECTURE_NOTES.map((n) => (
               <div key={n.t} className="rounded-xl border border-border bg-card p-5">
-                <h3 className="text-sm font-semibold">{n.t}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{n.d}</p>
+                <h3 className="text-base font-semibold">{n.t}</h3>
+                <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{n.d}</p>
               </div>
             ))}
           </div>
@@ -260,8 +260,8 @@ function Pricing() {
           <div className="mt-6 space-y-4">
             {PRICING_FAQ.map((item) => (
               <div key={item.q} className="rounded-xl border border-border bg-card p-5">
-                <h3 className="text-sm font-semibold">{item.q}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{item.a}</p>
+                <h3 className="text-base font-semibold">{item.q}</h3>
+                <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{item.a}</p>
               </div>
             ))}
           </div>
