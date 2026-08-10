@@ -22,6 +22,8 @@ import {
   MapPinned,
   Bell,
   CheckCircle2,
+  X,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { seoHead } from "@/lib/seo";
@@ -57,6 +59,12 @@ function Dashboard() {
   const [hyperlocalOnly, setHyperlocalOnly] = useState(false);
   const [hiddenOnly, setHiddenOnly] = useState(false);
   const [profile, setProfile] = useState<CompanyProfile | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  // Esito dell'ultimo aggiornamento: resta visibile finché non viene chiuso.
+  const [refreshNotice, setRefreshNotice] = useState<{
+    tone: "ok" | "info" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     const profileKey = "ueradar:last-profile:v1";
@@ -96,6 +104,7 @@ function Dashboard() {
           return;
         }
         setProfileMissing(true);
+        toast.info("Prima completiamo il profilo della tua impresa: bastano pochi minuti.");
         navigate({ to: "/profilo" });
       });
   }, [navigate]);
@@ -141,10 +150,20 @@ function Dashboard() {
         queryClient.setQueryData(["bandi-feed"], result.feed);
         saveOfflineFeed(result.feed);
         toast.success("Risultati aggiornati");
+        setRefreshNotice({
+          tone: "ok",
+          text: "Ricerca completata: qui sotto trovi i Bandi aggiornati. Non devi fare altro.",
+        });
       } else if (result.status === "queued") {
-        toast.info("Aggiornamento accodato: riprova tra qualche minuto.");
+        setRefreshNotice({
+          tone: "info",
+          text: "Ricerca avviata. Tra qualche minuto i nuovi Bandi compariranno qui: puoi chiudere l'app, nessuna azione richiesta.",
+        });
       } else if (result.status === "failed") {
-        toast.error("Aggiornamento non riuscito. Restano validi i dati precedenti.");
+        setRefreshNotice({
+          tone: "error",
+          text: "Aggiornamento non riuscito. I Bandi che vedi restano validi: riprova tra qualche minuto con il pulsante Cerca nuovi Bandi.",
+        });
       }
     } finally {
       refreshInFlight.current = false;
@@ -222,6 +241,19 @@ function Dashboard() {
     return s;
   }, [bandiAttivi]);
 
+  const activeFilters =
+    (cat !== "TUTTI" ? 1 : 0) +
+    (scope !== "ALL" ? 1 : 0) +
+    (hyperlocalOnly ? 1 : 0) +
+    (hiddenOnly ? 1 : 0);
+
+  const resetFilters = () => {
+    setCat("TUTTI");
+    setScope("ALL");
+    setHyperlocalOnly(false);
+    setHiddenOnly(false);
+  };
+
   return (
     <AppShell>
       <RadarIntro />
@@ -233,13 +265,10 @@ function Dashboard() {
               <Radar className="h-7 w-7 text-accent" /> Radar Bandi
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {COVERAGE_HEADLINE} Risultati da fonti ufficiali e specialistiche, con fonte e dati
-              presenti, ordinati sul profilo della tua impresa. {MONITORING_COPY}
-              {query.data?.fetched_at && (
-                <span className="ml-2 text-xs">
-                  · Aggiornato {new Date(query.data.fetched_at).toLocaleString("it-IT")}
-                </span>
-              )}
+              I Bandi selezionati per la tua impresa.
+              {query.data?.fetched_at
+                ? ` · Aggiornato il ${new Date(query.data.fetched_at).toLocaleString("it-IT")}`
+                : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -251,15 +280,43 @@ function Dashboard() {
             <button
               onClick={handleManualRefresh}
               disabled={query.isFetching || isRefreshing}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110 disabled:opacity-60"
+              className="tap inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-base font-semibold text-primary-foreground shadow-glow transition hover:brightness-110 disabled:opacity-60"
             >
               <RefreshCw
-                className={`h-4 w-4 ${query.isFetching || isRefreshing ? "animate-spin" : ""}`}
+                className={`h-5 w-5 ${query.isFetching || isRefreshing ? "animate-spin" : ""}`}
               />
-              {isRefreshing ? "Aggiornamento in corso…" : "Aggiorna risultati"}
+              {isRefreshing ? "Ricerca in corso…" : "Cerca nuovi Bandi"}
             </button>
           </div>
         </header>
+
+        {/* Esito persistente dell'ultima ricerca */}
+        {refreshNotice && (
+          <div
+            role="status"
+            className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${
+              refreshNotice.tone === "ok"
+                ? "border-success/40 bg-success/10"
+                : refreshNotice.tone === "error"
+                  ? "border-destructive/40 bg-destructive/10"
+                  : "border-primary/40 bg-primary/10"
+            }`}
+          >
+            {refreshNotice.tone === "ok" ? (
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden="true" />
+            ) : (
+              <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+            )}
+            <p className="flex-1">{refreshNotice.text}</p>
+            <button
+              onClick={() => setRefreshNotice(null)}
+              aria-label="Chiudi il messaggio"
+              className="tap shrink-0 rounded-lg p-1 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         {/* Deep Search shimmer con messaggi dinamici */}
         {(query.isFetching || isRefreshing) && <DeepSearchShimmer />}
@@ -308,36 +365,57 @@ function Dashboard() {
           </section>
         )}
 
-        {/* STATS */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+        {/* STATS: tre numeri chiari, il dettaglio è a richiesta */}
+        <div className="grid gap-3 sm:grid-cols-3">
           {[
-            { l: "Bandi attivi", v: query.isLoading ? "—" : stats.totale, c: "text-primary" },
             {
-              l: "Fonti locali",
-              v: query.isLoading ? "—" : stats.hidden,
-              c: "text-accent",
-            },
-            { l: "Scadenze ravvicinate", v: query.isLoading ? "—" : stats.flash, c: "text-warning" },
-            { l: "UE + PNRR", v: query.isLoading ? "—" : stats.euPnrr, c: "text-info" },
-            {
-              l: "Imprenditoria Femm.",
-              v: query.isLoading ? "—" : stats.femm,
-              c: "text-femminile",
+              l: "Bandi Attivi per te",
+              v: query.isLoading ? "—" : stats.totale,
+              c: "text-primary",
+              d: "Opportunità aperte compatibili con il profilo della tua impresa.",
             },
             {
-              l: "Potenziale max",
+              l: "In Scadenza a Breve",
+              v: query.isLoading ? "—" : stats.flash,
+              c: "text-warning",
+              d: "Bandi con scadenza vicina o a sportello: conviene guardarli per primi.",
+            },
+            {
+              l: "Importo Massimo Ottenibile",
               v: query.isLoading
                 ? "—"
                 : `${new Intl.NumberFormat("it-IT", { notation: "compact" }).format(stats.importo)} €`,
               c: "text-accent",
+              d: "Somma dei tetti massimi dei bandi attivi. Non è un importo garantito.",
             },
           ].map((s) => (
             <div key={s.l} className="rounded-xl border border-border bg-card p-4">
-              <div className="text-xs text-muted-foreground">{s.l}</div>
-              <div className={`mt-1 text-2xl font-bold ${s.c}`}>{s.v}</div>
+              <div className="text-sm text-muted-foreground">{s.l}</div>
+              <div className={`mt-1 text-3xl font-bold ${s.c}`}>{s.v}</div>
+              <p className="mt-2 text-xs text-muted-foreground">{s.d}</p>
             </div>
           ))}
         </div>
+
+        <details className="rounded-xl border border-border bg-card px-4 py-3">
+          <summary className="cursor-pointer text-sm font-medium">Altri dettagli</summary>
+          <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3">
+            {[
+              { l: "Fonti locali", v: query.isLoading ? "—" : stats.hidden, c: "text-accent" },
+              { l: "UE + PNRR", v: query.isLoading ? "—" : stats.euPnrr, c: "text-info" },
+              {
+                l: "Imprenditoria Femminile",
+                v: query.isLoading ? "—" : stats.femm,
+                c: "text-femminile",
+              },
+            ].map((s) => (
+              <div key={s.l} className="rounded-lg border border-border p-3">
+                <div className="text-xs text-muted-foreground">{s.l}</div>
+                <div className={`mt-1 text-xl font-bold ${s.c}`}>{s.v}</div>
+              </div>
+            ))}
+          </div>
+        </details>
 
         {/* FLASH */}
         <section>
@@ -347,9 +425,7 @@ function Dashboard() {
                 <Zap className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">
-                  Opportunità locali e scadenze ravvicinate
-                </h2>
+                <h2 className="text-lg font-semibold">Opportunità locali e scadenze ravvicinate</h2>
                 <p className="text-xs text-muted-foreground">
                   Priorità ai bandi comunali e camerali della tua zona e alle scadenze più vicine.
                 </p>
@@ -361,8 +437,8 @@ function Dashboard() {
               Array.from({ length: 3 }).map((_, i) => <BandoCardSkeleton key={i} />)
             ) : flashBandi.length === 0 ? (
               <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Nessuna scadenza ravvicinata tra le opportunità caricate. Usa Aggiorna per una
-                nuova ricerca sulle fonti ufficiali.
+                Nessuna scadenza ravvicinata tra le opportunità caricate. Usa Aggiorna per una nuova
+                ricerca sulle fonti ufficiali.
               </div>
             ) : (
               flashBandi.map((b, i) => <BandoCard key={b.id} bando={b} index={i} />)
@@ -372,90 +448,142 @@ function Dashboard() {
 
         {/* FILTRI */}
         <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-lg font-semibold">Tutti i bandi</h2>
-          </div>
-
-          {/* Filtri speciali: iper-locale + solo sommersi */}
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setHyperlocalOnly((v) => !v)}
-              disabled={!profile}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs border transition ${
-                hyperlocalOnly
-                  ? "bg-accent text-accent-foreground border-accent shadow-glow"
-                  : "bg-card border-border text-muted-foreground hover:text-foreground"
-              } disabled:opacity-40`}
-              title={
-                profile
-                  ? `Solo bandi del Comune di ${profile.comune} (${profile.provincia})${
-                      profile.codice_istat ? ` · ISTAT ${profile.codice_istat}` : ""
-                    }`
-                  : "Compila prima il profilo"
-              }
-            >
-              <MapPinned className="h-3.5 w-3.5" />
-              Iper-locale
-              {profile?.comune ? ` · ${profile.comune}` : ""}
-            </button>
-            <button
-              onClick={() => setHiddenOnly((v) => !v)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs border transition ${
-                hiddenOnly
-                  ? "bg-accent text-accent-foreground border-accent shadow-glow"
-                  : "bg-card border-border text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Radar className="h-3.5 w-3.5" />
-              Solo fonti locali
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {CATEGORY_FILTERS.map((c) => (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">
+              Tutti i Bandi{" "}
+              <span className="text-sm font-normal text-muted-foreground">
+                ({filtered.length}
+                {activeFilters > 0 ? ` di ${bandi.length}` : ""})
+              </span>
+            </h2>
+            <div className="flex items-center gap-2">
+              {activeFilters > 0 && (
+                <button
+                  onClick={resetFilters}
+                  className="tap rounded-lg border border-border px-3 py-2 text-sm"
+                >
+                  Azzera filtri
+                </button>
+              )}
               <button
-                key={c.key}
-                onClick={() => setCat(c.key)}
-                className={`rounded-full px-4 py-1.5 text-sm border transition ${
-                  cat === c.key
-                    ? "bg-primary text-primary-foreground border-primary shadow-glow"
-                    : "bg-card border-border text-muted-foreground hover:text-foreground"
-                }`}
+                onClick={() => setFiltersOpen((v) => !v)}
+                aria-expanded={filtersOpen}
+                className="tap inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium"
               >
-                {c.label}
+                <Filter className="h-4 w-4" />
+                Filtra
+                {activeFilters > 0 && (
+                  <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
+                    {activeFilters}
+                  </span>
+                )}
               </button>
-            ))}
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {SCOPES.map((s) => (
-              <button
-                key={s.key}
-                onClick={() => setScope(s.key)}
-                className={`rounded-full px-3 py-1 text-xs border transition ${
-                  scope === s.key
-                    ? "bg-accent/20 text-accent border-accent/40"
-                    : "bg-card border-border text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+          {filtersOpen && (
+            <div className="space-y-4 rounded-2xl border border-border bg-card p-4">
+              <p className="text-sm text-muted-foreground">
+                I filtri restringono l'elenco qui sotto. Se non sei sicuro, lasciali come sono.
+              </p>
+              {/* Filtri per zona */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setHyperlocalOnly((v) => !v)}
+                  disabled={!profile}
+                  className={`tap inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm border transition ${
+                    hyperlocalOnly
+                      ? "bg-accent text-accent-foreground border-accent shadow-glow"
+                      : "bg-card border-border text-muted-foreground hover:text-foreground"
+                  } disabled:opacity-40`}
+                  title={
+                    profile
+                      ? `Solo bandi del Comune di ${profile.comune} (${profile.provincia})${
+                          profile.codice_istat ? ` · ISTAT ${profile.codice_istat}` : ""
+                        }`
+                      : "Compila prima il profilo"
+                  }
+                >
+                  <MapPinned className="h-3.5 w-3.5" />
+                  Solo la mia zona
+                  {profile?.comune ? ` · ${profile.comune}` : ""}
+                </button>
+                <button
+                  onClick={() => setHiddenOnly((v) => !v)}
+                  className={`tap inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm border transition ${
+                    hiddenOnly
+                      ? "bg-accent text-accent-foreground border-accent shadow-glow"
+                      : "bg-card border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Radar className="h-3.5 w-3.5" />
+                  Solo fonti poco conosciute
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                «Solo la mia zona» mostra i bandi del tuo Comune o della tua Provincia. «Solo fonti
+                poco conosciute» mostra i bandi pubblicati da enti minori, spesso con meno domande.
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                {CATEGORY_FILTERS.map((c) => (
+                  <button
+                    key={c.key}
+                    onClick={() => setCat(c.key)}
+                    className={`rounded-full px-4 py-1.5 text-sm border transition ${
+                      cat === c.key
+                        ? "bg-primary text-primary-foreground border-primary shadow-glow"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {SCOPES.map((s) => (
+                  <button
+                    key={s.key}
+                    onClick={() => setScope(s.key)}
+                    className={`rounded-full px-3 py-1 text-xs border transition ${
+                      scope === s.key
+                        ? "bg-accent/20 text-accent border-accent/40"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {query.isLoading ? (
               Array.from({ length: 6 }).map((_, i) => <BandoCardSkeleton key={i} />)
             ) : filtered.length === 0 ? (
               <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Nessun bando corrisponde ai filtri.
+                Nessun Bando corrisponde ai filtri scelti.
+                {activeFilters > 0 && (
+                  <button
+                    onClick={resetFilters}
+                    className="tap ml-2 font-semibold text-primary underline"
+                  >
+                    Azzera i filtri
+                  </button>
+                )}
               </div>
             ) : (
               filtered.map((b: Bando, i: number) => <BandoCard key={b.id} bando={b} index={i} />)
             )}
           </div>
         </section>
+
+        <p className="rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground">
+          {COVERAGE_HEADLINE} {MONITORING_COPY} I risultati arrivano da fonti ufficiali e
+          specialistiche e sono ordinati sul profilo della tua impresa.
+        </p>
       </div>
     </AppShell>
   );
