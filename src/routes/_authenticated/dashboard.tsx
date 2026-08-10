@@ -22,6 +22,8 @@ import {
   MapPinned,
   Bell,
   CheckCircle2,
+  X,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { seoHead } from "@/lib/seo";
@@ -57,6 +59,12 @@ function Dashboard() {
   const [hyperlocalOnly, setHyperlocalOnly] = useState(false);
   const [hiddenOnly, setHiddenOnly] = useState(false);
   const [profile, setProfile] = useState<CompanyProfile | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  // Esito dell'ultimo aggiornamento: resta visibile finché non viene chiuso.
+  const [refreshNotice, setRefreshNotice] = useState<{
+    tone: "ok" | "info" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     const profileKey = "ueradar:last-profile:v1";
@@ -96,6 +104,7 @@ function Dashboard() {
           return;
         }
         setProfileMissing(true);
+        toast.info("Prima completiamo il profilo della tua impresa: bastano pochi minuti.");
         navigate({ to: "/profilo" });
       });
   }, [navigate]);
