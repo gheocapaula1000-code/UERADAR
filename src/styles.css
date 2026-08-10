@@ -319,7 +319,10 @@
   html,
   body {
     max-width: 100%;
-    overflow-x: hidden;
+    /* clip evita che html/body diventino container di scroll alternativi
+       (causa dello scroll verticale "bloccato" su desktop) */
+    overflow-x: clip;
+    overflow-y: visible;
   }
   /* Italiano: sillabazione naturale, mai troncamento di frasi. */
   body {
