@@ -85,7 +85,7 @@ function Landing() {
         <div className="relative mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-24 md:py-32">
           <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="min-w-0">
-            <div className="inline-flex items-start gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground">
+            <div className="inline-flex items-start gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-sm text-muted-foreground">
               <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
               Unione Europea Radar — {COVERAGE_HEADLINE}
             </div>
@@ -99,7 +99,7 @@ function Landing() {
             <p className="mt-6 text-base text-foreground sm:text-lg md:text-xl">
               {VALUE_STATEMENT}
             </p>
-            <p className="mt-4 text-sm text-muted-foreground sm:text-base">
+            <p className="mt-4 text-base text-muted-foreground sm:text-lg">
               {RESEARCH_COPY}
             </p>
             <ul
@@ -133,7 +133,7 @@ function Landing() {
 
           <div className="min-w-0 rounded-2xl border border-border bg-card/60 p-6 shadow-elevated sm:p-8">
             <TrialBanner />
-            <p className="mt-3 text-sm font-semibold text-accent">{TRIAL_HIGHLIGHT}</p>
+            <p className="mt-3 text-base font-semibold text-accent">{TRIAL_HIGHLIGHT}</p>
             <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-1">
               {[
                 { k: "Cinque Livelli", v: "Da Locale a Europeo" },
@@ -142,7 +142,7 @@ function Landing() {
               ].map((s) => (
                 <div key={s.v}>
                   <div className="text-xl font-bold text-primary md:text-2xl">{s.k}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{s.v}</div>
+                  <div className="text-sm text-muted-foreground mt-1">{s.v}</div>
                 </div>
               ))}
             </div>
@@ -185,15 +185,15 @@ function Landing() {
                 <f.icon className="h-5 w-5" />
               </div>
               <h3 className="mt-4 text-lg font-semibold">{f.t}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{f.d}</p>
+              <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground sm:text-base">{f.d}</p>
             </div>
           ))}
         </div>
         <div className="mt-8 grid gap-4 md:grid-cols-2">
-          <p className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
+          <p className="rounded-xl border border-border bg-card p-5 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
             {MONITORING_COPY}
           </p>
-          <p className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
+          <p className="rounded-xl border border-border bg-card p-5 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
             {DRAFT_COPY}
           </p>
         </div>
@@ -212,7 +212,7 @@ function Landing() {
                 UEradar.com è un servizio B2B: niente Incentivi per privati, solo strumenti
                 verticali per chi ha una Partita IVA attiva.
               </p>
-              <ul className="mt-6 space-y-3 text-sm">
+              <ul className="mt-6 space-y-3 text-[15px] sm:text-base">
                 {[
                   "Partite IVA & Ditte Individuali",
                   "SRL, SRLS, SPA, SAS, SNC",
@@ -235,7 +235,7 @@ function Landing() {
               ].map((c) => (
                 <div key={c.l} className="rounded-xl border border-border bg-card p-5">
                   <c.icon className={`h-6 w-6 ${c.c}`} />
-                  <div className="mt-3 text-sm font-semibold">{c.l}</div>
+                  <div className="mt-3 text-base font-semibold">{c.l}</div>
                 </div>
               ))}
             </div>
@@ -274,12 +274,12 @@ function Landing() {
               </div>
               <div className="mt-3">
                 <span className="text-3xl font-bold">{plan.monthly}</span>
-                <span className="text-sm text-muted-foreground"> {plan.vatNote}</span>
+                <span className="text-base text-muted-foreground"> {plan.vatNote}</span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {plan.annual} {plan.annualNote}
               </p>
-              <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+              <ul className="mt-4 space-y-2 text-[15px] text-muted-foreground">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
                     <div className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" /> {f}
@@ -289,16 +289,16 @@ function Landing() {
             </div>
           ))}
         </div>
-        <p className="mx-auto mt-6 max-w-3xl text-center text-sm text-muted-foreground">
+        <p className="mx-auto mt-6 max-w-3xl text-center text-[15px] leading-relaxed text-muted-foreground sm:text-base">
           {ENTERPRISE_PLAN.name} — {ENTERPRISE_PLAN.headline}: {ENTERPRISE_PLAN.price}{" "}
           {ENTERPRISE_PLAN.vatNote}. {ENTERPRISE_PLAN.cta} a {ENTERPRISE_PLAN.contact}.
         </p>
-        <ul className="mx-auto mt-6 grid max-w-4xl gap-2 text-xs text-muted-foreground md:grid-cols-2">
+        <ul className="mx-auto mt-6 grid max-w-4xl gap-2 text-sm text-muted-foreground md:grid-cols-2">
           {TRIAL_TERMS.map((t) => (
             <li key={t}>· {t}</li>
           ))}
         </ul>
-        <ul className="mx-auto mt-4 grid max-w-4xl gap-2 text-xs text-muted-foreground md:grid-cols-2">
+        <ul className="mx-auto mt-4 grid max-w-4xl gap-2 text-sm text-muted-foreground md:grid-cols-2">
           {PRODUCT_BOUNDARIES.map((b) => (
             <li key={b}>· {b}</li>
           ))}
@@ -306,7 +306,7 @@ function Landing() {
         <div className="mt-8 flex justify-center">
           <Link
             to="/prezzi"
-            className="tap inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-sm font-medium transition hover:bg-surface-elevated"
+            className="tap inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-3 text-base font-medium transition hover:bg-surface-elevated"
           >
             Vedi i dettagli dei Piani <ArrowRight className="h-4 w-4" />
           </Link>
