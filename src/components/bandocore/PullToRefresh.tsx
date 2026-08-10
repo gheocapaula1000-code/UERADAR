@@ -174,7 +174,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
   const offset = reduced ? 0 : Math.min(distance, PTR_MAX_PULL_PX);
 
   return (
-    <div ref={containerRef} className="ptr-root relative flex-1 min-h-0 overflow-y-auto">
+    <div ref={containerRef} className="ptr-root relative w-full max-w-full">
       <div
         aria-hidden={phase === "idle"}
         className="ptr-indicator pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center"
