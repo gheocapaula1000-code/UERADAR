@@ -344,6 +344,14 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* Spazio per la barra inferiore: solo dove la barra è visibile (< lg). */
+@utility bottom-nav-gap {
+  padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  @media (min-width: 1024px) {
+    padding-bottom: 0;
+  }
+}
+
 /* Skip link: visibile solo con tastiera. */
 .skip-link {
   position: absolute;

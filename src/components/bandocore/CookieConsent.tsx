@@ -121,7 +121,7 @@ export function CookieConsent() {
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-2 pb-2 sm:px-4 sm:pb-4"
+      className="bottom-nav-gap fixed inset-x-0 bottom-0 z-50 flex justify-center px-2 sm:px-4"
       data-testid="cookie-banner-wrapper"
     >
       <div

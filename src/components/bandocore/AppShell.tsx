@@ -81,10 +81,12 @@ export function AppShell({
           </div>
         </header>
 
-        <main id="contenuto-principale" className="safe-x flex-1 overflow-y-auto pb-24">
+        <main id="contenuto-principale" className="safe-x flex-1 overflow-y-auto pb-24 lg:pb-10">
           {requireEntitlement ? <EntitlementGate>{children}</EntitlementGate> : children}
         </main>
-        <SiteFooter />
+        <div className="bottom-nav-gap">
+          <SiteFooter />
+        </div>
         <BottomNav />
       </div>
     </div>

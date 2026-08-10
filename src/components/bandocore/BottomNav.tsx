@@ -53,7 +53,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Navigazione principale"
-      className="safe-x safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/85 backdrop-blur-xl"
+      className="safe-x safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/85 backdrop-blur-xl lg:hidden"
     >
       <ul className="mx-auto flex max-w-md items-stretch justify-around gap-1 px-2 py-1.5 lg:max-w-lg">
         {BOTTOM_NAV_ITEMS.map((item, i) => {
@@ -65,7 +65,7 @@ export function BottomNav() {
                 to={item.to}
                 aria-current={active ? "page" : undefined}
                 style={{ animationDelay: `${bottomNavEnterDelayMs(i)}ms` }}
-                className={`tap bottom-nav-item ${entered ? "bottom-nav-enter" : "opacity-0"} relative flex w-full flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium ${
+                className={`tap bottom-nav-item touch-manipulation select-none ${entered ? "bottom-nav-enter" : "opacity-0"} relative flex w-full flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium sm:text-xs ${
                   active ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
