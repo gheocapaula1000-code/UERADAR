@@ -343,11 +343,28 @@ export const LIVE_PRICE_ENV_NAMES: readonly string[] = PRICE_ENV_NAMES.map((name
   name.replace(/_TEST$/, "_LIVE"),
 );
 
+/**
+ * Formattazione italiana deterministica dei numeri interi (separatore ".").
+ *
+ * Non usa Intl: i dati di locale del runtime server e quelli del browser
+ * divergono (raggruppamento a 4 cifre), producendo mismatch di idratazione
+ * React (#418). Il risultato qui è identico su server e client.
+ */
+export function formatItalianInteger(value: number): string {
+  const rounded = Math.trunc(Math.abs(value));
+  const grouped = String(rounded).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return value < 0 ? `-${grouped}` : grouped;
+}
+
 /** Formattazione italiana degli importi, sempre IVA esclusa. */
 export function formatEuro(amountCents: number): string {
-  return new Intl.NumberFormat("it-IT", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: amountCents % 100 === 0 ? 0 : 2,
-  }).format(amountCents / 100);
+  const negative = amountCents < 0;
+  const abs = Math.abs(Math.round(amountCents));
+  const units = Math.trunc(abs / 100);
+  const cents = abs % 100;
+  const body =
+    cents === 0
+      ? formatItalianInteger(units)
+      : `${formatItalianInteger(units)},${String(cents).padStart(2, "0")}`;
+  return `${negative ? "-" : ""}${body}\u00A0€`;
 }
