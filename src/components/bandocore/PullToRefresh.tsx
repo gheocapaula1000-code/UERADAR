@@ -38,6 +38,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
   const [enabled, setEnabled] = useState(false);
 
   const refreshingRef = useRef(false);
+  const distanceRef = useRef(0);
   const startY = useRef(0);
   const startX = useRef(0);
   const tracking = useRef(false);
@@ -54,15 +55,20 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const applyDistance = useCallback((d: number) => {
+    distanceRef.current = d;
+    setDistance(d);
+  }, []);
+
   const runRefresh = useCallback(async () => {
     refreshingRef.current = true;
     setRefreshing(true);
-    setDistance(PTR_THRESHOLD_PX);
+    applyDistance(PTR_THRESHOLD_PX);
     const started = Date.now();
     const watchdog = setTimeout(() => {
       refreshingRef.current = false;
       setRefreshing(false);
-      setDistance(0);
+      applyDistance(0);
     }, PTR_WATCHDOG_MS);
     try {
       await Promise.all([
@@ -77,10 +83,10 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       setTimeout(() => {
         refreshingRef.current = false;
         setRefreshing(false);
-        setDistance(0);
+        applyDistance(0);
       }, rest);
     }
-  }, [queryClient, router]);
+  }, [applyDistance, queryClient, router]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -131,7 +137,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       }
 
       if (e.cancelable) e.preventDefault();
-      setDistance(pullDistance(dy, reduced));
+      applyDistance(pullDistance(dy, reduced));
     };
 
     const finish = () => {
@@ -140,17 +146,14 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       tracking.current = false;
       pulling.current = false;
       if (!wasPulling) return;
-      setDistance((d) => {
-        if (shouldRefreshOnRelease(d)) void runRefresh();
-        else return 0;
-        return d;
-      });
+      if (shouldRefreshOnRelease(distanceRef.current)) void runRefresh();
+      else applyDistance(0);
     };
 
     const cancel = () => {
       tracking.current = false;
       pulling.current = false;
-      if (!refreshingRef.current) setDistance(0);
+      if (!refreshingRef.current) applyDistance(0);
     };
 
     el.addEventListener("touchstart", onStart, { passive: true });
@@ -163,7 +166,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       el.removeEventListener("touchend", finish);
       el.removeEventListener("touchcancel", cancel);
     };
-  }, [enabled, reduced, runRefresh]);
+  }, [applyDistance, enabled, reduced, runRefresh]);
 
   const phase: PtrPhase = phaseFor(distance, refreshing);
   const progress = refreshing ? 1 : pullProgress(distance);
