@@ -11,7 +11,7 @@ export const Route = createFileRoute("/contatti")({
 function Contatti() {
   return (
     <LegalPage title="Contatti">
-      <LegalSection title="Titolare del servizio">
+      <LegalSection title="Titolare del Servizio">
         <p>
           {LEGAL.brand} è un servizio di <strong className="text-foreground">{LEGAL.owner}</strong>.
         </p>
@@ -20,7 +20,7 @@ function Contatti() {
           <li>P. IVA: {LEGAL.vatId}</li>
         </ul>
       </LegalSection>
-      <LegalSection title="Come contattarci">
+      <LegalSection title="Come Contattarci">
         <ul className="space-y-2">
           <li>
             Email:{" "}
@@ -51,13 +51,13 @@ function Contatti() {
           </li>
         </ul>
         <p>
-          Usa la stessa email anche per richieste su dati personali, assistenza contrattuale e
+          Usa la stessa email anche per richieste su Dati Personali, Assistenza contrattuale e
           questioni amministrative: le richieste vengono smistate internamente.
         </p>
       </LegalSection>
-      <LegalSection title="Assistenza sul servizio">
+      <LegalSection title="Assistenza sul Servizio">
         <p>
-          Per la prova gratuita di 7 giorni non sono richiesti carta di credito né dati bancari e non
+          Per la Prova Gratuita di 7 giorni non sono richiesti carta di credito né dati bancari e non
           è previsto alcun addebito automatico. La cancellazione avviene online, senza disdetta
           scritta. In questa fase la fatturazione elettronica e gli addebiti sono tecnicamente
           disattivati fino al collaudo.
