@@ -11,7 +11,8 @@ import { startTrial } from "@/lib/trial.functions";
 import { getBillingStatus } from "@/lib/billing.functions";
 import { TRIAL_OBJECTIVES } from "@/lib/catalog";
 import { trialStartMessage } from "@/lib/trial";
-import { Building2, Save, Sparkles } from "lucide-react";
+import { Save, Sparkles } from "lucide-react";
+import { BrandMark } from "@/components/bandocore/BrandLogo";
 import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/profilo")({
