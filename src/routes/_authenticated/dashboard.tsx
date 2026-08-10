@@ -150,10 +150,20 @@ function Dashboard() {
         queryClient.setQueryData(["bandi-feed"], result.feed);
         saveOfflineFeed(result.feed);
         toast.success("Risultati aggiornati");
+        setRefreshNotice({
+          tone: "ok",
+          text: "Ricerca completata: qui sotto trovi i Bandi aggiornati. Non devi fare altro.",
+        });
       } else if (result.status === "queued") {
-        toast.info("Aggiornamento accodato: riprova tra qualche minuto.");
+        setRefreshNotice({
+          tone: "info",
+          text: "Ricerca avviata. Tra qualche minuto i nuovi Bandi compariranno qui: puoi chiudere l'app, nessuna azione richiesta.",
+        });
       } else if (result.status === "failed") {
-        toast.error("Aggiornamento non riuscito. Restano validi i dati precedenti.");
+        setRefreshNotice({
+          tone: "error",
+          text: "Aggiornamento non riuscito. I Bandi che vedi restano validi: riprova tra qualche minuto con il pulsante Cerca nuovi Bandi.",
+        });
       }
     } finally {
       refreshInFlight.current = false;
