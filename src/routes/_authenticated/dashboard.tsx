@@ -230,8 +230,6 @@ function Dashboard() {
   }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile]);
 
   const stats = useMemo(() => {
-    return statsOf();
-    function statsOf() {
     const s = { totale: bandiAttivi.length, femm: 0, flash: 0, hidden: 0, euPnrr: 0, importo: 0 };
     for (const b of bandiAttivi) {
       if (b.categoria === "IMPRENDITORIA_FEMMINILE") s.femm++;
@@ -241,7 +239,6 @@ function Dashboard() {
       if (b.importo_max) s.importo += b.importo_max;
     }
     return s;
-    }
   }, [bandiAttivi]);
 
   const activeFilters =
