@@ -234,6 +234,47 @@
 @utility urgent-pulse {
   animation: urgent-pulse 2.4s ease-in-out infinite;
 }
+/* ---------------------------------------------------------------
+   Navigazione inferiore: ingresso dal basso e pillola morbida.
+   --------------------------------------------------------------- */
+@keyframes bottom-nav-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes bottom-nav-pill {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.bottom-nav-enter {
+  animation: bottom-nav-enter 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.bottom-nav-pill {
+  animation: bottom-nav-pill 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.bottom-nav-item {
+  transition:
+    color 200ms ease,
+    transform 160ms ease;
+}
+.bottom-nav-item:active {
+  transform: scale(0.96);
+}
+.bottom-nav-icon-active {
+  animation: bottom-nav-pill 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* CTA: nessun salto di layout, solo luminosità e ombra. */
 @utility cta-lift {
   transition:
