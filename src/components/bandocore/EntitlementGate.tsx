@@ -20,7 +20,7 @@ export function EntitlementGate({ children }: { children: ReactNode }) {
   if (billing.isLoading) {
     return (
       <div className="p-6 text-sm text-muted-foreground" aria-live="polite">
-        Verifica dell'abbonamento in corso…
+        Un momento: stiamo controllando il tuo accesso…
       </div>
     );
   }
@@ -35,45 +35,71 @@ export function EntitlementGate({ children }: { children: ReactNode }) {
         <div className="rounded-2xl border border-border bg-card p-6">
           <h2 className="flex items-center gap-2 text-lg font-semibold">
             <AlertTriangle aria-hidden="true" className="h-5 w-5 text-accent" />
-            Completa profilo e attiva i 7 giorni
+            Manca solo un passaggio
           </h2>
           <p className="mt-3 text-sm text-muted-foreground">
-            La prova gratuita di 7 giorni parte dopo il salvataggio del profilo con una partita IVA
-            valida. Nessuna carta richiesta.
+            Prima completiamo il profilo della tua impresa: bastano pochi minuti. Al salvataggio
+            parte la prova gratuita di 7 giorni, senza carta di credito.
           </p>
           <Link
             to="/profilo"
-            className="tap mt-6 inline-flex rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
+            className="tap mt-6 inline-flex rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground"
           >
-            Completa profilo e attiva i 7 giorni
+            Completa il profilo
           </Link>
+          <HelpLine />
         </div>
       </div>
     );
   }
 
-  const message =
+  const copy =
     state === "TRIAL_EXPIRED"
-      ? "La prova gratuita di 7 giorni è terminata. Attiva un piano per continuare a usare il radar."
+      ? {
+          title: "La tua prova gratuita è terminata",
+          text: "Scegli un piano per continuare a ricevere i Bandi selezionati per la tua impresa. I tuoi dati restano salvati.",
+          cta: "Scegli un piano",
+        }
       : state === "PAST_DUE" || state === "UNPAID"
-        ? "L'ultimo pagamento non è andato a buon fine: aggiorna il metodo di pagamento per riattivare il servizio."
-        : "Non risulta un abbonamento attivo su questo account.";
+        ? {
+            title: "L'ultimo pagamento non è andato a buon fine",
+            text: "Aggiorna il metodo di pagamento per riattivare subito il servizio. Non perdi nessun dato.",
+            cta: "Aggiorna il pagamento",
+          }
+        : {
+            title: "Non risulta un abbonamento attivo",
+            text: "Per usare il Radar Bandi serve un piano attivo su questo account.",
+            cta: "Vedi piani e utenti",
+          };
 
   return (
     <div className="mx-auto max-w-2xl p-6">
       <div className="rounded-2xl border border-border bg-card p-6">
         <h2 className="flex items-center gap-2 text-lg font-semibold">
           <AlertTriangle aria-hidden="true" className="h-5 w-5 text-accent" />
-          Accesso non disponibile
+          {copy.title}
         </h2>
-        <p className="mt-3 text-sm text-muted-foreground">{message}</p>
+        <p className="mt-3 text-sm text-muted-foreground">{copy.text}</p>
         <Link
           to="/abbonamento"
-          className="tap mt-6 inline-flex rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
+          className="tap mt-6 inline-flex rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground"
         >
-          Vai ad abbonamento e utenti
+          {copy.cta}
         </Link>
+        <HelpLine />
       </div>
     </div>
+  );
+}
+
+function HelpLine() {
+  return (
+    <p className="mt-4 text-sm text-muted-foreground">
+      Hai bisogno di aiuto?{" "}
+      <Link to="/contatti" className="text-primary underline">
+        Scrivici
+      </Link>
+      .
+    </p>
   );
 }
