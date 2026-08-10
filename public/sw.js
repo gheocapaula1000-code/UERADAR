@@ -1,4 +1,5 @@
-const CACHE = "ueradar-shell-v5";
+const CACHE = "ueradar-shell-v6";
+const OFFLINE_FALLBACKS = ["/", "/auth"];
 const SHELL = [
   "/",
   "/auth",
@@ -15,7 +16,14 @@ const SHELL = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
+  // Nessun addAll: un singolo URL non disponibile farebbe fallire l'intera
+  // install e lascerebbe la PWA senza shell offline.
+  event.waitUntil(
+    caches.open(CACHE).then(async (cache) => {
+      await Promise.allSettled(SHELL.map((url) => cache.add(url)));
+      await self.skipWaiting();
+    }),
+  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -42,7 +50,19 @@ self.addEventListener("fetch", (event) => {
           if (response.ok) caches.open(CACHE).then((cache) => cache.put(request, response.clone()));
           return response;
         })
-        .catch(async () => (await caches.match(request)) || (await caches.match("/"))),
+        .catch(async () => {
+          const exact = await caches.match(request, { ignoreSearch: true });
+          if (exact) return exact;
+          for (const path of OFFLINE_FALLBACKS) {
+            const shell = await caches.match(path);
+            if (shell) return shell;
+          }
+          // Fallback finale: mai una risposta di rete fallita non gestita.
+          return new Response(
+            "<!doctype html><html lang=\"it\"><head><meta charset=\"utf-8\"><title>UEradar offline</title></head><body><h1>UEradar &egrave; offline</h1><p>Connessione assente: riprova quando torni online.</p></body></html>",
+            { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } },
+          );
+        }),
     );
     return;
   }

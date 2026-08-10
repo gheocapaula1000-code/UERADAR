@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
 import { daysLeft as daysLeftOf, isExpired, matchStatusMeta } from "@/lib/bando-status";
+import { formatItalianInteger } from "@/lib/catalog";
 import { missingOfficialData } from "@/lib/dossier";
 import { cardEnterDelayMs } from "@/lib/motion";
 import { MatchScore } from "@/components/bandocore/MatchScore";
@@ -199,7 +200,7 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         {bando.importo_max ? (
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Euro className="h-3.5 w-3.5" />
-            fino a {new Intl.NumberFormat("it-IT").format(bando.importo_max)} €
+            fino a {formatItalianInteger(bando.importo_max)} €
           </div>
         ) : null}
         {bando.scadenza ? (
