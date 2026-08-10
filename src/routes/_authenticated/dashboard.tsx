@@ -425,9 +425,7 @@ function Dashboard() {
                 <Zap className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">
-                  Opportunità locali e scadenze ravvicinate
-                </h2>
+                <h2 className="text-lg font-semibold">Opportunità locali e scadenze ravvicinate</h2>
                 <p className="text-xs text-muted-foreground">
                   Priorità ai bandi comunali e camerali della tua zona e alle scadenze più vicine.
                 </p>
@@ -439,8 +437,8 @@ function Dashboard() {
               Array.from({ length: 3 }).map((_, i) => <BandoCardSkeleton key={i} />)
             ) : flashBandi.length === 0 ? (
               <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Nessuna scadenza ravvicinata tra le opportunità caricate. Usa Aggiorna per una
-                nuova ricerca sulle fonti ufficiali.
+                Nessuna scadenza ravvicinata tra le opportunità caricate. Usa Aggiorna per una nuova
+                ricerca sulle fonti ufficiali.
               </div>
             ) : (
               flashBandi.map((b, i) => <BandoCard key={b.id} bando={b} index={i} />)
@@ -484,81 +482,81 @@ function Dashboard() {
           </div>
 
           {filtersOpen && (
-          <div className="space-y-4 rounded-2xl border border-border bg-card p-4">
-          <p className="text-sm text-muted-foreground">
-            I filtri restringono l'elenco qui sotto. Se non sei sicuro, lasciali come sono.
-          </p>
-          {/* Filtri per zona */}
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setHyperlocalOnly((v) => !v)}
-              disabled={!profile}
-              className={`tap inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm border transition ${
-                hyperlocalOnly
-                  ? "bg-accent text-accent-foreground border-accent shadow-glow"
-                  : "bg-card border-border text-muted-foreground hover:text-foreground"
-              } disabled:opacity-40`}
-              title={
-                profile
-                  ? `Solo bandi del Comune di ${profile.comune} (${profile.provincia})${
-                      profile.codice_istat ? ` · ISTAT ${profile.codice_istat}` : ""
-                    }`
-                  : "Compila prima il profilo"
-              }
-            >
-              <MapPinned className="h-3.5 w-3.5" />
-              Solo la mia zona
-              {profile?.comune ? ` · ${profile.comune}` : ""}
-            </button>
-            <button
-              onClick={() => setHiddenOnly((v) => !v)}
-              className={`tap inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm border transition ${
-                hiddenOnly
-                  ? "bg-accent text-accent-foreground border-accent shadow-glow"
-                  : "bg-card border-border text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Radar className="h-3.5 w-3.5" />
-              Solo fonti poco conosciute
-            </button>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            «Solo la mia zona» mostra i bandi del tuo Comune o della tua Provincia. «Solo fonti poco
-            conosciute» mostra i bandi pubblicati da enti minori, spesso con meno domande.
-          </p>
+            <div className="space-y-4 rounded-2xl border border-border bg-card p-4">
+              <p className="text-sm text-muted-foreground">
+                I filtri restringono l'elenco qui sotto. Se non sei sicuro, lasciali come sono.
+              </p>
+              {/* Filtri per zona */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setHyperlocalOnly((v) => !v)}
+                  disabled={!profile}
+                  className={`tap inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm border transition ${
+                    hyperlocalOnly
+                      ? "bg-accent text-accent-foreground border-accent shadow-glow"
+                      : "bg-card border-border text-muted-foreground hover:text-foreground"
+                  } disabled:opacity-40`}
+                  title={
+                    profile
+                      ? `Solo bandi del Comune di ${profile.comune} (${profile.provincia})${
+                          profile.codice_istat ? ` · ISTAT ${profile.codice_istat}` : ""
+                        }`
+                      : "Compila prima il profilo"
+                  }
+                >
+                  <MapPinned className="h-3.5 w-3.5" />
+                  Solo la mia zona
+                  {profile?.comune ? ` · ${profile.comune}` : ""}
+                </button>
+                <button
+                  onClick={() => setHiddenOnly((v) => !v)}
+                  className={`tap inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm border transition ${
+                    hiddenOnly
+                      ? "bg-accent text-accent-foreground border-accent shadow-glow"
+                      : "bg-card border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Radar className="h-3.5 w-3.5" />
+                  Solo fonti poco conosciute
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                «Solo la mia zona» mostra i bandi del tuo Comune o della tua Provincia. «Solo fonti
+                poco conosciute» mostra i bandi pubblicati da enti minori, spesso con meno domande.
+              </p>
 
-          <div className="flex flex-wrap gap-2">
-            {CATEGORY_FILTERS.map((c) => (
-              <button
-                key={c.key}
-                onClick={() => setCat(c.key)}
-                className={`rounded-full px-4 py-1.5 text-sm border transition ${
-                  cat === c.key
-                    ? "bg-primary text-primary-foreground border-primary shadow-glow"
-                    : "bg-card border-border text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORY_FILTERS.map((c) => (
+                  <button
+                    key={c.key}
+                    onClick={() => setCat(c.key)}
+                    className={`rounded-full px-4 py-1.5 text-sm border transition ${
+                      cat === c.key
+                        ? "bg-primary text-primary-foreground border-primary shadow-glow"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
 
-          <div className="flex flex-wrap gap-2">
-            {SCOPES.map((s) => (
-              <button
-                key={s.key}
-                onClick={() => setScope(s.key)}
-                className={`rounded-full px-3 py-1 text-xs border transition ${
-                  scope === s.key
-                    ? "bg-accent/20 text-accent border-accent/40"
-                    : "bg-card border-border text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-          </div>
+              <div className="flex flex-wrap gap-2">
+                {SCOPES.map((s) => (
+                  <button
+                    key={s.key}
+                    onClick={() => setScope(s.key)}
+                    className={`rounded-full px-3 py-1 text-xs border transition ${
+                      scope === s.key
+                        ? "bg-accent/20 text-accent border-accent/40"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

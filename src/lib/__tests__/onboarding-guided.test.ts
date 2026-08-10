@@ -28,7 +28,11 @@ describe("profilo guidato", () => {
   });
 
   it("un passo incompleto elenca i campi mancanti", () => {
-    expect(missingFields(base, "identita")).toEqual(["ragione_sociale", "partita_iva", "codice_ateco"]);
+    expect(missingFields(base, "identita")).toEqual([
+      "ragione_sociale",
+      "partita_iva",
+      "codice_ateco",
+    ]);
     expect(stepComplete(base, "identita")).toBe(false);
     const ok = { ...base, ragione_sociale: "ACME", partita_iva: "IT01", codice_ateco: "62.01" };
     expect(stepComplete(ok, "identita")).toBe(true);

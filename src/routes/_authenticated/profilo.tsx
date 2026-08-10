@@ -345,7 +345,10 @@ function Profilo() {
         <form onSubmit={save} className="space-y-6">
           <fieldset disabled={isMember} className="space-y-6 border-0 p-0 m-0">
             {visible("identita") && (
-              <Section title="Chi sei" desc="Dati dell'impresa come risultano dalla visura camerale">
+              <Section
+                title="Chi sei"
+                desc="Dati dell'impresa come risultano dalla visura camerale"
+              >
                 <Field label="Ragione Sociale" required help="Il nome ufficiale dell'impresa.">
                   <input
                     required
@@ -476,10 +479,7 @@ function Profilo() {
                   </Field>
                 </Section>
 
-                <Section
-                  title="Cosa vuoi finanziare"
-                  desc={FIELD_HELP.investimenti_previsti}
-                >
+                <Section title="Cosa vuoi finanziare" desc={FIELD_HELP.investimenti_previsti}>
                   <Field
                     label={
                       trialActive
