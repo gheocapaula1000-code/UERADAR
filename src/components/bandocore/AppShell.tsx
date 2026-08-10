@@ -3,6 +3,7 @@ import { LayoutDashboard, Building2, CreditCard, LogOut } from "lucide-react";
 import { BrandLogo } from "@/components/bandocore/BrandLogo";
 import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { EntitlementGate } from "@/components/bandocore/EntitlementGate";
+import { BottomNav } from "@/components/bandocore/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { ReactNode } from "react";
@@ -78,31 +79,13 @@ export function AppShell({
               <LogOut className="h-5 w-5" />
             </button>
           </div>
-          <nav aria-label="Sezioni principali" className="flex gap-1 px-2 pb-2 overflow-x-auto">
-            {nav.map((item) => {
-              const active = pathname.startsWith(item.to);
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-3 py-1.5 text-xs whitespace-nowrap ${
-                    active
-                      ? "bg-primary text-primary-foreground font-medium"
-                      : "text-muted-foreground bg-card"
-                  }`}
-                >
-                  <item.icon className="h-3.5 w-3.5" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
         </header>
 
-        <main id="contenuto-principale" className="safe-x safe-bottom flex-1 overflow-y-auto">
+        <main id="contenuto-principale" className="safe-x flex-1 overflow-y-auto pb-24">
           {requireEntitlement ? <EntitlementGate>{children}</EntitlementGate> : children}
         </main>
         <SiteFooter />
+        <BottomNav />
       </div>
     </div>
   );
