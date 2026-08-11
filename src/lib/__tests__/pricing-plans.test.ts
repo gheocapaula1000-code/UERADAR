@@ -174,7 +174,7 @@ describe("prova gratuita molto visibile e senza carta", () => {
     const t = TRIAL_TERMS.join(" ");
     expect(t).toContain("7 GIORNI COMPLETAMENTE GRATUITI");
     expect(t).toContain("SENZA CARTA DI CREDITO");
-    expect(t).toContain("dossier in versione filigranata");
+    expect(t).toContain("Dossier in versione filigranata");
     expect(t).toContain("ogni 12 mesi");
     expect(terms).toContain("prova applicativa");
     expect(terms).toMatch(/non viene creata alcuna sottoscrizione/);
@@ -226,7 +226,7 @@ describe("valore, limiti e affermazioni verificabili", () => {
   it("mantiene una FAQ coerente con il catalogo", () => {
     const faq = PRICING_FAQ.map((f) => `${f.q} ${f.a}`).join(" ");
     expect(faq).toContain("senza carta di credito");
-    expect(faq).toContain("15 con Executive");
+    expect(faq).toContain("25 con Executive");
     expect(faq).not.toMatch(/verifiche approfondite/i);
     expect(PRICING_FAQ.length).toBeGreaterThanOrEqual(6);
   });
