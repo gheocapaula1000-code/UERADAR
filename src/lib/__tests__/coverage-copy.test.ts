@@ -53,7 +53,8 @@ describe("copertura su cinque livelli", () => {
   });
 
   it("home, prezzi e auth mostrano il messaggio principale una sola volta e la prova una sola volta, senza duplicazioni", () => {
-    for (const src of [HOME, PRICING]) {
+    // Pricing usa ancora il messaggio principale centralizzato.
+    for (const src of [PRICING]) {
       expect(src).toContain("VALUE_STATEMENT");
       expect(src.match(/\{VALUE_STATEMENT\}/g) ?? []).toHaveLength(1);
       expect(src).not.toContain("miliardi di euro restano inutilizzati");
@@ -61,6 +62,13 @@ describe("copertura su cinque livelli", () => {
       expect(src).toContain("TRIAL_HIGHLIGHT");
       expect(src.match(/\{TRIAL_HIGHLIGHT\}/g) ?? []).toHaveLength(1);
     }
+    // Home ha un messaggio principale dedicato, sempre con i livelli e la prova.
+    expect(HOME).toContain("UEradar scova Bandi");
+    expect(HOME).toContain("Domanda pronta da firmare");
+    expect(HOME).toContain("COVERAGE_LEVELS");
+    expect(HOME).toContain("TRIAL_HIGHLIGHT");
+    expect(HOME.match(/\{TRIAL_HIGHLIGHT\}/g) ?? []).toHaveLength(1);
+    expect(HOME).not.toContain("miliardi di euro restano inutilizzati");
     expect(AUTH).toContain("TRIAL_HIGHLIGHT");
   });
 
