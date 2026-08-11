@@ -26,21 +26,33 @@ export const FIELD_HELP = {
 
 export type OnboardingStepKey = "identita" | "sede" | "obiettivi";
 
+/**
+ * Avvio rapido: i soli dati indispensabili per ricevere Bandi compatibili.
+ * Tutto il resto è rimandabile e non blocca l'accesso al feed.
+ */
+export const FAST_START_FIELDS: (keyof CompanyProfile)[] = [
+  "forma_giuridica",
+  "codice_ateco",
+  "regione",
+];
+
+export const FAST_START_MESSAGE =
+  "Bastano questi tre dati per iniziare a ricevere i Bandi compatibili. Potrai completare gli altri in seguito.";
+
 export const ONBOARDING_STEPS: {
   key: OnboardingStepKey;
   title: string;
   hint: string;
 }[] = [
-  { key: "identita", title: "Chi sei", hint: "Dati dell'impresa: bastano 4 campi." },
-  { key: "sede", title: "Dove sei", hint: "La sede decide quali bandi locali ti spettano." },
-  { key: "obiettivi", title: "Cosa cerchi", hint: "Dimensione e priorità di investimento." },
+  { key: "identita", title: "Chi sei", hint: "Forma giuridica e Codice ATECO principale." },
+  { key: "sede", title: "Dove sei", hint: "Basta la Regione: il resto è facoltativo." },
 ];
 
 /** Campi davvero necessari per attivare la prova: tutto il resto è facoltativo. */
 export const REQUIRED_BY_STEP: Record<OnboardingStepKey, (keyof CompanyProfile)[]> = {
   identita: ["ragione_sociale", "partita_iva", "forma_giuridica", "codice_ateco"],
-  sede: ["regione", "provincia", "comune"],
-  obiettivi: ["numero_dipendenti", "fatturato_annuo", "anno_costituzione"],
+  sede: ["regione"],
+  obiettivi: [],
 };
 
 function filled(value: unknown): boolean {
