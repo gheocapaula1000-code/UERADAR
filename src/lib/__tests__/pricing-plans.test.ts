@@ -77,17 +77,31 @@ describe("catalogo approvato", () => {
   it("cadenze interne e dossier rispettano il catalogo", () => {
     expect(CATALOG.professional.limits.fullSearchIntervalMinutes).toBe(720);
     expect(CATALOG.professional.limits.urgentLaneIntervalMinutes).toBeNull();
-    expect(CATALOG.professional.limits.dossiersPerMonth).toBe(1);
+    expect(CATALOG.professional.limits.dossiersPerMonth).toBe(3);
 
     expect(CATALOG.business.limits.fullSearchIntervalMinutes).toBe(120);
     expect(CATALOG.business.limits.urgentLaneIntervalMinutes).toBe(15);
-    expect(CATALOG.business.limits.dossiersPerMonth).toBe(5);
+    expect(CATALOG.business.limits.dossiersPerMonth).toBe(10);
 
     expect(CATALOG.executive.limits.fullSearchIntervalMinutes).toBe(60);
     expect(CATALOG.executive.limits.urgentLaneIntervalMinutes).toBe(5);
-    expect(CATALOG.executive.limits.dossiersPerMonth).toBe(15);
+    expect(CATALOG.executive.limits.dossiersPerMonth).toBe(25);
 
     expect(CATALOG.enterprise.limits.companies).toBe(-1);
+  });
+
+  it("le card dichiarano 1 impresa e le Domande / Dossier al mese", () => {
+    for (const id of ["professional", "business", "executive"] as const) {
+      const plan = CATALOG[id];
+      expect(plan.limits.companies).toBe(1);
+      expect(plan.highlights).toContain("1 impresa");
+      expect(plan.highlights).toContain(
+        `${plan.limits.dossiersPerMonth} Domande / Dossier al mese`,
+      );
+    }
+    expect(CATALOG.trial.highlights).toContain("1 Dossier in versione filigranata");
+    expect(CATALOG.enterprise.highlights).toContain("Multi-impresa sullo stesso contratto");
+    expect(CATALOG.enterprise.highlights).toContain("Limiti definiti da contratto");
   });
 
   it("nessun piano dichiara o riceve una copertura fonti non verificabile", () => {

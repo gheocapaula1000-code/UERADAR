@@ -99,7 +99,7 @@ export const TRIAL_TERMS: readonly string[] = [
   `${TRIAL_COPY.noCard}.`,
   TRIAL_COPY.noCharge,
   TRIAL_COPY.ctaNote,
-  "Perimetro della prova: 1 impresa, 1 titolare, massimo 2 obiettivi e 1 dossier in versione filigranata.",
+  "Perimetro della prova: 1 impresa e 1 Dossier in versione filigranata.",
   "Una prova per Partita IVA e per dominio aziendale ogni 12 mesi.",
   "Cancellazione online, senza disdetta scritta e senza PEC.",
   "Tutti i prezzi sono IVA esclusa; l'annuale include 2 mesi.",
@@ -132,11 +132,11 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Quante opportunità posso vedere?",
-    a: "Tutte quelle pertinenti al tuo profilo: il numero di opportunità mostrate non è mai limitato. I piani si distinguono per capienza di utenti operativi e dossier inclusi.",
+    a: "Tutte quelle pertinenti al tuo profilo: il numero di opportunità mostrate non è mai limitato. I piani si distinguono per le Domande / Dossier inclusi ogni mese e per la capienza di utenti operativi.",
   },
   {
     q: "Che differenza c'è tra Professional, Business ed Executive?",
-    a: "Le fonti ufficiali disponibili sono le stesse per tutti i piani self-service. I piani si distinguono per capienza di utenti operativi e dossier inclusi: 1 dossier al mese con Professional, 5 con Business, 15 con Executive.",
+    a: "Le fonti ufficiali disponibili sono le stesse per tutti i piani self-service. Ogni piano gestisce 1 impresa e si distingue per le Domande / Dossier al mese: 3 con Professional, 10 con Business, 25 con Executive. Business aggiunge corsia urgente e supporto prioritario, Executive alta frequenza di aggiornamento, export, condivisione e assistenza dedicata.",
   },
   {
     q: "Cosa significa l'etichetta Verificato?",
