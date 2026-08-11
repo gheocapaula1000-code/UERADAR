@@ -207,46 +207,29 @@ function Landing() {
         </div>
       </section>
 
-      {/* PER CHI */}
-      <section id="per-chi" className="border-y border-border bg-surface-elevated/50">
+      {/* COSA TROVA */}
+      <section id="cosa-trova" className="border-y border-border bg-surface-elevated/50">
         <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-          <div className="grid items-center gap-10 md:grid-cols-2">
-            <div>
-              <div className="text-xs uppercase tracking-widest text-accent font-semibold">
-                Per Chi
+          <div className="mx-auto mb-10 max-w-2xl text-center">
+            <div className="text-xs uppercase tracking-widest text-accent font-semibold">
+              Cosa Trova
+            </div>
+            <h2 className="mt-2 text-3xl font-bold md:text-4xl">Tutte le Opportunità per la tua Impresa.</h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { icon: Euro, l: "Contributi a Fondo Perduto", c: "text-primary" },
+              { icon: Rocket, l: "Finanziamenti Agevolati e a Tasso Zero", c: "text-info" },
+              { icon: Sparkles, l: "Misure per Imprenditoria Femminile e Giovanile", c: "text-femminile" },
+              { icon: ShieldCheck, l: "Voucher e Crediti d’Imposta", c: "text-accent" },
+              { icon: Radar, l: "Bandi di Digitalizzazione, Energia, Innovazione e Internazionalizzazione", c: "text-primary" },
+              { icon: Globe, l: "Opportunità Locali, Provinciali, Regionali, Nazionali ed Europee", c: "text-info" },
+            ].map((c) => (
+              <div key={c.l} className="rounded-xl border border-border bg-card p-5">
+                <c.icon className={`h-6 w-6 ${c.c}`} />
+                <div className="mt-3 text-base font-semibold">{c.l}</div>
               </div>
-              <h2 className="mt-2 text-3xl font-bold md:text-4xl">Solo Partite IVA e Imprese.</h2>
-              <p className="mt-4 text-muted-foreground">
-                UEradar.com è un servizio B2B: niente Incentivi per privati, solo strumenti
-                verticali per chi ha una Partita IVA attiva.
-              </p>
-              <ul className="mt-6 space-y-3 text-[15px] sm:text-base">
-                {[
-                  "Partite IVA & Ditte Individuali",
-                  "SRL, SRLS, SPA, SAS, SNC",
-                  "PMI Innovative e Startup",
-                  "Imprenditoria Femminile (corsia preferenziale)",
-                  "Imprese Giovanili e Consorzi Europei",
-                ].map((i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary" /> {i}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { icon: Euro, l: "Fondo Perduto", c: "text-primary" },
-                { icon: Rocket, l: "Tasso Zero", c: "text-info" },
-                { icon: ShieldCheck, l: "Credito d'Imposta", c: "text-accent" },
-                { icon: Sparkles, l: "PNRR & Fondi Europei", c: "text-femminile" },
-              ].map((c) => (
-                <div key={c.l} className="rounded-xl border border-border bg-card p-5">
-                  <c.icon className={`h-6 w-6 ${c.c}`} />
-                  <div className="mt-3 text-base font-semibold">{c.l}</div>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </section>
