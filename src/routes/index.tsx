@@ -5,13 +5,8 @@ import { ENTERPRISE_PLAN, PRODUCT_BOUNDARIES, PUBLIC_PLANS, TRIAL_TERMS } from "
 import { TrialBanner, TrialStickyBar } from "@/components/bandocore/TrialBanner";
 import { ORGANIZATION_JSONLD, SOFTWARE_APPLICATION_JSONLD, seoHead } from "@/lib/seo";
 import {
-  COVERAGE_HEADLINE,
   COVERAGE_LEVELS,
-  DRAFT_COPY,
-  MONITORING_COPY,
-  RESEARCH_COPY,
   TRIAL_HIGHLIGHT,
-  VALUE_STATEMENT,
 } from "@/lib/coverage";
 import {
   Radar,
