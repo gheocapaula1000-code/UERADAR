@@ -166,18 +166,18 @@ function Landing() {
           {[
             {
               icon: Building2,
-              t: "1. Profilo Azienda",
-              d: "Inserisci Partita IVA, Codice ATECO, sede, dimensione, investimenti e caratteristiche di Imprenditoria Femminile, Giovanile o Innovativa.",
+              t: "1. Profilo Impresa",
+              d: "Inserisci i dati essenziali. Bastano pochi minuti.",
             },
             {
               icon: Radar,
-              t: "2. Ricerca su Cinque Livelli",
-              d: "La ricerca copre Fonti Locali, Provinciali, Regionali, Nazionali ed Europee, Ufficiali e Specialistiche, incrociando Profilo, Territorio e Requisiti.",
+              t: "2. Radar Continuo",
+              d: "UEradar monitora le fonti ufficiali a 5 livelli e trova le opportunità compatibili, anche quelle nascoste in Albi, GAL e avvisi locali.",
             },
             {
               icon: Target,
-              t: "3. Compatibilità e Bozza",
-              d: "Ogni risultato mostra Requisiti confermati, punti da verificare, Scadenza e Fonte Ufficiale; la domanda viene precompilata in Bozza, da verificare prima dell'invio.",
+              t: "3. Domanda Pronta",
+              d: "Ricevi la Domanda già compilata con i tuoi dati. Controlli, firmi a mano e invii.",
             },
           ].map((f) => (
             <div
