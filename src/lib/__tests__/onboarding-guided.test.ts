@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { ONBOARDING_STEPS, REQUIRED_BY_STEP, missingFields, stepComplete } from "../onboarding";
+import {
+  FAST_START_FIELDS,
+  FAST_START_MESSAGE,
+  ONBOARDING_STEPS,
+  REQUIRED_BY_STEP,
+  missingFields,
+  stepComplete,
+} from "../onboarding";
 import type { CompanyProfile } from "../bandocore-types";
 
 const profilo = readFileSync("src/routes/_authenticated/profilo.tsx", "utf8");
@@ -21,10 +28,19 @@ const base = {
 
 describe("profilo guidato", () => {
   it("i passi coprono solo i campi realmente obbligatori", () => {
-    expect(ONBOARDING_STEPS.map((s) => s.key)).toEqual(["identita", "sede", "obiettivi"]);
+    expect(ONBOARDING_STEPS.map((s) => s.key)).toEqual(["identita", "sede"]);
     expect(REQUIRED_BY_STEP.identita).toContain("partita_iva");
-    expect(REQUIRED_BY_STEP.sede).toContain("comune");
+    expect(REQUIRED_BY_STEP.sede).toEqual(["regione"]);
     expect(REQUIRED_BY_STEP.identita).not.toContain("codice_istat");
+  });
+
+  it("l'avvio rapido richiede solo forma giuridica, ATECO e regione", () => {
+    expect(FAST_START_FIELDS).toEqual(["forma_giuridica", "codice_ateco", "regione"]);
+    for (const field of ["provincia", "comune", "numero_dipendenti", "fatturato_annuo"] as const) {
+      expect(Object.values(REQUIRED_BY_STEP).flat()).not.toContain(field);
+    }
+    expect(profilo).toContain("FAST_START_MESSAGE");
+    expect(FAST_START_MESSAGE).toContain("Bastano questi tre dati");
   });
 
   it("un passo incompleto elenca i campi mancanti", () => {
@@ -37,6 +53,7 @@ describe("profilo guidato", () => {
     const ok = { ...base, ragione_sociale: "ACME", partita_iva: "IT01", codice_ateco: "62.01" };
     expect(stepComplete(ok, "identita")).toBe(true);
     expect(stepComplete(ok, "obiettivi")).toBe(true);
+    expect(stepComplete({ ...base, regione: "Lazio" } as CompanyProfile, "sede")).toBe(true);
   });
 
   it("i dati facoltativi sono separati e la conferma è persistente", () => {
