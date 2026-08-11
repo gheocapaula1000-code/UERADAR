@@ -80,7 +80,7 @@ function Landing() {
         <div className="relative mx-auto w-full max-w-3xl px-4 py-14 text-center sm:px-6 sm:py-20 md:py-28">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1.5 text-sm text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
-            Unione Europea Radar — {COVERAGE_HEADLINE}
+            Trova Tutti i Bandi. Anche quelli che gli altri non vedono.
           </div>
           <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl md:text-6xl">
             Il Radar dei{" "}
@@ -90,10 +90,13 @@ function Landing() {
             per la tua Impresa.
           </h1>
           <p className="mt-6 text-base text-foreground sm:text-lg md:text-xl">
-            {VALUE_STATEMENT}
+            UEradar scova Bandi, Contributi a Fondo Perduto, Finanziamenti Agevolati ed
+            Incentivi ad Ogni Livello — Locale, Provinciale, Regionale, Nazionale ed
+            Europeo — e ti prepara la Domanda pronta da firmare.
           </p>
           <p className="mt-4 text-base text-muted-foreground sm:text-lg">
-            {RESEARCH_COPY}
+            Il Radar che trova Tutti i Bandi utili alla tua Impresa — anche quelli
+            nascosti — e ti prepara la Domanda.
           </p>
           <ul
             aria-label="Livelli coperti dalla ricerca"
