@@ -53,8 +53,8 @@ function Landing() {
             <a href="#come-funziona" className="hover:text-foreground transition">
               Come Funziona
             </a>
-            <a href="#per-chi" className="hover:text-foreground transition">
-              Per Chi
+            <a href="#cosa-trova" className="hover:text-foreground transition">
+              Cosa Trova
             </a>
             <a href="#sicurezza" className="hover:text-foreground transition">
               Sicurezza
