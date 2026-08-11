@@ -5,13 +5,8 @@ import { ENTERPRISE_PLAN, PRODUCT_BOUNDARIES, PUBLIC_PLANS, TRIAL_TERMS } from "
 import { TrialBanner, TrialStickyBar } from "@/components/bandocore/TrialBanner";
 import { ORGANIZATION_JSONLD, SOFTWARE_APPLICATION_JSONLD, seoHead } from "@/lib/seo";
 import {
-  COVERAGE_HEADLINE,
   COVERAGE_LEVELS,
-  DRAFT_COPY,
-  MONITORING_COPY,
-  RESEARCH_COPY,
   TRIAL_HIGHLIGHT,
-  VALUE_STATEMENT,
 } from "@/lib/coverage";
 import {
   Radar,
@@ -21,6 +16,7 @@ import {
   Euro,
   Rocket,
   ShieldCheck,
+  Globe,
   ArrowRight,
 } from "lucide-react";
 
@@ -57,8 +53,8 @@ function Landing() {
             <a href="#come-funziona" className="hover:text-foreground transition">
               Come Funziona
             </a>
-            <a href="#per-chi" className="hover:text-foreground transition">
-              Per Chi
+            <a href="#cosa-trova" className="hover:text-foreground transition">
+              Cosa Trova
             </a>
             <a href="#sicurezza" className="hover:text-foreground transition">
               Sicurezza
@@ -85,7 +81,7 @@ function Landing() {
         <div className="relative mx-auto w-full max-w-3xl px-4 py-14 text-center sm:px-6 sm:py-20 md:py-28">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1.5 text-sm text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
-            Unione Europea Radar — {COVERAGE_HEADLINE}
+            Trova Tutti i Bandi. Anche quelli che gli altri non vedono.
           </div>
           <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl md:text-6xl">
             Il Radar dei{" "}
@@ -95,10 +91,13 @@ function Landing() {
             per la tua Impresa.
           </h1>
           <p className="mt-6 text-base text-foreground sm:text-lg md:text-xl">
-            {VALUE_STATEMENT}
+            UEradar scova Bandi, Contributi a Fondo Perduto, Finanziamenti Agevolati ed
+            Incentivi ad Ogni Livello — Locale, Provinciale, Regionale, Nazionale ed
+            Europeo — e ti prepara la Domanda pronta da firmare.
           </p>
           <p className="mt-4 text-base text-muted-foreground sm:text-lg">
-            {RESEARCH_COPY}
+            Il Radar che trova Tutti i Bandi utili alla tua Impresa — anche quelli
+            nascosti — e ti prepara la Domanda.
           </p>
           <ul
             aria-label="Livelli coperti dalla ricerca"
@@ -167,18 +166,18 @@ function Landing() {
           {[
             {
               icon: Building2,
-              t: "1. Profilo Azienda",
-              d: "Inserisci Partita IVA, Codice ATECO, sede, dimensione, investimenti e caratteristiche di Imprenditoria Femminile, Giovanile o Innovativa.",
+              t: "1. Profilo Impresa",
+              d: "Inserisci i dati essenziali. Bastano pochi minuti.",
             },
             {
               icon: Radar,
-              t: "2. Ricerca su Cinque Livelli",
-              d: "La ricerca copre Fonti Locali, Provinciali, Regionali, Nazionali ed Europee, Ufficiali e Specialistiche, incrociando Profilo, Territorio e Requisiti.",
+              t: "2. Radar Continuo",
+              d: "UEradar monitora le fonti ufficiali a 5 livelli e trova le opportunità compatibili, anche quelle nascoste in Albi, GAL e avvisi locali.",
             },
             {
               icon: Target,
-              t: "3. Compatibilità e Bozza",
-              d: "Ogni risultato mostra Requisiti confermati, punti da verificare, Scadenza e Fonte Ufficiale; la domanda viene precompilata in Bozza, da verificare prima dell'invio.",
+              t: "3. Domanda Pronta",
+              d: "Ricevi la Domanda già compilata con i tuoi dati. Controlli, firmi a mano e invii.",
             },
           ].map((f) => (
             <div
@@ -193,56 +192,44 @@ function Landing() {
             </div>
           ))}
         </div>
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
-          <p className="rounded-xl border border-border bg-card p-5 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-            {MONITORING_COPY}
-          </p>
-          <p className="rounded-xl border border-border bg-card p-5 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-            {DRAFT_COPY}
-          </p>
+        <div className="mt-8">
+          <div className="mx-auto max-w-3xl rounded-2xl border border-accent/30 bg-accent/10 p-6 text-center shadow-sm sm:p-8">
+            <p className="text-[15px] leading-relaxed text-foreground sm:text-base">
+              Gli altri ti mostrano i Bandi più noti.
+            </p>
+            <p className="mt-2 text-base font-semibold text-foreground sm:text-lg">
+              UEradar trova anche quelli nascosti e ti prepara la Domanda.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Solo la firma autografa resta a te.
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* PER CHI */}
-      <section id="per-chi" className="border-y border-border bg-surface-elevated/50">
+      {/* COSA TROVA */}
+      <section id="cosa-trova" className="border-y border-border bg-surface-elevated/50">
         <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-          <div className="grid items-center gap-10 md:grid-cols-2">
-            <div>
-              <div className="text-xs uppercase tracking-widest text-accent font-semibold">
-                Per Chi
+          <div className="mx-auto mb-10 max-w-2xl text-center">
+            <div className="text-xs uppercase tracking-widest text-accent font-semibold">
+              Cosa Trova
+            </div>
+            <h2 className="mt-2 text-3xl font-bold md:text-4xl">Tutte le Opportunità per la tua Impresa.</h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { icon: Euro, l: "Contributi a Fondo Perduto", c: "text-primary" },
+              { icon: Rocket, l: "Finanziamenti Agevolati e a Tasso Zero", c: "text-info" },
+              { icon: Sparkles, l: "Misure per Imprenditoria Femminile e Giovanile", c: "text-femminile" },
+              { icon: ShieldCheck, l: "Voucher e Crediti d’Imposta", c: "text-accent" },
+              { icon: Radar, l: "Bandi di Digitalizzazione, Energia, Innovazione e Internazionalizzazione", c: "text-primary" },
+              { icon: Globe, l: "Opportunità Locali, Provinciali, Regionali, Nazionali ed Europee", c: "text-info" },
+            ].map((c) => (
+              <div key={c.l} className="rounded-xl border border-border bg-card p-5">
+                <c.icon className={`h-6 w-6 ${c.c}`} />
+                <div className="mt-3 text-base font-semibold">{c.l}</div>
               </div>
-              <h2 className="mt-2 text-3xl font-bold md:text-4xl">Solo Partite IVA e Imprese.</h2>
-              <p className="mt-4 text-muted-foreground">
-                UEradar.com è un servizio B2B: niente Incentivi per privati, solo strumenti
-                verticali per chi ha una Partita IVA attiva.
-              </p>
-              <ul className="mt-6 space-y-3 text-[15px] sm:text-base">
-                {[
-                  "Partite IVA & Ditte Individuali",
-                  "SRL, SRLS, SPA, SAS, SNC",
-                  "PMI Innovative e Startup",
-                  "Imprenditoria Femminile (corsia preferenziale)",
-                  "Imprese Giovanili e Consorzi Europei",
-                ].map((i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-primary" /> {i}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { icon: Euro, l: "Fondo Perduto", c: "text-primary" },
-                { icon: Rocket, l: "Tasso Zero", c: "text-info" },
-                { icon: ShieldCheck, l: "Credito d'Imposta", c: "text-accent" },
-                { icon: Sparkles, l: "PNRR & Fondi Europei", c: "text-femminile" },
-              ].map((c) => (
-                <div key={c.l} className="rounded-xl border border-border bg-card p-5">
-                  <c.icon className={`h-6 w-6 ${c.c}`} />
-                  <div className="mt-3 text-base font-semibold">{c.l}</div>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </section>
