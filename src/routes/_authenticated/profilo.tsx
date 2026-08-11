@@ -13,6 +13,7 @@ import { TRIAL_OBJECTIVES } from "@/lib/catalog";
 import { trialStartMessage } from "@/lib/trial";
 import {
   FIELD_HELP,
+  FAST_START_MESSAGE,
   ONBOARDING_STEPS,
   STEP_INCOMPLETE_MESSAGE,
   stepComplete,
@@ -284,14 +285,14 @@ function Profilo() {
             </h1>
             <p className="text-sm text-muted-foreground">
               {isNew
-                ? "Bastano pochi minuti. Servono solo i dati contrassegnati con *: tutto il resto è facoltativo e può essere aggiunto dopo."
+                ? FAST_START_MESSAGE
                 : "Questi dati decidono quali Bandi ti mostriamo e cosa resta da verificare."}
             </p>
           </div>
         </header>
 
         {guided && (
-          <ol className="mb-6 grid grid-cols-3 gap-2" aria-label="Passi della configurazione">
+          <ol className="mb-6 grid grid-cols-2 gap-2" aria-label="Passi della configurazione">
             {ONBOARDING_STEPS.map((s, i) => {
               const state = i < step ? "done" : i === step ? "current" : "todo";
               return (
@@ -412,9 +413,8 @@ function Profilo() {
                     ))}
                   </select>
                 </Field>
-                <Field label="Provincia" required help={FIELD_HELP.provincia}>
+                <Field label="Provincia (facoltativo)" help={FIELD_HELP.provincia}>
                   <input
-                    required
                     value={profile.provincia}
                     onChange={(e) => update("provincia", e.target.value)}
                     className={inputCls}
@@ -422,9 +422,8 @@ function Profilo() {
                     maxLength={2}
                   />
                 </Field>
-                <Field label="Comune" required help="Il Comune della sede legale.">
+                <Field label="Comune (facoltativo)" help="Il Comune della sede legale.">
                   <input
-                    required
                     value={profile.comune}
                     onChange={(e) => update("comune", e.target.value)}
                     className={inputCls}
@@ -445,9 +444,11 @@ function Profilo() {
             {visible("obiettivi") && (
               <>
                 <Section title="Quanto è grande la tua impresa">
-                  <Field label="Numero Dipendenti" required help={FIELD_HELP.numero_dipendenti}>
+                  <Field
+                    label="Numero Dipendenti (facoltativo)"
+                    help={FIELD_HELP.numero_dipendenti}
+                  >
                     <input
-                      required
                       type="number"
                       min={0}
                       value={profile.numero_dipendenti}
@@ -455,9 +456,8 @@ function Profilo() {
                       className={inputCls}
                     />
                   </Field>
-                  <Field label="Fatturato Annuo (€)" required help={FIELD_HELP.fatturato_annuo}>
+                  <Field label="Fatturato Annuo (€, facoltativo)" help={FIELD_HELP.fatturato_annuo}>
                     <input
-                      required
                       type="number"
                       min={0}
                       step="0.01"
@@ -466,9 +466,11 @@ function Profilo() {
                       className={inputCls}
                     />
                   </Field>
-                  <Field label="Anno di Costituzione" required help={FIELD_HELP.anno_costituzione}>
+                  <Field
+                    label="Anno di Costituzione (facoltativo)"
+                    help={FIELD_HELP.anno_costituzione}
+                  >
                     <input
-                      required
                       type="number"
                       min={1800}
                       max={new Date().getFullYear()}
