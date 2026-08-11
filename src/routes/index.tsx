@@ -16,6 +16,7 @@ import {
   Euro,
   Rocket,
   ShieldCheck,
+  Globe,
   ArrowRight,
 } from "lucide-react";
 
