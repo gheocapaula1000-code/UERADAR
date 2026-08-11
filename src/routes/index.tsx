@@ -192,13 +192,18 @@ function Landing() {
             </div>
           ))}
         </div>
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
-          <p className="rounded-xl border border-border bg-card p-5 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-            {MONITORING_COPY}
-          </p>
-          <p className="rounded-xl border border-border bg-card p-5 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-            {DRAFT_COPY}
-          </p>
+        <div className="mt-8">
+          <div className="mx-auto max-w-3xl rounded-2xl border border-accent/30 bg-accent/10 p-6 text-center shadow-sm sm:p-8">
+            <p className="text-[15px] leading-relaxed text-foreground sm:text-base">
+              Gli altri ti mostrano i Bandi più noti.
+            </p>
+            <p className="mt-2 text-base font-semibold text-foreground sm:text-lg">
+              UEradar trova anche quelli nascosti e ti prepara la Domanda.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Solo la firma autografa resta a te.
+            </p>
+          </div>
         </div>
       </section>
 
