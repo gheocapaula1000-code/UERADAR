@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, Check, CreditCard, ShieldCheck, Trash2, Users } from "lucide-react";
 import { AppShell } from "@/components/bandocore/AppShell";
@@ -14,6 +14,7 @@ import {
   inviteCompanyMember,
   listCompanyMembers,
   removeCompanyMember,
+  syncSubscriptionFromProvider,
 } from "@/lib/billing.functions";
 import { MEMBER_ROLES, seatUsage, type MemberRole } from "@/lib/billing";
 import { ENTERPRISE_PLAN, PUBLIC_PLANS, TRIAL_COPY } from "@/lib/pricing";
@@ -21,6 +22,8 @@ import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/abbonamento")({
   head: () => seoHead("/abbonamento"),
+  validateSearch: (search: Record<string, unknown>): { esito?: string } =>
+    typeof search["esito"] === "string" ? { esito: search["esito"] as string } : {},
   component: Abbonamento,
 });
 
@@ -65,6 +68,7 @@ function formatDate(value: string | null) {
 
 function Abbonamento() {
   const queryClient = useQueryClient();
+  const { esito } = Route.useSearch();
   const status = useServerFn(getBillingStatus);
   const members = useServerFn(listCompanyMembers);
   const startPayment = useServerFn(createPaymentSession);
@@ -73,6 +77,7 @@ function Abbonamento() {
   const remove = useServerFn(removeCompanyMember);
   const pending = useServerFn(getPendingInvite);
   const accept = useServerFn(acceptCompanyInvite);
+  const syncSubscription = useServerFn(syncSubscriptionFromProvider);
   const [interval, setInterval] = useState<"month" | "year">("month");
   const [form, setForm] = useState({
     first_name: "",
@@ -104,6 +109,28 @@ function Abbonamento() {
     },
     onError: () => toast.error("Portale non disponibile"),
   });
+
+  // Sincronizzazione post-checkout TEST: lo stato locale viene riallineato
+  // alla subscription reale del provider, senza attendere i webhook.
+  const syncMutation = useMutation({
+    mutationFn: () => syncSubscription(),
+    onSuccess: (res) => {
+      if (res.ok) {
+        toast.success("Abbonamento sincronizzato");
+        void queryClient.invalidateQueries({ queryKey: ["billing-status"] });
+      } else {
+        toast.error("Sincronizzazione non riuscita", { description: res.code });
+      }
+    },
+    onError: () => toast.error("Sincronizzazione non riuscita"),
+  });
+  const syncRun = useRef(false);
+  const syncNow = syncMutation.mutate;
+  useEffect(() => {
+    if (esito !== "ok" || syncRun.current) return;
+    syncRun.current = true;
+    syncNow();
+  }, [esito, syncNow]);
 
   const inviteMutation = useMutation({
     mutationFn: () =>
@@ -274,6 +301,17 @@ function Abbonamento() {
                 Il portale di fatturazione si attiva con il primo pagamento: durante la prova non
                 viene creata alcuna anagrafica cliente.
               </p>
+            ) : null}
+            {data?.mode === "test" && !isMember ? (
+              <button
+                type="button"
+                onClick={() => syncMutation.mutate()}
+                disabled={syncMutation.isPending}
+                className="tap inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium disabled:opacity-50"
+              >
+                <ShieldCheck aria-hidden="true" className="h-4 w-4" />
+                {syncMutation.isPending ? "Sincronizzazione…" : "Aggiorna stato abbonamento"}
+              </button>
             ) : null}
           </div>
         </section>
