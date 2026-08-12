@@ -43,6 +43,8 @@ export type BillingStatus = {
   configured: boolean;
   /** Checkout TEST realmente disponibile per questo utente (flag QA + allowlist). */
   checkout_available: boolean;
+  /** Motivo leggibile del blocco checkout (nessun segreto): null quando disponibile. */
+  checkout_block_code: string | null;
   /**
    * Portale disponibile solo se esiste già un cliente presso il provider:
    * durante la prova non viene creata alcuna anagrafica di pagamento.
@@ -127,6 +129,7 @@ export const getBillingStatus = createServerFn({ method: "POST" })
         tax_id: null,
         configured: mode.ok,
         checkout_available: false,
+        checkout_block_code: "SUBSCRIPTION_LOOKUP_FAILED",
         portal_available: false,
       };
     }
@@ -151,6 +154,7 @@ export const getBillingStatus = createServerFn({ method: "POST" })
         tax_id: null,
         configured: mode.ok,
         checkout_available: false,
+        checkout_block_code: "MEMBERS_LOOKUP_FAILED",
         portal_available: false,
       };
     }
@@ -169,6 +173,7 @@ export const getBillingStatus = createServerFn({ method: "POST" })
       tax_id: (row as SubRow | null)?.tax_id ?? null,
       configured: mode.ok,
       checkout_available: mode.ok && access.ok,
+      checkout_block_code: mode.ok ? (access.ok ? null : access.code) : mode.code,
       portal_available: portalAvailable(
         (row as SubRow | null) ?? null,
         mode.ok && portalAccess.ok,

@@ -34,6 +34,29 @@ const STATE_LABEL: Record<string, string> = {
   NONE: "Abbonamento non attivo",
 };
 
+/** Spiegazioni leggibili dei codici di blocco checkout (nessun segreto in UI). */
+const CHECKOUT_BLOCK_LABEL: Record<string, string> = {
+  BILLING_NOT_CONFIGURED: "L'attivazione online non è ancora configurata su questo ambiente.",
+  BILLING_KEY_MODE_MISMATCH:
+    "La configurazione di pagamento non corrisponde alla modalità attiva dell'ambiente.",
+  BILLING_MODE_INVALID: "La modalità di pagamento dell'ambiente non consente l'attivazione online.",
+  LIVE_MODE_DISABLED: "Gli addebiti reali sono disattivati su questo ambiente.",
+  PRICES_NOT_CONFIGURED: "I piani non sono ancora collegati ai listini di pagamento.",
+  PRICE_IDS_NOT_UNIQUE: "I listini di pagamento risultano duplicati: configurazione da correggere.",
+  PUBLIC_CHECKOUT_DISABLED: "L'attivazione online è temporaneamente chiusa al pubblico.",
+  CHECKOUT_QA_DISABLED: "L'attivazione online è riservata ai test e al momento è disattivata.",
+  CHECKOUT_QA_ALLOWLIST_EMPTY:
+    "L'attivazione online è riservata agli account di test: nessun account è abilitato.",
+  CHECKOUT_QA_NOT_ALLOWED: "Questo account non è abilitato all'attivazione online in questa fase.",
+  SUBSCRIPTION_LOOKUP_FAILED: "Non riusciamo a leggere lo stato del tuo abbonamento.",
+  MEMBERS_LOOKUP_FAILED: "Non riusciamo a leggere gli utenti della tua impresa.",
+};
+
+function checkoutBlockText(code: string | null | undefined) {
+  if (!code) return null;
+  return CHECKOUT_BLOCK_LABEL[code] ?? "Attivazione online non disponibile in questo momento.";
+}
+
 function formatDate(value: string | null) {
   if (!value) return "—";
   const d = new Date(value);
@@ -165,6 +188,13 @@ function Abbonamento() {
   // Il membro accettato lavora sull'impresa del titolare: può leggere lo stato,
   // non può cambiare titolare, P.IVA, piano o fatturazione.
   const isMember = data?.role === "member";
+  const blockCode = data?.checkout_block_code ?? null;
+  const blockText = checkoutBlockText(blockCode);
+  const disabledReason = isMember
+    ? "Solo il titolare dell'impresa può attivare o cambiare piano."
+    : blockText
+      ? `${blockText} (codice: ${blockCode})`
+      : null;
 
   return (
     <AppShell requireEntitlement={false}>
@@ -298,17 +328,37 @@ function Abbonamento() {
               </ul>
               <button
                 type="button"
-                onClick={() =>
-                  payMutation.mutate(plan.id as "professional" | "business" | "executive")
-                }
-                disabled={payMutation.isPending || !data?.checkout_available || isMember}
-                className="tap mt-6 w-full rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground disabled:opacity-50"
+                title={disabledReason ?? undefined}
+                aria-describedby={disabledReason ? "checkout-block-note" : undefined}
+                onClick={() => {
+                  if (disabledReason) {
+                    toast.error("Attivazione non disponibile", { description: disabledReason });
+                    return;
+                  }
+                  payMutation.mutate(plan.id as "professional" | "business" | "executive");
+                }}
+                disabled={payMutation.isPending}
+                aria-disabled={Boolean(disabledReason)}
+                className={`tap mt-6 w-full rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground disabled:opacity-50 ${
+                  disabledReason ? "opacity-50" : ""
+                }`}
               >
                 Attiva {plan.name}
               </button>
             </div>
           ))}
         </section>
+
+        {disabledReason ? (
+          <p
+            id="checkout-block-note"
+            role="status"
+            className="flex items-start gap-2 rounded-lg border border-border bg-muted p-3 text-sm"
+          >
+            <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{disabledReason}</span>
+          </p>
+        ) : null}
 
         <section className="rounded-2xl border border-dashed border-border bg-card/60 p-6">
           <h2 className="text-lg font-semibold">
