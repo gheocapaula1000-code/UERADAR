@@ -119,19 +119,12 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       ]);
     };
 
-    const introPending = () => {
-      try {
-        return window.sessionStorage.getItem(INTRO_STORAGE_KEY) !== "1";
-      } catch {
-        return false;
-      }
-    };
-
     const onStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
       // L'header sticky è fuori dal contenitore: il gesto deve poter partire
-      // anche da lì, purché la pagina sia davvero in cima.
-      if (!canStartPull(scrollTop(), refreshingRef.current, introPending())) return;
+      // anche da lì, purché la pagina sia in cima. L'overlay RadarIntro blocca
+      // già i tocchi mentre è visibile: nessun gate su sessionStorage.
+      if (!canStartPull(scrollTop(), refreshingRef.current)) return;
       tracking.current = true;
       pulling.current = false;
       startY.current = e.touches[0].clientY;
