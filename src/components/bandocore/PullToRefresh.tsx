@@ -65,6 +65,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       supportsPullGesture(
         window.matchMedia("(pointer: coarse)").matches,
         window.navigator.maxTouchPoints ?? 0,
+        "ontouchstart" in window,
       ),
     );
   }, []);
@@ -211,13 +212,15 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
     <div ref={containerRef} className="ptr-root relative w-full max-w-full">
       <div
         aria-hidden={phase === "idle"}
-        className="ptr-indicator pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center"
+        className="ptr-indicator pointer-events-none fixed inset-x-0 z-50 flex justify-center"
         style={{
-          transform: `translate3d(0, ${Math.max(0, offset - 44)}px, 0)`,
+          transform: `translate3d(0, ${Math.max(0, Math.min(offset, PTR_MAX_PULL_PX) * 0.5)}px, 0)`,
           opacity: phase === "idle" ? 0 : 1,
+          visibility: phase === "idle" ? "hidden" : "visible",
+          transition: dragging ? "none" : "opacity 160ms ease, transform 200ms ease",
         }}
       >
-        <div className="ptr-badge mt-2 flex items-center gap-2 rounded-full border border-border bg-card/90 px-3 py-2 shadow-xl backdrop-blur-xl">
+        <div className="ptr-badge flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-2 shadow-2xl">
           <svg viewBox="0 0 32 32" className={`h-6 w-6 ${phase === "refreshing" && !reduced ? "ptr-spin" : ""}`}>
             <circle cx="16" cy="16" r="13" fill="none" strokeWidth="3" className="stroke-border" />
             <circle
@@ -234,7 +237,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
               style={{ transition: reduced ? "none" : "stroke-dashoffset 120ms linear" }}
             />
           </svg>
-          <span className="text-xs font-medium text-muted-foreground">{label}</span>
+          <span className="text-xs font-semibold text-foreground">{label}</span>
         </div>
       </div>
 
