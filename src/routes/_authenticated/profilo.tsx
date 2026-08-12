@@ -17,9 +17,12 @@ import {
   ONBOARDING_STEPS,
   STEP_INCOMPLETE_MESSAGE,
   stepComplete,
+  ATECO_SECONDARI_MAX,
+  ATECO_SECONDARI_LABEL,
+  normalizeAtecoSecondari,
   type OnboardingStepKey,
 } from "@/lib/onboarding";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Save, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Plus, Save, Sparkles, X } from "lucide-react";
 import { BrandMark } from "@/components/bandocore/BrandLogo";
 import { seoHead } from "@/lib/seo";
 
@@ -171,7 +174,12 @@ function Profilo() {
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData.user) throw new Error("Sessione scaduta. Accedi di nuovo.");
 
-      const row = { ...profile, user_id: userData.user.id };
+      const atecoSecondari = normalizeAtecoSecondari(
+        profile.ateco_secondari ?? [],
+        profile.codice_ateco,
+      );
+      const row = { ...profile, ateco_secondari: atecoSecondari, user_id: userData.user.id };
+      setProfile((p) => ({ ...p, ateco_secondari: atecoSecondari }));
       const { error: profileError } = await supabase
         .from("company_profiles")
         .upsert(row, { onConflict: "user_id" });
@@ -389,6 +397,53 @@ function Profilo() {
                     className={inputCls}
                     placeholder="62.01.00"
                   />
+                </Field>
+                <Field label={ATECO_SECONDARI_LABEL} help={FIELD_HELP.ateco_secondari}>
+                  <div className="space-y-2">
+                    {(profile.ateco_secondari ?? []).map((code, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input
+                          value={code}
+                          onChange={(e) => {
+                            const next = [...(profile.ateco_secondari ?? [])];
+                            next[i] = e.target.value;
+                            update("ateco_secondari", next);
+                          }}
+                          className={inputCls}
+                          placeholder="62.01.00"
+                          aria-label={`Codice ATECO secondario ${i + 1}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            update(
+                              "ateco_secondari",
+                              (profile.ateco_secondari ?? []).filter((_, j) => j !== i),
+                            )
+                          }
+                          className="tap grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition hover:text-foreground"
+                          aria-label={`Rimuovi codice ATECO secondario ${i + 1}`}
+                        >
+                          <X className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    ))}
+                    {(profile.ateco_secondari ?? []).length < ATECO_SECONDARI_MAX ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          update("ateco_secondari", [...(profile.ateco_secondari ?? []), ""])
+                        }
+                        className="tap inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium transition hover:bg-muted"
+                      >
+                        <Plus className="h-4 w-4" aria-hidden="true" /> Aggiungi codice ATECO
+                      </button>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Puoi indicare al massimo {ATECO_SECONDARI_MAX} codici secondari.
+                      </p>
+                    )}
+                  </div>
                 </Field>
               </Section>
             )}

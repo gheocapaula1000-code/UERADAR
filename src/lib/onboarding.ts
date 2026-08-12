@@ -9,6 +9,8 @@ export const FIELD_HELP = {
   partita_iva: "11 cifre, come sulla fattura. Puoi scriverla con o senza IT davanti.",
   codice_ateco:
     "È il codice della tua attività: lo trovi sulla visura camerale o nel cassetto fiscale.",
+  ateco_secondari:
+    "Molte imprese hanno più codici in visura. Aggiungili per migliorare il matching.",
   forma_giuridica: "Come è costituita l'impresa. Se hai dubbi, guarda la visura camerale.",
   regione: "Serve per i bandi della tua Regione: sono spesso i più accessibili.",
   provincia: "Sigla di 2 lettere, es. MI per Milano.",
@@ -74,3 +76,26 @@ export function stepComplete(profile: CompanyProfile, step: OnboardingStepKey): 
 }
 
 export const STEP_INCOMPLETE_MESSAGE = "Completa i campi contrassegnati prima di continuare.";
+
+/** Numero massimo di codici ATECO secondari accettati nel profilo. */
+export const ATECO_SECONDARI_MAX = 5;
+
+export const ATECO_SECONDARI_LABEL = "Codici ATECO secondari (facoltativi)";
+
+/**
+ * Normalizza la lista dei secondari: trim, niente vuoti, niente duplicati
+ * tra loro né rispetto al principale, massimo ATECO_SECONDARI_MAX.
+ */
+export function normalizeAtecoSecondari(list: readonly string[], principale: string): string[] {
+  const main = principale.trim();
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of list) {
+    const value = raw.trim();
+    if (!value || value === main || seen.has(value)) continue;
+    seen.add(value);
+    out.push(value);
+    if (out.length === ATECO_SECONDARI_MAX) break;
+  }
+  return out;
+}
