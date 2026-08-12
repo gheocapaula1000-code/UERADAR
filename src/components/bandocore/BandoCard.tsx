@@ -14,7 +14,14 @@ import {
   FileSearch,
 } from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
-import { daysLeft as daysLeftOf, isExpired, matchStatusMeta } from "@/lib/bando-status";
+import {
+  daysLeft as daysLeftOf,
+  hasIncompleteCoreData,
+  isExpired,
+  isVerified,
+  matchStatusMeta,
+  VERIFIED_HINT,
+} from "@/lib/bando-status";
 import { formatItalianInteger } from "@/lib/catalog";
 import { missingOfficialData } from "@/lib/dossier";
 import { cardEnterDelayMs } from "@/lib/motion";
@@ -88,6 +95,8 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
   const matchMeta = match ? matchStatusMeta(match.status) : null;
   const missingOfficial = missingOfficialData(bando);
   const partial = missingOfficial.length > 0;
+  const verified = isVerified(bando);
+  const incompleteCore = !verified && hasIncompleteCoreData(bando);
 
   return (
     <div
@@ -109,6 +118,22 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
               title="Fonte ufficiale di ambito locale"
             >
               <Radar className="h-3 w-3" /> Fonte locale
+            </span>
+          )}
+          {verified && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-400"
+              title={VERIFIED_HINT}
+            >
+              <CheckCircle2 className="h-3 w-3" /> Verificato
+            </span>
+          )}
+          {incompleteCore && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+              title="Scadenza o importo non presenti nella fonte: da completare sulla fonte ufficiale"
+            >
+              <AlertTriangle className="h-3 w-3" /> Dati incompleti
             </span>
           )}
           {(bando.rarity_score ?? 0) >= 4 && (

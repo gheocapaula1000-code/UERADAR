@@ -31,7 +31,13 @@ import {
   FileDown,
 } from "lucide-react";
 import { toast } from "sonner";
-import { isExpired, matchStatusMeta } from "@/lib/bando-status";
+import {
+  hasIncompleteCoreData,
+  isExpired,
+  isVerified,
+  matchStatusMeta,
+  VERIFIED_HINT,
+} from "@/lib/bando-status";
 
 export const Route = createFileRoute("/_authenticated/bando/$id")({
   head: () => seoHead("/bando"),
@@ -208,9 +214,28 @@ function BandoDetail() {
                   <CalendarX className="h-3 w-3" /> Scaduto
                 </span>
               )}
+              {isVerified(bando) && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400"
+                  title={VERIFIED_HINT}
+                >
+                  <CheckCircle2 className="h-3 w-3" /> Verificato
+                </span>
+              )}
+              {!isVerified(bando) && hasIncompleteCoreData(bando) && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
+                  title="Scadenza o importo non presenti nella fonte: da completare sulla fonte ufficiale"
+                >
+                  <AlertTriangle className="h-3 w-3" /> Dati incompleti
+                </span>
+              )}
             </div>
             <h1 className="mt-3 text-2xl md:text-3xl font-bold">{bando.titolo}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{bando.ente}</p>
+            {isVerified(bando) && (
+              <p className="mt-1 text-[11px] text-muted-foreground">{VERIFIED_HINT}</p>
+            )}
 
             {bando.fonte_extratestuale && (
               <div className="mt-3 flex items-start gap-2 rounded-xl border border-accent/30 bg-accent/5 p-3 text-sm">

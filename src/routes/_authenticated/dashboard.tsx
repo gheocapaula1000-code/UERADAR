@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Bando, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
 import { CATEGORY_FILTERS, type CategoryFilterKey } from "@/lib/bando-categories";
 import { feedMarker, runBoundedRefresh } from "@/lib/feed-refresh";
-import { isActive, isExpired, isFlash } from "@/lib/bando-status";
+import { isActive, isExpired, isFlash, compareByQuality } from "@/lib/bando-status";
 import { loadOfflineFeed, saveOfflineFeed } from "@/lib/offline-feed";
 import {
   RefreshCw,
@@ -215,8 +215,9 @@ function Dashboard() {
   }, [bandiAttivi, profile]);
 
   const filtered = useMemo(() => {
-    return bandi.filter((b) => {
-      if (cat !== "TUTTI" && b.categoria !== cat) return false;
+    return bandi
+      .filter((b) => {
+        if (cat !== "TUTTI" && b.categoria !== cat) return false;
       if (scope !== "ALL" && b.scope !== scope) return false;
       if (hiddenOnly && !b.is_hidden) return false;
       if (hyperlocalOnly) {
@@ -225,8 +226,9 @@ function Dashboard() {
         const matchProvincia = profile?.provincia && b.provincia === profile.provincia;
         if (!matchIstat && !matchComune && !matchProvincia) return false;
       }
-      return true;
-    });
+        return true;
+      })
+      .sort((a, b) => compareByQuality(a, b));
   }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile]);
 
   const stats = useMemo(() => {
