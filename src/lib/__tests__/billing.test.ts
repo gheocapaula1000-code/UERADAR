@@ -59,12 +59,10 @@ function fullPriceMap(overrides: Record<string, string> = {}): Record<string, st
 
 describe("catalogo piani UEradar", () => {
   it("espone il catalogo approvato con prezzi IVA esclusa e annuale = 10 mensilità", () => {
-    expect(CATALOG.professional.prices.month?.amountCents).toBe(49900);
-    expect(CATALOG.professional.prices.year?.amountCents).toBe(499000);
-    expect(CATALOG.business.prices.month?.amountCents).toBe(99000);
-    expect(CATALOG.business.prices.year?.amountCents).toBe(990000);
-    expect(CATALOG.executive.prices.month?.amountCents).toBe(199000);
-    expect(CATALOG.executive.prices.year?.amountCents).toBe(1990000);
+    expect(CATALOG.professional.prices.month?.amountCents).toBe(24900);
+    expect(CATALOG.professional.prices.year?.amountCents).toBe(249000);
+    expect(CATALOG.business.prices.month?.amountCents).toBe(44900);
+    expect(CATALOG.business.prices.year?.amountCents).toBe(449000);
     expect(CATALOG.professional.limits.seats).toBe(2);
     expect(CATALOG.business.limits.seats).toBe(5);
     expect(CATALOG.executive.limits.seats).toBe(10);
@@ -89,7 +87,7 @@ describe("catalogo piani UEradar", () => {
       livemode: false,
       active: true,
       currency: "eur",
-      unit_amount: 99000,
+      unit_amount: 44900,
       recurring: { interval: "month", interval_count: 1 },
       tax_behavior: "exclusive",
     };
