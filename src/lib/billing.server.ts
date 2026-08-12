@@ -79,7 +79,9 @@ export function checkoutAccessAllowed(
   env: Pick<BillingEnv, "mode" | "liveEnabled" | "publicCheckoutEnabled">,
   email: unknown,
 ): { ok: boolean; code: string } {
-  if (env.mode === "test") return checkoutQaAllowed(readCheckoutQa(), email);
+  // In TEST nessun oggetto reale viene creato: basta la configurazione valida
+  // (già verificata da `billingConfigured`) e un utente autenticato owner.
+  if (env.mode === "test") return { ok: true, code: "OK" };
   if (env.mode !== "live") return { ok: false, code: "BILLING_MODE_INVALID" };
   if (!env.liveEnabled) return { ok: false, code: "LIVE_MODE_DISABLED" };
   if (!env.publicCheckoutEnabled)
