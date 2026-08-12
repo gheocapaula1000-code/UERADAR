@@ -546,6 +546,133 @@ export const createPortalSession = createServerFn({ method: "POST" })
     return { ok: true, url: session.payload?.["url"] as string, code: "OK" };
   });
 
+/**
+ * Riallineamento dello stato abbonamento dopo un checkout TEST riuscito.
+ * L'unica fonte di verità è la Subscription canonica letta dal provider:
+ * fail-closed su modalità live, price fuori catalogo, righe multiple,
+ * quantità diversa da 1 o riassegnazioni di identità.
+ */
+export const syncSubscriptionFromProvider = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ ok: boolean; code: string }> => {
+    const { readBillingEnv, billingConfigured, providerCall, adminClient } = await import(
+      "./billing.server"
+    );
+    const env = readBillingEnv();
+    const cfg = billingConfigured(env);
+    if (!cfg.ok) return { ok: false, code: cfg.code };
+    // Sincronizzazione consentita solo in TEST: in LIVE lo stato arriva dai webhook.
+    if (env.mode !== "test" || env.expectedLivemode !== false)
+      return { ok: false, code: "SYNC_TEST_ONLY" };
+
+    const { resolveTenantContext } = await import("./tenant.server");
+    const tenant = await resolveTenantContext(context.supabase, context.userId);
+    if (!tenant.can_manage_billing) return { ok: false, code: "MEMBER_CANNOT_MANAGE_BILLING" };
+    const ownerId = tenant.tenant_owner_id;
+
+    const { data: current, error: lookupError } = await context.supabase
+      .from("ueradar_subscriptions")
+      .select("provider_customer_id, provider_subscription_id, billing_mode")
+      .eq("user_id", ownerId)
+      .maybeSingle();
+    if (lookupError) return { ok: false, code: "SUBSCRIPTION_LOOKUP_FAILED" };
+    const localRow = current as {
+      provider_customer_id: string | null;
+      provider_subscription_id: string | null;
+      billing_mode: string | null;
+    } | null;
+    if (localRow?.billing_mode && localRow.billing_mode !== env.mode)
+      return { ok: false, code: "BILLING_MODE_CONFLICT" };
+    const linkedCustomer = localRow?.provider_customer_id?.trim() ?? "";
+
+    // Ricerca della subscription: per customer collegato, altrimenti per
+    // metadata `supabase_user_id` scritto in fase di checkout.
+    let list: Awaited<ReturnType<typeof providerCall>>;
+    try {
+      list = linkedCustomer.startsWith("cus_")
+        ? await providerCall(
+            `subscriptions?status=active&limit=10&customer=${encodeURIComponent(linkedCustomer)}`,
+            env.secretKey,
+          )
+        : await providerCall(
+            `subscriptions/search?limit=10&query=${encodeURIComponent(
+              `status:'active' AND metadata['supabase_user_id']:'${ownerId}'`,
+            )}`,
+            env.secretKey,
+          );
+    } catch {
+      return { ok: false, code: "SUBSCRIPTION_FETCH_FAILED" };
+    }
+    if (list.status !== 200 || !list.payload) return { ok: false, code: "SUBSCRIPTION_FETCH_FAILED" };
+    const listMode = modeVerdict(list.payload, false, "SUBSCRIPTION_MODE_UNKNOWN");
+    if (!listMode.ok) return { ok: false, code: listMode.code };
+    const rows = Array.isArray(list.payload["data"]) ? (list.payload["data"] as unknown[]) : [];
+    const active = rows.filter(
+      (row): row is Record<string, unknown> =>
+        Boolean(row) && typeof row === "object" && (row as Record<string, unknown>)["status"] === "active",
+    );
+    if (active.length === 0) return { ok: false, code: "NO_ACTIVE_SUBSCRIPTION" };
+    if (active.length > 1) return { ok: false, code: "MULTIPLE_ACTIVE_SUBSCRIPTIONS" };
+    const sub = active[0]!;
+
+    const subMode = modeVerdict(sub, false, "SUBSCRIPTION_MODE_UNKNOWN");
+    if (!subMode.ok) return { ok: false, code: subMode.code };
+
+    const subId = sub["id"];
+    if (typeof subId !== "string" || !subId.startsWith("sub_"))
+      return { ok: false, code: "SUBSCRIPTION_ID_INVALID" };
+    // L'identità già registrata non può essere riassegnata da questa sincronizzazione.
+    const linkedSub = localRow?.provider_subscription_id?.trim() ?? "";
+    if (linkedSub && linkedSub !== subId)
+      return { ok: false, code: "SUBSCRIPTION_REASSIGNMENT_BLOCKED" };
+
+    const customerId = sub["customer"];
+    if (typeof customerId !== "string" || !customerId.startsWith("cus_"))
+      return { ok: false, code: "CUSTOMER_ID_INVALID" };
+    if (linkedCustomer && linkedCustomer !== customerId)
+      return { ok: false, code: "CUSTOMER_MISMATCH" };
+
+    const items = subscriptionItems(sub);
+    if (items.length !== 1) return { ok: false, code: "SUBSCRIPTION_ITEMS_INVALID" };
+    if ((items[0] as Record<string, unknown>)["quantity"] !== 1)
+      return { ok: false, code: "SUBSCRIPTION_QUANTITY_INVALID" };
+
+    const priceId = canonicalPriceId(sub);
+    const match = planFromPriceId(priceId, env.priceMap);
+    if (!priceId || !match) return { ok: false, code: "PRICE_NOT_ALLOWLISTED" };
+
+    const seconds = sub["current_period_end"];
+    const periodEnd =
+      typeof seconds === "number" && Number.isFinite(seconds) && seconds > 0
+        ? new Date(seconds * 1000)
+        : null;
+    if (!periodEnd || Number.isNaN(periodEnd.getTime()))
+      return { ok: false, code: "CURRENT_PERIOD_END_INVALID" };
+
+    const { data: updated, error: updateError } = await adminClient()
+      .from("ueradar_subscriptions")
+      .update({
+        status: "active",
+        provider: "stripe",
+        billing_mode: env.mode,
+        plan_code: match.price.planCode,
+        plan_seats: match.plan.limits.seats,
+        provider_customer_id: customerId,
+        provider_subscription_id: subId,
+        stripe_price_id: priceId,
+        current_period_end: periodEnd.toISOString(),
+        cancel_at_period_end: sub["cancel_at_period_end"] === true,
+        trial_consumed: true,
+      })
+      .eq("user_id", ownerId)
+      .select("user_id")
+      .single();
+    if (updateError || (updated as { user_id?: string } | null)?.user_id !== ownerId)
+      return { ok: false, code: "SUBSCRIPTION_UPDATE_FAILED" };
+
+    return { ok: true, code: "OK" };
+  });
+
 export type CompanyMember = {
   id: string;
   email: string;
