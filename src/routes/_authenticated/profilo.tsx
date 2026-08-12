@@ -17,9 +17,12 @@ import {
   ONBOARDING_STEPS,
   STEP_INCOMPLETE_MESSAGE,
   stepComplete,
+  ATECO_SECONDARI_MAX,
+  ATECO_SECONDARI_LABEL,
+  normalizeAtecoSecondari,
   type OnboardingStepKey,
 } from "@/lib/onboarding";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Save, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Plus, Save, Sparkles, X } from "lucide-react";
 import { BrandMark } from "@/components/bandocore/BrandLogo";
 import { seoHead } from "@/lib/seo";
 
@@ -171,7 +174,12 @@ function Profilo() {
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData.user) throw new Error("Sessione scaduta. Accedi di nuovo.");
 
-      const row = { ...profile, user_id: userData.user.id };
+      const atecoSecondari = normalizeAtecoSecondari(
+        profile.ateco_secondari ?? [],
+        profile.codice_ateco,
+      );
+      const row = { ...profile, ateco_secondari: atecoSecondari, user_id: userData.user.id };
+      setProfile((p) => ({ ...p, ateco_secondari: atecoSecondari }));
       const { error: profileError } = await supabase
         .from("company_profiles")
         .upsert(row, { onConflict: "user_id" });
