@@ -77,9 +77,19 @@ export function pullLabel(phase: PtrPhase): string {
   }
 }
 
-/** Il gesto è disponibile solo su dispositivi con tocco (mai col mouse). */
-export function supportsPullGesture(coarsePointer: boolean, touchPoints: number): boolean {
-  return coarsePointer && touchPoints > 0;
+/**
+ * Il gesto è disponibile solo su dispositivi con tocco (mai col solo mouse).
+ * Su iOS PWA `(pointer: coarse)` non è sempre affidabile: basta che il
+ * dispositivo dichiari punti di tocco, oppure che esponga gli eventi touch
+ * insieme a un puntatore grossolano.
+ */
+export function supportsPullGesture(
+  coarsePointer: boolean,
+  touchPoints: number,
+  hasTouchEvents = false,
+): boolean {
+  if (Number.isFinite(touchPoints) && touchPoints > 0) return true;
+  return coarsePointer && hasTouchEvents;
 }
 
 /**
