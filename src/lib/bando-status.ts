@@ -83,3 +83,73 @@ export function isFlash(
   const left = daysLeft(bando, now);
   return Boolean(bando.flash || bando.click_day || (left !== null && left <= 10));
 }
+
+/* ------------------------------------------------------------------ *
+ * Qualità del dato: "Verificato" è fail-closed.
+ * Il badge attesta solo la presenza dei dati obbligatori dalla fonte
+ * ufficiale; non è e non va presentato come garanzia di ammissibilità.
+ * ------------------------------------------------------------------ */
+
+export const VERIFIED_HINT =
+  "Verificato = dati obbligatori presenti dalla fonte; non è garanzia di ammissibilità.";
+
+function nonEmpty(value: unknown): boolean {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+/** Almeno un dato economico utilizzabile (importo, intensità o spese ammissibili). */
+export function hasEconomics(bando: Bando): boolean {
+  if (typeof bando.importo_max === "number" && bando.importo_max > 0) return true;
+  if (typeof bando.aid_intensity_percent === "number" && bando.aid_intensity_percent > 0)
+    return true;
+  return (bando.eligible_expenses ?? []).some((e) => nonEmpty(e));
+}
+
+export function officialLink(bando: Bando): string | null {
+  const url = bando.official_url ?? bando.notice_url;
+  return nonEmpty(url) ? (url as string) : null;
+}
+
+/**
+ * Fail-closed: in assenza anche di un solo dato obbligatorio il bando NON è
+ * verificato. Nessuna promozione automatica, nessun valore inventato.
+ */
+export function isVerified(bando: Bando, now: number = Date.now()): boolean {
+  if (bando.verification_status !== "VERIFICATO") return false;
+  if (!nonEmpty(bando.titolo) || !nonEmpty(bando.ente)) return false;
+  if (!officialLink(bando)) return false;
+  if (!nonEmpty(bando.scadenza) || isExpired(bando, now)) return false;
+  if (!hasEconomics(bando)) return false;
+  // Requisiti o evidenza documentale: se entrambi assenti non si promuove.
+  const hasRequisiti = (bando.requisiti ?? []).some((r) => nonEmpty(r));
+  const hasEvidence = (bando.evidence ?? []).some((e) => nonEmpty(e?.source_url));
+  if (!hasRequisiti && !hasEvidence) return false;
+  return true;
+}
+
+/** True quando mancano scadenza e/o dato economico: scheda da completare sulla fonte. */
+export function hasIncompleteCoreData(bando: Bando): boolean {
+  return !nonEmpty(bando.scadenza) || !hasEconomics(bando);
+}
+
+/**
+ * Ordinamento UI: verificati in alto, poi scadenza futura, poi dato economico.
+ * Nessun bando viene nascosto: al massimo deprioritizzato.
+ */
+export function qualityRank(bando: Bando, now: number = Date.now()): number {
+  if (isVerified(bando, now)) return 0;
+  const withDeadline = nonEmpty(bando.scadenza) && !isExpired(bando, now);
+  if (withDeadline) return 1;
+  if (hasEconomics(bando)) return 2;
+  if (nonEmpty(bando.scadenza)) return 3;
+  return 4;
+}
+
+/** Comparatore stabile per il feed (rank, poi scadenza più vicina). */
+export function compareByQuality(a: Bando, b: Bando, now: number = Date.now()): number {
+  const rank = qualityRank(a, now) - qualityRank(b, now);
+  if (rank !== 0) return rank;
+  const ta = deadlineTime(a) ?? Number.POSITIVE_INFINITY;
+  const tb = deadlineTime(b) ?? Number.POSITIVE_INFINITY;
+  return ta - tb;
+}
