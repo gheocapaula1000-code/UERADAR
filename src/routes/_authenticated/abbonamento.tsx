@@ -22,9 +22,8 @@ import { seoHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/_authenticated/abbonamento")({
   head: () => seoHead("/abbonamento"),
-  validateSearch: (search: Record<string, unknown>) => ({
-    esito: typeof search["esito"] === "string" ? (search["esito"] as string) : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { esito?: string } =>
+    typeof search["esito"] === "string" ? { esito: search["esito"] as string } : {},
   component: Abbonamento,
 });
 
