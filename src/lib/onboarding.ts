@@ -76,3 +76,26 @@ export function stepComplete(profile: CompanyProfile, step: OnboardingStepKey): 
 }
 
 export const STEP_INCOMPLETE_MESSAGE = "Completa i campi contrassegnati prima di continuare.";
+
+/** Numero massimo di codici ATECO secondari accettati nel profilo. */
+export const ATECO_SECONDARI_MAX = 5;
+
+export const ATECO_SECONDARI_LABEL = "Codici ATECO secondari (facoltativi)";
+
+/**
+ * Normalizza la lista dei secondari: trim, niente vuoti, niente duplicati
+ * tra loro né rispetto al principale, massimo ATECO_SECONDARI_MAX.
+ */
+export function normalizeAtecoSecondari(list: readonly string[], principale: string): string[] {
+  const main = principale.trim();
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of list) {
+    const value = raw.trim();
+    if (!value || value === main || seen.has(value)) continue;
+    seen.add(value);
+    out.push(value);
+    if (out.length === ATECO_SECONDARI_MAX) break;
+  }
+  return out;
+}
