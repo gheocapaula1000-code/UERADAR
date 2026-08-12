@@ -60,7 +60,7 @@ export const PUBLIC_PLANS: readonly PublicPlan[] = PLAN_IDS.filter(
 
 export const ENTERPRISE_PLAN = {
   name: CATALOG.enterprise.name,
-  headline: "Soluzione su misura",
+  headline: "su richiesta",
   price: `da ${formatEuro(ENTERPRISE_FROM_CENTS)}`,
   vatNote: "/ mese + IVA — nessun acquisto online",
   cta: "Contattaci",
@@ -89,7 +89,7 @@ export const VERIFIED_DEFINITION: readonly string[] = [
 /** Limiti di prodotto dichiarati senza ambiguità. */
 export const PRODUCT_BOUNDARIES: readonly string[] = [
   "Il numero di opportunità pertinenti mostrate non è mai limitato.",
-  "Il dossier prepara e precompila per la tua revisione: non invia nulla agli enti.",
+  "Il dossier prepara e precompila. L'utente verifica e presenta: non invia nulla agli enti e non garantisce l'ottenimento del contributo.",
   "UEradar non sostituisce il consulente o il professionista incaricato.",
   "Gli utenti indicati nei piani sono capienza tecnica, non la leva di valore.",
 ];
@@ -135,8 +135,8 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
     a: "Tutte quelle pertinenti al tuo profilo: il numero di opportunità mostrate non è mai limitato. I piani si distinguono per le Domande / Dossier inclusi ogni mese e per la capienza di utenti operativi.",
   },
   {
-    q: "Che differenza c'è tra Professional, Business ed Executive?",
-    a: "Le fonti ufficiali disponibili sono le stesse per tutti i piani self-service. Ogni piano gestisce 1 impresa e si distingue per le Domande / Dossier al mese: 3 con Professional, 10 con Business, 25 con Executive. Business aggiunge corsia urgente e supporto prioritario, Executive alta frequenza di aggiornamento, export, condivisione e assistenza dedicata.",
+    q: "Che differenza c'è tra Radar e Pratica?",
+    a: "Radar è lo strumento sempre acceso: matching sul profilo, push quando esce una novità e 3 bozze di richiesta / Dossier al mese, a 249 € al mese. Pratica aggiunge una ricerca più profonda su camere, fonti provinciali e nicchie, priorità per imprese femminili, giovanili e startup, aggiornamento più frequente con alert prioritari e 10 bozze di richiesta / Dossier al mese, a 449 € al mese.",
   },
   {
     q: "Cosa significa l'etichetta Verificato?",
@@ -148,14 +148,14 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Il numero di utenti è il valore del piano?",
-    a: "No. Gli utenti sono soltanto capienza tecnica, titolare incluso: 2 con Professional, 5 con Business, 10 con Executive. Il valore sta nella qualità della selezione e nei dossier preparati.",
+    a: "No. Gli utenti sono soltanto capienza tecnica, titolare incluso: 2 con Radar e 5 con Pratica. Il valore sta nella qualità della selezione e nelle bozze di richiesta preparate.",
   },
   {
     q: "Quanto costa l'annuale?",
-    a: "L'annuale include 2 mesi: 4.990 € per Professional, 9.900 € per Business e 19.900 € per Executive, sempre IVA esclusa.",
+    a: "L'annuale include 2 mesi: 2.490 € per Radar e 4.490 € per Pratica, sempre IVA esclusa.",
   },
   {
     q: "Posso gestire più imprese?",
-    a: "I piani self-service coprono una sola impresa verificata. Più imprese e integrazioni su misura rientrano in Enterprise, da 3.990 € al mese + IVA su preventivo.",
+    a: "I piani acquistabili online coprono una sola impresa verificata. Più imprese e integrazioni su misura rientrano in Studio, da 990 € al mese + IVA su richiesta.",
   },
 ];

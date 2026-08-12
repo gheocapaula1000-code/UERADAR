@@ -31,9 +31,9 @@ export const ROUTE_SEO = {
   },
   "/prezzi": {
     path: "/prezzi",
-    title: "Prezzi UEradar.com — Piani Professional, Business ed Executive",
+    title: "Prezzi UEradar.com — Piani Radar, Pratica e Studio",
     description:
-      "Piani Professional, Business ed Executive per Partita IVA e PMI: prezzi IVA esclusa e 7 Giorni Gratuiti, senza carta di credito né dati bancari e senza dover dare disdetta.",
+      "Piani Radar e Pratica per Partita IVA e PMI, Studio su richiesta: prezzi IVA esclusa e 7 Giorni Gratuiti, senza carta di credito né dati bancari e senza dover dare disdetta.",
     indexable: true,
     ogType: "website",
   },
