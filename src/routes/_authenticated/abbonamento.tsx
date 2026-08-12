@@ -302,6 +302,17 @@ function Abbonamento() {
                 viene creata alcuna anagrafica cliente.
               </p>
             ) : null}
+            {data?.mode === "test" && !isMember ? (
+              <button
+                type="button"
+                onClick={() => syncMutation.mutate()}
+                disabled={syncMutation.isPending}
+                className="tap inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium disabled:opacity-50"
+              >
+                <ShieldCheck aria-hidden="true" className="h-4 w-4" />
+                {syncMutation.isPending ? "Sincronizzazione…" : "Aggiorna stato abbonamento"}
+              </button>
+            ) : null}
           </div>
         </section>
 
