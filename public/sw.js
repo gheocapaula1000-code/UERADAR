@@ -1,4 +1,4 @@
-const CACHE = "ueradar-shell-v6";
+const CACHE = "ueradar-shell-v7";
 const OFFLINE_FALLBACKS = ["/", "/auth"];
 const SHELL = [
   "/",
@@ -68,6 +68,22 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (/\.(?:js|css|png|jpg|jpeg|svg|ico|woff2?)$/i.test(url.pathname)) {
+    // JS/CSS in network-first: la PWA iOS non deve restare su codice vecchio.
+    if (/\.(?:js|css)$/i.test(url.pathname)) {
+      event.respondWith(
+        fetch(request)
+          .then((response) => {
+            if (response.ok)
+              caches.open(CACHE).then((cache) => cache.put(request, response.clone()));
+            return response;
+          })
+          .then(
+            (response) => response,
+            async () => (await caches.match(request)) || Response.error(),
+          ),
+      );
+      return;
+    }
     event.respondWith(
       caches.match(request).then(
         (cached) =>
