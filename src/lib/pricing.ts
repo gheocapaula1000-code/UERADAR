@@ -3,7 +3,10 @@
  * Prezzi, capienza e limiti NON sono definiti qui: derivano dal catalogo
  * server-side (`catalog.ts`), fonte unica di verità. Questo modulo si limita a
  * formattare per la UI.
- * Billing pubblico disattivato finché l'ambiente TEST non è completo.
+ * `BILLING_ENABLED` è solo un flag di PRESENTAZIONE (mostra i pulsanti di
+ * acquisto in UI). Non apre nulla in LIVE: l'accesso reale al checkout resta
+ * deciso lato server da `UERADAR_BILLING_MODE=test` +
+ * `UERADAR_CHECKOUT_QA_ENABLED` + allowlist email (`billing.server.ts`).
  */
 import {
   CATALOG,
@@ -15,7 +18,7 @@ import {
 } from "./catalog";
 import { TRIAL_COPY, TRIAL_DAYS, TRIAL_SCOPE } from "./trial";
 
-export const BILLING_ENABLED = false;
+export const BILLING_ENABLED = true;
 
 export { TRIAL_COPY, TRIAL_DAYS, TRIAL_SCOPE };
 
