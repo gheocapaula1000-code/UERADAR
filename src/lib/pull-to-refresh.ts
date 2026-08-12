@@ -81,3 +81,18 @@ export function pullLabel(phase: PtrPhase): string {
 export function supportsPullGesture(coarsePointer: boolean, touchPoints: number): boolean {
   return coarsePointer && touchPoints > 0;
 }
+
+/**
+ * Posizione di scroll affidabile su iOS: a seconda della pagina e della
+ * modalità (Safari o PWA da Home) lo scroll vive sul contenitore, su
+ * `scrollingElement`, su `documentElement` o su `body`. Vale la posizione più
+ * avanzata; il rimbalzo elastico (valori negativi) conta come "in cima".
+ */
+export function effectiveScrollTop(values: readonly (number | null | undefined)[]): number {
+  let top = 0;
+  for (const v of values) {
+    if (typeof v !== "number" || !Number.isFinite(v)) continue;
+    if (v > top) top = v;
+  }
+  return top;
+}

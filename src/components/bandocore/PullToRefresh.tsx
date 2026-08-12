@@ -8,6 +8,7 @@ import {
   PTR_THRESHOLD_PX,
   PTR_WATCHDOG_MS,
   canStartPull,
+  effectiveScrollTop,
   isVerticalPull,
   phaseFor,
   pullDistance,
@@ -36,6 +37,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
   const [refreshing, setRefreshing] = useState(false);
   const [reduced, setReduced] = useState(false);
   const [enabled, setEnabled] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   const refreshingRef = useRef(false);
   const distanceRef = useRef(0);
@@ -43,6 +45,18 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
   const startX = useRef(0);
   const tracking = useRef(false);
   const pulling = useRef(false);
+
+  /**
+   * Su iOS il rimbalzo elastico di Safari ruba il gesto: finché il pannello è
+   * montato (solo su dispositivi con tocco) l'overscroll verticale della
+   * pagina resta confinato. Su desktop la classe non viene mai applicata.
+   */
+  useEffect(() => {
+    if (!enabled || typeof document === "undefined") return;
+    const root = document.documentElement;
+    root.classList.add("ptr-page-lock");
+    return () => root.classList.remove("ptr-page-lock");
+  }, [enabled]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
@@ -93,12 +107,16 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
     if (!el || !enabled) return;
 
     const scrollTop = () => {
-      const own = el.scrollTop;
-      const page =
-        typeof window === "undefined"
-          ? 0
-          : window.scrollY || document.documentElement.scrollTop || 0;
-      return Math.max(own, page);
+      if (typeof window === "undefined") return el.scrollTop;
+      // iOS: lo scroll può vivere sul contenitore, su scrollingElement,
+      // su documentElement o su body a seconda di Safari o PWA da Home.
+      return effectiveScrollTop([
+        el.scrollTop,
+        window.scrollY,
+        document.scrollingElement?.scrollTop,
+        document.documentElement?.scrollTop,
+        document.body?.scrollTop,
+      ]);
     };
 
     const introPending = () => {
@@ -111,6 +129,8 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
 
     const onStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
+      // L'header sticky è fuori dal contenitore: il gesto deve poter partire
+      // anche da lì, purché la pagina sia davvero in cima.
       if (!canStartPull(scrollTop(), refreshingRef.current, introPending())) return;
       tracking.current = true;
       pulling.current = false;
@@ -120,6 +140,13 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
 
     const onMove = (e: TouchEvent) => {
       if (!tracking.current) return;
+      if (e.touches.length !== 1) {
+        tracking.current = false;
+        pulling.current = false;
+        setDragging(false);
+        if (!refreshingRef.current) applyDistance(0);
+        return;
+      }
       const dy = e.touches[0].clientY - startY.current;
       const dx = e.touches[0].clientX - startX.current;
 
@@ -134,8 +161,10 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
           return;
         }
         pulling.current = true;
+        setDragging(true);
       }
 
+      // preventDefault solo mentre si sta davvero tirando.
       if (e.cancelable) e.preventDefault();
       applyDistance(pullDistance(dy, reduced));
     };
@@ -145,6 +174,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       const wasPulling = pulling.current;
       tracking.current = false;
       pulling.current = false;
+      setDragging(false);
       if (!wasPulling) return;
       if (shouldRefreshOnRelease(distanceRef.current)) void runRefresh();
       else applyDistance(0);
@@ -153,18 +183,22 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
     const cancel = () => {
       tracking.current = false;
       pulling.current = false;
+      setDragging(false);
       if (!refreshingRef.current) applyDistance(0);
     };
 
-    el.addEventListener("touchstart", onStart, { passive: true });
-    el.addEventListener("touchmove", onMove, { passive: false });
-    el.addEventListener("touchend", finish, { passive: true });
-    el.addEventListener("touchcancel", cancel, { passive: true });
+    // Listener sul documento: l'header sticky e le aree fuori dal contenitore
+    // non devono impedire l'avvio del gesto quando la pagina è in cima.
+    const target: EventTarget = typeof document === "undefined" ? el : document;
+    target.addEventListener("touchstart", onStart as EventListener, { passive: true });
+    target.addEventListener("touchmove", onMove as EventListener, { passive: false });
+    target.addEventListener("touchend", finish as EventListener, { passive: true });
+    target.addEventListener("touchcancel", cancel as EventListener, { passive: true });
     return () => {
-      el.removeEventListener("touchstart", onStart);
-      el.removeEventListener("touchmove", onMove);
-      el.removeEventListener("touchend", finish);
-      el.removeEventListener("touchcancel", cancel);
+      target.removeEventListener("touchstart", onStart as EventListener);
+      target.removeEventListener("touchmove", onMove as EventListener);
+      target.removeEventListener("touchend", finish as EventListener);
+      target.removeEventListener("touchcancel", cancel as EventListener);
     };
   }, [applyDistance, enabled, reduced, runRefresh]);
 
@@ -212,7 +246,8 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
         className="ptr-content"
         style={{
           transform: `translate3d(0, ${offset}px, 0)`,
-          transition: tracking.current || reduced ? "none" : "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+          transition:
+            dragging || reduced ? "none" : "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
         {children}

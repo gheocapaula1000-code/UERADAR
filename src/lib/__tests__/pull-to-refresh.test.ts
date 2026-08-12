@@ -6,6 +6,7 @@ import {
   PTR_THRESHOLD_PX,
   PTR_WATCHDOG_MS,
   canStartPull,
+  effectiveScrollTop,
   isVerticalPull,
   phaseFor,
   pullDistance,
@@ -35,6 +36,13 @@ describe("avvio del gesto", () => {
     expect(supportsPullGesture(true, 5)).toBe(true);
     expect(supportsPullGesture(false, 0)).toBe(false);
     expect(supportsPullGesture(true, 0)).toBe(false);
+  });
+
+  it("su iOS legge la posizione più avanzata e ignora il rimbalzo elastico", () => {
+    expect(effectiveScrollTop([0, 0, undefined, null, 0])).toBe(0);
+    expect(effectiveScrollTop([0, -80, 0])).toBe(0);
+    expect(effectiveScrollTop([0, 0, 320, undefined])).toBe(320);
+    expect(effectiveScrollTop([Number.NaN, 12])).toBe(12);
   });
 });
 

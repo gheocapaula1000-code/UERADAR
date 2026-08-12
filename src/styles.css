@@ -293,6 +293,13 @@
 /* Tira per aggiornare: niente overscroll nativo in competizione col gesto. */
 .ptr-root {
   overscroll-behavior-y: contain;
+  /* iOS: consenti lo scroll verticale nativo ma niente pan orizzontale. */
+  touch-action: pan-y;
+}
+/* Applicata solo su dispositivi con tocco, mentre il pannello è montato. */
+.ptr-page-lock,
+.ptr-page-lock body {
+  overscroll-behavior-y: contain;
 }
 .ptr-content {
   will-change: transform;
