@@ -149,10 +149,10 @@ export function CookieConsent() {
 
         <p id={descId} className="mt-2 text-sm leading-6 text-muted-foreground">
           Usiamo strumenti necessari per accesso, sicurezza e uso offline del servizio. Le categorie
-          opzionali restano disattivate finche' non scegli tu.{" "}
+          opzionali restano disattivate finché non scegli tu.{" "}
           {hasOptionalVendors()
             ? "Puoi attivarle o rifiutarle in qualsiasi momento."
-            : "Oggi non e' attivo alcuno strumento opzionale o di terze parti."}{" "}
+            : "Oggi non è attivo alcuno strumento opzionale o di terze parti."}{" "}
           Dettagli nella{" "}
           <Link to="/cookie" className="underline hover:text-foreground">
             informativa cookie

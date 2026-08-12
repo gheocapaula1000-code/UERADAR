@@ -63,17 +63,17 @@ export const CATEGORY_LABELS: Record<ConsentCategory, { title: string; descripti
   preferences: {
     title: "Preferenze",
     description:
-      "Memoria di impostazioni non essenziali dell'interfaccia. Nessuno strumento di questa categoria e' oggi in uso.",
+      "Memoria di impostazioni non essenziali dell'interfaccia. Nessuno strumento di questa categoria è oggi in uso.",
   },
   analytics: {
     title: "Statistiche",
     description:
-      "Misurazione aggregata dell'uso del servizio. Nessuno strumento di questa categoria e' oggi in uso.",
+      "Misurazione aggregata dell'uso del servizio. Nessuno strumento di questa categoria è oggi in uso.",
   },
   marketing: {
     title: "Marketing",
     description:
-      "Profilazione pubblicitaria o remarketing. Nessuno strumento di questa categoria e' oggi in uso.",
+      "Profilazione pubblicitaria o remarketing. Nessuno strumento di questa categoria è oggi in uso.",
   },
 };
 
