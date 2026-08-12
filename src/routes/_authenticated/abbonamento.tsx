@@ -339,7 +339,9 @@ function Abbonamento() {
                 }}
                 disabled={payMutation.isPending}
                 aria-disabled={Boolean(disabledReason)}
-                className="tap mt-6 w-full rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground disabled:opacity-50"
+                className={`tap mt-6 w-full rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground disabled:opacity-50 ${
+                  disabledReason ? "opacity-50" : ""
+                }`}
               >
                 Attiva {plan.name}
               </button>
@@ -354,10 +356,7 @@ function Abbonamento() {
             className="flex items-start gap-2 rounded-lg border border-border bg-muted p-3 text-sm"
           >
             <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              {disabledReason}
-              {blockCode && !isMember ? null : null}
-            </span>
+            <span>{disabledReason}</span>
           </p>
         ) : null}
 
