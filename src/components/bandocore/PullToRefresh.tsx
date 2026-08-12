@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { INTRO_STORAGE_KEY } from "@/lib/intro";
 import {
   PTR_MAX_PULL_PX,
   PTR_MIN_SPIN_MS,
