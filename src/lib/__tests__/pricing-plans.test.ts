@@ -48,16 +48,14 @@ const UI_FILES = walk("src")
   .filter((p) => !p.includes("/routes/api/"));
 
 describe("catalogo approvato", () => {
-  it("espone tre piani self-service più Enterprise su preventivo", () => {
-    expect(PUBLIC_PLANS.map((p) => p.id)).toEqual(["professional", "business", "executive"]);
-    expect(PUBLIC_PLANS.map((p) => p.monthly?.replace(/\D/g, ""))).toEqual(["499", "990", "1990"]);
-    expect(PUBLIC_PLANS.map((p) => p.annual?.replace(/\D/g, ""))).toEqual([
-      "4990",
-      "9900",
-      "19900",
-    ]);
-    expect(ENTERPRISE_FROM_CENTS).toBe(399000);
-    expect(ENTERPRISE_PLAN.price.replace(/\D/g, "")).toBe("3990");
+  it("espone due piani acquistabili online più Studio su richiesta", () => {
+    expect(PUBLIC_PLANS.map((p) => p.id)).toEqual(["professional", "business"]);
+    expect(PUBLIC_PLANS.map((p) => p.name)).toEqual(["RADAR", "PRATICA"]);
+    expect(PUBLIC_PLANS.map((p) => p.monthly?.replace(/\D/g, ""))).toEqual(["249", "449"]);
+    expect(PUBLIC_PLANS.map((p) => p.annual?.replace(/\D/g, ""))).toEqual(["2490", "4490"]);
+    expect(CATALOG.executive.selfService).toBe(false);
+    expect(ENTERPRISE_FROM_CENTS).toBe(99000);
+    expect(ENTERPRISE_PLAN.price.replace(/\D/g, "")).toBe("990");
     expect(CATALOG.enterprise.selfService).toBe(false);
   });
 
@@ -68,8 +66,8 @@ describe("catalogo approvato", () => {
     }
   });
 
-  it("gli utenti sono capienza tecnica: 2, 5 e 10", () => {
-    expect(PUBLIC_PLANS.map((p) => p.seats)).toEqual([2, 5, 10]);
+  it("gli utenti sono capienza tecnica: 2 e 5", () => {
+    expect(PUBLIC_PLANS.map((p) => p.seats)).toEqual([2, 5]);
     for (const p of PUBLIC_PLANS) expect(p.seatsLabel).toContain("capienza tecnica");
     expect(CATALOG.trial.limits.seats).toBe(1);
   });
@@ -90,13 +88,13 @@ describe("catalogo approvato", () => {
     expect(CATALOG.enterprise.limits.companies).toBe(-1);
   });
 
-  it("le card dichiarano 1 impresa e le Domande / Dossier al mese", () => {
-    for (const id of ["professional", "business", "executive"] as const) {
+  it("le card dichiarano 1 impresa e le bozze di richiesta / Dossier al mese", () => {
+    for (const id of ["professional", "business"] as const) {
       const plan = CATALOG[id];
       expect(plan.limits.companies).toBe(1);
       expect(plan.highlights).toContain("1 impresa");
       expect(plan.highlights).toContain(
-        `${plan.limits.dossiersPerMonth} Domande / Dossier al mese`,
+        `${plan.limits.dossiersPerMonth} bozze di richiesta / Dossier al mese`,
       );
     }
     expect(CATALOG.trial.highlights).toContain("1 Dossier in versione filigranata");
@@ -128,7 +126,8 @@ describe("catalogo approvato", () => {
   });
 
   it("l'allowlist del checkout esclude prova ed Enterprise", () => {
-    expect(checkoutTarget("business", "month")?.amountCents).toBe(99000);
+    expect(checkoutTarget("business", "month")?.amountCents).toBe(44900);
+    expect(checkoutTarget("executive", "month")).toBeNull();
     expect(checkoutTarget("enterprise", "month")).toBeNull();
     expect(checkoutTarget("trial", "month")).toBeNull();
     expect(checkoutTarget("business", "settimana")).toBeNull();
@@ -226,7 +225,8 @@ describe("valore, limiti e affermazioni verificabili", () => {
   it("mantiene una FAQ coerente con il catalogo", () => {
     const faq = PRICING_FAQ.map((f) => `${f.q} ${f.a}`).join(" ");
     expect(faq).toContain("senza carta di credito");
-    expect(faq).toContain("25 con Executive");
+    expect(faq).toContain("10 bozze di richiesta / Dossier al mese");
+    expect(faq).not.toMatch(/Professional|Executive/);
     expect(faq).not.toMatch(/verifiche approfondite/i);
     expect(PRICING_FAQ.length).toBeGreaterThanOrEqual(6);
   });
