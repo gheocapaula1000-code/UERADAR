@@ -200,7 +200,7 @@ describe("isolamento Stripe TEST/LIVE", () => {
       livemode: true,
       active: true,
       currency: "eur",
-      unit_amount: 99000,
+      unit_amount: 44900,
       recurring: { interval: "month", interval_count: 1 },
       tax_behavior: "exclusive",
     };

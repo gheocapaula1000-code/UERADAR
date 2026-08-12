@@ -84,20 +84,19 @@ function Landing() {
             Trova Tutti i Bandi. Anche quelli che gli altri non vedono.
           </div>
           <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl md:text-6xl">
-            Il Radar dei{" "}
+            I soldi ci sono già.{" "}
             <span className="bg-gradient-to-r from-primary via-warning to-accent bg-clip-text text-transparent">
-              Bandi
-            </span>{" "}
-            per la tua Impresa.
+              Quasi nessuno li prende.
+            </span>
           </h1>
           <p className="mt-6 text-base text-foreground sm:text-lg md:text-xl">
+            Ti diciamo quali sono i tuoi, dove sono, e ti prepariamo la bozza di richiesta.
+            Radar sempre acceso. Push appena esce una novità. Anche nel weekend.
+          </p>
+          <p className="mt-4 text-base text-muted-foreground sm:text-lg">
             UEradar scova Bandi, Contributi a Fondo Perduto, Finanziamenti Agevolati ed
             Incentivi ad Ogni Livello — Locale, Provinciale, Regionale, Nazionale ed
             Europeo — e ti prepara la Domanda pronta da firmare.
-          </p>
-          <p className="mt-4 text-base text-muted-foreground sm:text-lg">
-            Il Radar che trova Tutti i Bandi utili alla tua Impresa — anche quelli
-            nascosti — e ti prepara la Domanda.
           </p>
           <ul
             aria-label="Livelli coperti dalla ricerca"
