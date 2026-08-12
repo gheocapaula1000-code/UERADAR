@@ -149,7 +149,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
           if (dy < 0 || Math.abs(dx) > Math.abs(dy)) tracking.current = false;
           return;
         }
-        if (scrollTop() > 0) {
+        if (!canStartPull(scrollTop(), refreshingRef.current)) {
           tracking.current = false;
           return;
         }
