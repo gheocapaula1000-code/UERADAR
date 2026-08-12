@@ -31,7 +31,6 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { readBillingEnv, assertBillingMode, providerCall, adminClient } = await import(
           "@/lib/billing.server"
         );
         const env = readBillingEnv();
