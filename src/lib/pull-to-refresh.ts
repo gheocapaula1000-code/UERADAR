@@ -11,6 +11,8 @@ export const PTR_THRESHOLD_PX = 72;
 export const PTR_MAX_PULL_PX = 120;
 /** Movimento minimo prima di considerare il gesto una trazione. */
 export const PTR_START_SLOP_PX = 8;
+/** Tolleranza "sono in cima": su iOS lo scrollTop resta spesso 1-2px. */
+export const PTR_TOP_TOLERANCE_PX = 8;
 /** Durata minima dell'indicatore: evita lo sfarfallio su risposte istantanee. */
 export const PTR_MIN_SPIN_MS = 450;
 /** Oltre questo tempo l'indicatore si chiude comunque (rete bloccata). */
@@ -18,11 +20,11 @@ export const PTR_WATCHDOG_MS = 10_000;
 
 export type PtrPhase = "idle" | "pulling" | "ready" | "refreshing";
 
-/** Il gesto parte solo se il contenuto è davvero in cima. */
-export function canStartPull(scrollTop: number, refreshing: boolean, introPending = false): boolean {
-  if (refreshing || introPending) return false;
+/** Il gesto parte solo se il contenuto è (praticamente) in cima. */
+export function canStartPull(scrollTop: number, refreshing: boolean): boolean {
+  if (refreshing) return false;
   if (!Number.isFinite(scrollTop)) return false;
-  return scrollTop <= 0;
+  return scrollTop <= PTR_TOP_TOLERANCE_PX;
 }
 
 /**
