@@ -306,11 +306,23 @@
 }
 @keyframes ptr-spin {
   to {
-    transform: rotate(360deg);
+    transform: rotate(360deg) translateZ(0);
   }
 }
 .ptr-spin {
   animation: ptr-spin 900ms linear infinite;
+  transform-origin: 50% 50%;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+/* L'indicatore vive sopra l'header sticky (z-30) e sotto la top bar/notch. */
+.ptr-indicator {
+  top: calc(env(safe-area-inset-top) + 3.5rem);
+}
+@media (min-width: 1024px) {
+  .ptr-indicator {
+    top: calc(env(safe-area-inset-top) + 4.5rem);
+  }
 }
 
 @utility cta-lift {
