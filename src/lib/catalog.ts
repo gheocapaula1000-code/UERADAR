@@ -110,20 +110,20 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
   },
   professional: {
     id: "professional",
-    name: "PROFESSIONAL",
-    audience: "Per una impresa che vuole presidio costante e ordinato",
+    name: "RADAR",
+    audience: "Uno strumento tuo, sempre acceso, anche nel weekend",
     selfService: true,
     highlighted: false,
     prices: {
       month: {
         interval: "month",
-        amountCents: 49900,
+        amountCents: 24900,
         priceEnv: "STRIPE_PRICE_PROFESSIONAL_MONTHLY_TEST",
         planCode: "ueradar_professional_monthly",
       },
       year: {
         interval: "year",
-        amountCents: 499000,
+        amountCents: 249000,
         priceEnv: "STRIPE_PRICE_PROFESSIONAL_ANNUAL_TEST",
         planCode: "ueradar_professional_annual",
       },
@@ -144,30 +144,31 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       watermarkedDossier: false,
     },
     highlights: [
+      "Radar sempre acceso, anche sabato e domenica",
+      "Push quando esce una novità per il tuo profilo",
+      "Matching sul profilo (più ATECO)",
       "1 impresa",
-      "3 Domande / Dossier al mese",
-      "Aggiornamento standard del catalogo sul profilo impresa",
-      "Alert scadenze",
-      SOURCE_TIERS[AVAILABLE_SOURCE_TIER],
+      "3 bozze di richiesta / Dossier al mese",
+      "Fonti ufficiali principali (Veneto + nazionali + poche UE)",
       NO_LIMITS_NOTE,
     ],
   },
   business: {
     id: "business",
-    name: "BUSINESS",
-    audience: "Per chi non può permettersi di scoprire un bando in ritardo",
+    name: "PRATICA",
+    audience: "Ricerca più profonda e più bozze, senza aspettare il consulente",
     selfService: true,
     highlighted: true,
     prices: {
       month: {
         interval: "month",
-        amountCents: 99000,
+        amountCents: 44900,
         priceEnv: "STRIPE_PRICE_BUSINESS_MONTHLY_TEST",
         planCode: "ueradar_business_monthly",
       },
       year: {
         interval: "year",
-        amountCents: 990000,
+        amountCents: 449000,
         priceEnv: "STRIPE_PRICE_BUSINESS_ANNUAL_TEST",
         planCode: "ueradar_business_annual",
       },
@@ -188,19 +189,20 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       watermarkedDossier: false,
     },
     highlights: [
+      "Tutto Radar",
+      "Ricerca più profonda (camere, provinciali, nicchie)",
+      "Priorità imprese femminili, giovanili, startup",
       "1 impresa",
-      "10 Domande / Dossier al mese",
-      "Aggiornamento più frequente e corsia urgente",
-      "Alert urgenti e supporto prioritario",
-      SOURCE_TIERS[AVAILABLE_SOURCE_TIER],
+      "10 bozze di richiesta / Dossier al mese",
+      "Aggiornamento più frequente e alert prioritari",
       NO_LIMITS_NOTE,
     ],
   },
   executive: {
     id: "executive",
-    name: "EXECUTIVE",
-    audience: "Per chi gestisce più dossier in parallelo e vuole controllo continuo",
-    selfService: true,
+    name: "STUDIO",
+    audience: "Percorso su richiesta, senza acquisto online",
+    selfService: false,
     highlighted: false,
     prices: {
       month: {
@@ -233,16 +235,15 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
     },
     highlights: [
       "1 impresa",
-      "25 Domande / Dossier al mese",
+      "25 bozze di richiesta / Dossier al mese",
       "Alta frequenza di aggiornamento del catalogo",
       "Export, condivisione e assistenza dedicata",
-      SOURCE_TIERS[AVAILABLE_SOURCE_TIER],
       NO_LIMITS_NOTE,
     ],
   },
   enterprise: {
     id: "enterprise",
-    name: "ENTERPRISE",
+    name: "STUDIO",
     audience: "Più imprese e workflow definiti da contratto",
     selfService: false,
     highlighted: false,
@@ -270,8 +271,8 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
   },
 };
 
-/** Piano di partenza dell'importo Enterprise, senza checkout pubblico. */
-export const ENTERPRISE_FROM_CENTS = 399000;
+/** Piano di partenza dell'importo Studio (Enterprise), senza checkout pubblico. */
+export const ENTERPRISE_FROM_CENTS = 99000;
 
 export const PLAN_IDS = Object.keys(CATALOG) as PlanId[];
 
