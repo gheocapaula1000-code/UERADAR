@@ -21,15 +21,16 @@ const SHELL = readFileSync("src/components/bandocore/AppShell.tsx", "utf8");
 const CSS = readFileSync("src/styles.css", "utf8");
 
 describe("avvio del gesto", () => {
-  it("parte solo dall'alto della pagina", () => {
+  it("parte solo dall'alto della pagina, con tolleranza iOS", () => {
     expect(canStartPull(0, false)).toBe(true);
-    expect(canStartPull(1, false)).toBe(false);
+    expect(canStartPull(2, false)).toBe(true);
+    expect(canStartPull(8, false)).toBe(true);
+    expect(canStartPull(9, false)).toBe(false);
     expect(canStartPull(240, false)).toBe(false);
   });
 
-  it("non parte durante un aggiornamento o durante l'apertura radar", () => {
+  it("non parte durante un aggiornamento", () => {
     expect(canStartPull(0, true)).toBe(false);
-    expect(canStartPull(0, false, true)).toBe(false);
   });
 
   it("solo su dispositivi con tocco", () => {
