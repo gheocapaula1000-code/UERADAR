@@ -9,6 +9,8 @@ export const FIELD_HELP = {
   partita_iva: "11 cifre, come sulla fattura. Puoi scriverla con o senza IT davanti.",
   codice_ateco:
     "È il codice della tua attività: lo trovi sulla visura camerale o nel cassetto fiscale.",
+  ateco_secondari:
+    "Molte imprese hanno più codici in visura. Aggiungili per migliorare il matching.",
   forma_giuridica: "Come è costituita l'impresa. Se hai dubbi, guarda la visura camerale.",
   regione: "Serve per i bandi della tua Regione: sono spesso i più accessibili.",
   provincia: "Sigla di 2 lettere, es. MI per Milano.",
