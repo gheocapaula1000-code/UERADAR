@@ -34,7 +34,10 @@ export const Route = createFileRoute("/prezzi")({
 });
 
 function Pricing() {
-  // Billing tecnicamente disabilitato: nessun pagamento, nessun provider collegato.
+  // VITE_BILLING_ENABLED è una variabile di sola presentazione: va impostata a
+  // "true" solo negli ambienti di deploy TEST (QA). In produzione LIVE resta
+  // assente/false. Il checkout reale è comunque gated lato server da
+  // UERADAR_BILLING_MODE=test + UERADAR_CHECKOUT_QA_ENABLED + allowlist email.
   const billingEnabled = import.meta.env.VITE_BILLING_ENABLED === "true";
   const [interval, setInterval] = useState<"month" | "year">("month");
 
