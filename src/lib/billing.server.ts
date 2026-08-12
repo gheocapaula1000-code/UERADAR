@@ -134,9 +134,10 @@ export function readBillingEnv(): BillingEnv {
 }
 
 /**
- * `configured` è vero solo con secret di test, tutti e sei i Price validi,
- * webhook di test e Portal di test presenti. Fino ad allora checkout e
- * fatturazione pubblica restano disabilitati.
+ * `configured` è vero con modalità valida, secret coerente col modo e tutti e
+ * sei i Price validi. Webhook e Portal NON sono richiesti qui: servono solo
+ * dove vengono davvero usati (handler webhook e `createPortalSession`), così
+ * l'apertura di una Checkout Session non dipende da configurazioni estranee.
  */
 export function billingConfigured(env: BillingEnv): { ok: boolean; code: string } {
   if (!env.mode || env.expectedLivemode === null)
@@ -156,10 +157,21 @@ export function billingConfigured(env: BillingEnv): { ok: boolean; code: string 
     return { ok: false, code: "PRICES_NOT_CONFIGURED" };
   if (new Set(configuredPriceIds).size !== configuredPriceIds.length)
     return { ok: false, code: "PRICE_IDS_NOT_UNIQUE" };
-  if (!env.webhookSecret.startsWith("whsec_")) return { ok: false, code: "WEBHOOK_NOT_CONFIGURED" };
-  if (!isPortalConfigurationId(env.portalConfiguration))
-    return { ok: false, code: "PORTAL_NOT_CONFIGURED" };
   return { ok: true, code: "OK" };
+}
+
+/** Richiesto solo dall'handler webhook. */
+export function webhookConfigured(env: BillingEnv): { ok: boolean; code: string } {
+  return env.webhookSecret.startsWith("whsec_")
+    ? { ok: true, code: "OK" }
+    : { ok: false, code: "WEBHOOK_NOT_CONFIGURED" };
+}
+
+/** Richiesto solo da `createPortalSession`. */
+export function portalConfigured(env: BillingEnv): { ok: boolean; code: string } {
+  return isPortalConfigurationId(env.portalConfiguration)
+    ? { ok: true, code: "OK" }
+    : { ok: false, code: "PORTAL_NOT_CONFIGURED" };
 }
 
 /** L'ID di configurazione del Portal deve essere un vero `bpc_`. */

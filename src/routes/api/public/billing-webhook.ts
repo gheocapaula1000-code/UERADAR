@@ -37,7 +37,7 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         const env = readBillingEnv();
         const mode = assertBillingMode(env);
         if (!mode.ok) return Response.json({ ok: false, code: mode.code }, { status: 503 });
-        if (!env.webhookSecret)
+        if (!env.webhookSecret.startsWith("whsec_"))
           return Response.json({ ok: false, code: "WEBHOOK_NOT_CONFIGURED" }, { status: 503 });
         // Nessuna mappatura senza configurazione Price TEST completa:
         // meglio ritentare l'evento che scrivere un piano di ripiego.

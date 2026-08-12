@@ -468,10 +468,14 @@ export const createPortalSession = createServerFn({ method: "POST" })
       providerCall,
       fetchPortalConfiguration,
       portalAccessAllowed,
+      portalConfigured,
     } = await import("./billing.server");
     const env = readBillingEnv();
     const mode = billingConfigured(env);
     if (!mode.ok) return { ok: false, code: mode.code };
+    // Il Portal richiede la sua configurazione: gate esplicito qui, non in billingConfigured.
+    const portalCfg = portalConfigured(env);
+    if (!portalCfg.ok) return { ok: false, code: portalCfg.code };
 
     // Gate dedicato al Portal: stesso rigore su modalità/LIVE e allowlist QA in
     // TEST, ma indipendente dal flag di checkout pubblico (nessuna creazione).
