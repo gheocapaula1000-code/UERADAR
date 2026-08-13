@@ -641,7 +641,10 @@ export const syncSubscriptionFromProvider = createServerFn({ method: "POST" })
     const match = planFromPriceId(priceId, env.priceMap);
     if (!priceId || !match) return { ok: false, code: "PRICE_NOT_ALLOWLISTED" };
 
-    const seconds = sub["current_period_end"];
+    // Le versioni recenti dell'API espongono il periodo sull'item, non sulla subscription.
+    const itemPeriodEnd = (items[0] as Record<string, unknown>)["current_period_end"];
+    const seconds =
+      typeof sub["current_period_end"] === "number" ? sub["current_period_end"] : itemPeriodEnd;
     const periodEnd =
       typeof seconds === "number" && Number.isFinite(seconds) && seconds > 0
         ? new Date(seconds * 1000)
