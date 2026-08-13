@@ -253,7 +253,8 @@ describe("sicurezza dell'integrazione di pagamento", () => {
   });
 
   it("tiene le chiavi solo lato server e separa TEST/LIVE", () => {
-    expect(server).toContain('process.env[`STRIPE_SECRET_KEY_${suffix}`]');
+    expect(server).toContain('process.env["STRIPE_SECRET_KEY_LIVE"]');
+    expect(server).toContain('process.env["STRIPE_SECRET_KEY_TEST"]');
     expect(server).toContain("BILLING_KEY_MODE_MISMATCH");
     expect(server).toContain("LIVE_MODE_DISABLED");
     expect(functions).toContain("billingConfigured");

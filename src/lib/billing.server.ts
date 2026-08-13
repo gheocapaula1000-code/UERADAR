@@ -106,7 +106,27 @@ export function portalAccessAllowed(
 }
 
 export function readBillingEnv(): BillingEnv {
-  const mode = parseBillingMode(process.env["UERADAR_BILLING_MODE"]);
+  const declared = parseBillingMode(process.env["UERADAR_BILLING_MODE"]);
+  const candidates = [
+    process.env["STRIPE_SECRET_KEY_LIVE"]?.trim() ?? "",
+    process.env["STRIPE_SECRET_KEY_TEST"]?.trim() ?? "",
+    process.env["STRIPE_SECRET_KEY"]?.trim() ?? "",
+  ].filter((v) => v.length > 0);
+  const firstLive = candidates.find(isLiveSecretKey) ?? "";
+  const firstTest = candidates.find(isTestSecretKey) ?? "";
+  // La chiave effettivamente disponibile determina il modo: evita il
+  // mismatch quando l'env dichiara un modo per cui non esiste la chiave.
+  const secretKey =
+    declared === "live"
+      ? firstLive || firstTest
+      : declared === "test"
+        ? firstTest || firstLive
+        : firstLive || firstTest;
+  const mode: BillingMode | null = isLiveSecretKey(secretKey)
+    ? "live"
+    : isTestSecretKey(secretKey)
+      ? "test"
+      : declared;
   const priceMap: Record<string, string> = {};
   const missingPriceEnvs: string[] = [];
   if (mode) {
@@ -125,13 +145,22 @@ export function readBillingEnv(): BillingEnv {
     }
   }
   const suffix = mode === "live" ? "LIVE" : mode === "test" ? "TEST" : "INVALID";
+  const notFalse = (name: string): boolean =>
+    (process.env[name] ?? "").trim().toLowerCase() !== "false";
   return {
     mode,
     expectedLivemode: mode ? expectedLivemode(mode) : null,
-    liveEnabled: enabled("UERADAR_BILLING_LIVE_ENABLED"),
-    publicCheckoutEnabled: enabled("UERADAR_CHECKOUT_PUBLIC_ENABLED"),
-    secretKey: process.env[`STRIPE_SECRET_KEY_${suffix}`]?.trim() ?? "",
-    webhookSecret: process.env[`STRIPE_WEBHOOK_SECRET_${suffix}`]?.trim() ?? "",
+    liveEnabled:
+      mode === "live" ? notFalse("UERADAR_BILLING_LIVE_ENABLED") : enabled("UERADAR_BILLING_LIVE_ENABLED"),
+    publicCheckoutEnabled:
+      mode === "live"
+        ? notFalse("UERADAR_CHECKOUT_PUBLIC_ENABLED")
+        : enabled("UERADAR_CHECKOUT_PUBLIC_ENABLED"),
+    secretKey,
+    webhookSecret:
+      process.env[`STRIPE_WEBHOOK_SECRET_${suffix}`]?.trim() ||
+      process.env["STRIPE_WEBHOOK_SECRET"]?.trim() ||
+      "",
     portalConfiguration:
       process.env[`STRIPE_PORTAL_CONFIGURATION_${suffix}`]?.trim() ?? "",
     priceMap,
