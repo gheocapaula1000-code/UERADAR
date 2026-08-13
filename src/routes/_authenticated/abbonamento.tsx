@@ -38,6 +38,15 @@ const STATE_LABEL: Record<string, string> = {
 };
 
 /** Spiegazioni leggibili dei codici di blocco checkout (nessun segreto in UI). */
+const PAYMENT_LINK_RADAR = "https://buy.stripe.com/7sYeVd3Ph7c41Ad3TGcZa00";
+const PAYMENT_LINK_PRATICA = "https://buy.stripe.com/7sYeVd3Ph7c41Ad3TGcZa00";
+
+/** Fallback Payment Link per piano quando il checkout server non è disponibile. */
+const PAYMENT_LINKS: Record<string, string | undefined> = {
+  professional: PAYMENT_LINK_RADAR,
+  business: PAYMENT_LINK_PRATICA,
+};
+
 const CHECKOUT_BLOCK_LABEL: Record<string, string> = {
   BILLING_NOT_CONFIGURED: "L'attivazione online non è ancora configurata su questo ambiente.",
   BILLING_KEY_MODE_MISMATCH:
@@ -285,10 +294,9 @@ function Abbonamento() {
           ) : null}
 
           {data && !data.checkout_available ? (
-            <p className="mt-4 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm">
-              <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-              Attivazione online non disponibile in questo ambiente: gli addebiti restano
-              disattivati. I piani restano consultabili e l'attivazione avviene su richiesta.
+            <p className="mt-4 flex items-start gap-2 rounded-lg border border-border bg-muted p-3 text-sm">
+              <ShieldCheck aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+              Attivazione sicura tramite Stripe. Verrai reindirizzato al pagamento.
             </p>
           ) : null}
 
@@ -375,17 +383,22 @@ function Abbonamento() {
                 title={disabledReason ?? undefined}
                 aria-describedby={disabledReason ? "checkout-block-note" : undefined}
                 onClick={() => {
-                  if (disabledReason) {
-                    toast.error("Attivazione non disponibile", { description: disabledReason });
+                  if (data?.checkout_available && !isMember) {
+                    payMutation.mutate(plan.id as "professional" | "business" | "executive");
                     return;
                   }
-                  payMutation.mutate(plan.id as "professional" | "business" | "executive");
+                  const link = PAYMENT_LINKS[plan.id];
+                  if (link) {
+                    window.location.assign(link);
+                    return;
+                  }
+                  if (disabledReason) {
+                    toast.error("Attivazione non disponibile", { description: disabledReason });
+                  }
                 }}
                 disabled={payMutation.isPending}
-                aria-disabled={Boolean(disabledReason)}
-                className={`tap mt-6 w-full rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground disabled:opacity-50 ${
-                  disabledReason ? "opacity-50" : ""
-                }`}
+                aria-disabled={Boolean(disabledReason) && !PAYMENT_LINKS[plan.id]}
+                className="tap mt-6 w-full rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground disabled:opacity-50"
               >
                 Attiva {plan.name}
               </button>
@@ -393,7 +406,7 @@ function Abbonamento() {
           ))}
         </section>
 
-        {disabledReason ? (
+        {disabledReason && !isMember && !data?.checkout_available ? null : disabledReason ? (
           <p
             id="checkout-block-note"
             role="status"
