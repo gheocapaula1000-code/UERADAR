@@ -240,8 +240,9 @@ async function ensureCustomer(userId: string, email: string | undefined) {
 }
 
 /**
- * Sessione di pagamento (solo TEST): allowlist piano+intervallo, Price
+ * Sessione di pagamento: allowlist piano+intervallo, Price
  * recuperato e validato dal provider prima di aprire il checkout.
+ * allow_promotion_codes: true consente coupon LIVE temporanei (es. cert 1€).
  */
 export const createPaymentSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -281,7 +282,7 @@ export const createPaymentSession = createServerFn({ method: "POST" })
     const priceId = env.priceMap[priceKey(data.plan, data.interval)] ?? "";
     if (!isValidPriceId(priceId)) return { ok: false, code: "PRICE_NOT_CONFIGURED" };
 
-    // Il Price remoto deve corrispondere esattamente al catalogo ed essere di test.
+    // Il Price remoto deve corrispondere esattamente al catalogo ed essere del modo atteso.
     const remote = await fetchRemotePrice(priceId, env.secretKey);
     if (!env.mode || env.expectedLivemode === null)
       return { ok: false, code: "BILLING_MODE_INVALID" };
@@ -391,12 +392,14 @@ export const createPaymentSession = createServerFn({ method: "POST" })
         customer: customerId,
         "line_items[0][price]": priceId,
         "line_items[0][quantity]": "1",
-        // Prezzi IVA esclusa: l'imposta è calcolata dal provider in modalità test.
+        // Prezzi IVA esclusa: l'imposta è calcolata dal provider.
         "automatic_tax[enabled]": "true",
         "customer_update[address]": "auto",
         "customer_update[name]": "auto",
         "tax_id_collection[enabled]": "true",
         billing_address_collection: "required",
+        // Coupon / promo codes (es. certificazione LIVE a 1€ con amount_off).
+        allow_promotion_codes: "true",
         "subscription_data[metadata][supabase_user_id]": context.userId,
         "subscription_data[metadata][plan_id]": data.plan,
         "subscription_data[metadata][interval]": data.interval,
@@ -424,7 +427,7 @@ export const createPaymentSession = createServerFn({ method: "POST" })
       return { ok: false, code: "PAYMENT_SESSION_FAILED" };
     }
     // Post-write fail-closed: nessun URL restituito o sessione attaccata
-    // finché il provider non dichiara esplicitamente livemode false.
+    // finché il provider non dichiara esplicitamente livemode corretto.
     const sessionGate = checkoutSessionGate(session, env.expectedLivemode);
     if (!sessionGate.ok) {
       await releaseIntent();
@@ -540,7 +543,7 @@ export const createPortalSession = createServerFn({ method: "POST" })
     } catch {
       return { ok: false, code: "PORTAL_FAILED" };
     }
-    // Post-write fail-closed: nessun link restituito senza livemode false.
+    // Post-write fail-closed: nessun link restituito senza livemode coerente.
     const portalGate = portalSessionGate(session, env.expectedLivemode);
     if (!portalGate.ok) return { ok: false, code: portalGate.code };
     return { ok: true, url: session.payload?.["url"] as string, code: "OK" };
