@@ -145,4 +145,11 @@ export interface FeedResponse {
   deep_search?: boolean;
   /** Marker di freschezza restituito dal Core quando disponibile. */
   generated_at?: string;
+  /** Rendiconto ammissione fonti core: bandi validi vs scartati. */
+  admission?: {
+    admitted_count: number;
+    rejected_count: number;
+    rejected_by_reason: Record<string, number>;
+    active_sources: Array<{ id: string; label: string; count: number }>;
+  };
 }

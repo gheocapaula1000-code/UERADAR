@@ -50,6 +50,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
     let generatedAt = fetchedAt;
     const source: FeedResponse["source"] = "central-core";
     let persistHiddenCache = false;
+    let admission: FeedResponse["admission"];
 
     try {
       if (data.force_refresh) {
@@ -71,7 +72,17 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
 
       const envelope = parseGatewayEnvelope(payload);
       if (!envelope) throw new Error("GATEWAY_INVALID_PAYLOAD");
-      bandi = envelope.bandi.map((item) => mapCoreOpportunity(item));
+      const mapped = envelope.bandi.map((item) => mapCoreOpportunity(item));
+      // Ammissione fail-closed: solo fonti core, scadenza/apertura e dato economico.
+      const { admitFeed } = await import("./feed-admission");
+      const report = admitFeed(mapped, Date.parse(nowIso));
+      bandi = report.admitted;
+      admission = {
+        admitted_count: report.admitted_count,
+        rejected_count: report.rejected_count,
+        rejected_by_reason: report.rejected_by_reason as Record<string, number>,
+        active_sources: report.active_sources,
+      };
       fetchedAt = envelope.fetched_at;
       generatedAt = envelope.generated_at;
 
@@ -97,6 +108,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
         generated_at: generatedAt,
         source,
         deep_search: deepSearch,
+        admission,
       };
       const cacheDecision = decideFeedCache(previous, next);
       if (cacheDecision === "reuse-previous" && previous) return previous;
@@ -163,6 +175,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       generated_at: generatedAt,
       source,
       deep_search: deepSearch,
+      admission,
     };
   });
 
