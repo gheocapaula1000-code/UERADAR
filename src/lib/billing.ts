@@ -226,8 +226,10 @@ export function validateRemotePrice(
   // Un solo periodo per ricorrenza: "ogni 2 mesi" non è il piano approvato.
   if (rec["interval_count"] !== 1) return { ok: false, code: "PRICE_INTERVAL_COUNT_MISMATCH" };
   const taxBehavior = remote["tax_behavior"];
-  // Prezzi IVA esclusa: il comportamento fiscale deve essere coerente.
-  if (taxBehavior !== "exclusive") return { ok: false, code: "PRICE_TAX_BEHAVIOR_MISMATCH" };
+  // Prezzi IVA esclusa: ammessi "exclusive" e "unspecified"; "inclusive" o
+  // valori assenti/sconosciuti sono bloccati.
+  if (taxBehavior !== "exclusive" && taxBehavior !== "unspecified")
+    return { ok: false, code: "PRICE_TAX_BEHAVIOR_MISMATCH" };
   return { ok: true, code: "OK" };
 }
 
