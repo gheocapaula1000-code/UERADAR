@@ -1,217 +1,137 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { useRouter } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
-import {
-  PTR_MIN_SPIN_MS,
-  PTR_THRESHOLD_PX,
-  PTR_WATCHDOG_MS,
-  canStartPull,
-  effectiveScrollTop,
-  isVerticalPull,
-  phaseFor,
-  pullDistance,
-  pullLabel,
-  pullProgress,
-  shouldRefreshOnRelease,
-  supportsPullGesture,
-  type PtrPhase,
-} from "@/lib/pull-to-refresh";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Loader2 } from "lucide-react";
 
 /**
- * Tira-per-aggiornare nativo per area riservata / PWA iOS.
- * Listener su document, indicatore fixed con colori tema, refresh via
- * router + react-query (niente reload, niente libreria esterna).
+ * Pattern collaudato da Metodo-Civiko-One (PWA iOS).
+ * Listener su document, soglia 80px, reload al rilascio.
  */
-export function PullToRefresh({ children }: { children: ReactNode }) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const [phase, setPhase] = useState<PtrPhase>("idle");
-  const [distance, setDistance] = useState(0);
-  const [enabled, setEnabled] = useState(false);
+const THRESHOLD = 80;
+const MAX_PULL = 140;
+const RESISTANCE = 0.5;
 
-  const startY = useRef(0);
-  const startX = useRef(0);
-  const pulling = useRef(false);
-  const activePull = useRef(false);
-  const refreshing = useRef(false);
-  const distanceRef = useRef(0);
-  const reducedMotion = useRef(false);
-  const runRefreshRef = useRef<() => Promise<void>>(async () => {});
-
-  const readScrollTop = useCallback(() => {
-    return effectiveScrollTop([
-      window.scrollY,
-      window.pageYOffset,
-      document.scrollingElement?.scrollTop,
-      document.documentElement?.scrollTop,
-      document.body?.scrollTop,
-    ]);
-  }, []);
-
-  const runRefresh = useCallback(async () => {
-    if (refreshing.current) return;
-    refreshing.current = true;
-    setPhase("refreshing");
-    distanceRef.current = PTR_THRESHOLD_PX;
-    setDistance(PTR_THRESHOLD_PX);
-    const started = Date.now();
-    try {
-      await Promise.race([
-        Promise.all([router.invalidate(), queryClient.invalidateQueries()]),
-        new Promise((r) => setTimeout(r, PTR_WATCHDOG_MS)),
-      ]);
-    } catch {
-      // rete fallita: chiudi comunque l'indicatore
-    } finally {
-      const rest = Math.max(0, PTR_MIN_SPIN_MS - (Date.now() - started));
-      await new Promise((r) => setTimeout(r, rest));
-      refreshing.current = false;
-      pulling.current = false;
-      activePull.current = false;
-      distanceRef.current = 0;
-      setDistance(0);
-      setPhase("idle");
+function isScrollableAncestorScrolled(target: EventTarget | null): boolean {
+  let el = target as HTMLElement | null;
+  while (el && el !== document.body && el !== document.documentElement) {
+    const style = window.getComputedStyle(el);
+    const overflowY = style.overflowY;
+    if ((overflowY === "auto" || overflowY === "scroll") && el.scrollTop > 0) {
+      return true;
     }
-  }, [queryClient, router]);
+    el = el.parentElement;
+  }
+  return false;
+}
+
+export function PullToRefresh({ children }: { children: ReactNode }) {
+  const [pull, setPull] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const startY = useRef<number | null>(null);
+  const startX = useRef<number | null>(null);
+  const active = useRef(false);
+  const cancelled = useRef(false);
+  const pullRef = useRef(0);
 
   useEffect(() => {
-    runRefreshRef.current = runRefresh;
-  }, [runRefresh]);
+    pullRef.current = pull;
+  }, [pull]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const hasTouch = "ontouchstart" in window || (navigator.maxTouchPoints ?? 0) > 0;
+    if (!hasTouch) return;
 
-    const touchOk = supportsPullGesture(
-      window.matchMedia?.("(pointer: coarse)").matches ?? false,
-      window.navigator.maxTouchPoints ?? 0,
-      "ontouchstart" in window,
-    );
-    if (!touchOk) return;
-
-    setEnabled(true);
-    reducedMotion.current =
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    document.documentElement.classList.add("ptr-page-lock");
-
-    const resetIdle = () => {
-      pulling.current = false;
-      activePull.current = false;
-      distanceRef.current = 0;
-      setDistance(0);
-      setPhase("idle");
-    };
-
-    const onStart = (e: TouchEvent) => {
-      if (refreshing.current) return;
-      if (e.touches.length !== 1) {
-        resetIdle();
-        return;
-      }
-      if (!canStartPull(readScrollTop(), false)) {
-        pulling.current = false;
-        activePull.current = false;
-        return;
-      }
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      if (window.scrollY > 0) return;
+      if (isScrollableAncestorScrolled(e.target)) return;
       startY.current = e.touches[0].clientY;
       startX.current = e.touches[0].clientX;
-      pulling.current = true;
-      activePull.current = false;
+      active.current = true;
+      cancelled.current = false;
     };
 
-    const onMove = (e: TouchEvent) => {
-      if (!pulling.current || refreshing.current) return;
-      if (e.touches.length !== 1) {
-        resetIdle();
-        return;
-      }
-
+    const onTouchMove = (e: TouchEvent) => {
+      if (!active.current || startY.current === null || startX.current === null) return;
+      if (cancelled.current) return;
       const dy = e.touches[0].clientY - startY.current;
       const dx = e.touches[0].clientX - startX.current;
 
-      if (!activePull.current) {
-        if (!canStartPull(readScrollTop(), false)) {
-          pulling.current = false;
-          return;
-        }
-        if (!isVerticalPull(dx, dy)) return;
-        activePull.current = true;
-      }
-
-      if (dy <= 0) {
-        distanceRef.current = 0;
-        setDistance(0);
-        setPhase("idle");
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+        cancelled.current = true;
+        active.current = false;
+        setPull(0);
         return;
       }
 
-      if (e.cancelable) e.preventDefault();
+      if (dy <= 0) {
+        setPull(0);
+        return;
+      }
 
-      const d = pullDistance(dy, reducedMotion.current);
-      distanceRef.current = d;
-      setDistance(d);
-      setPhase(phaseFor(d, false));
+      if (window.scrollY === 0 && e.cancelable) {
+        e.preventDefault();
+      }
+      setPull(Math.min(dy * RESISTANCE, MAX_PULL));
     };
 
-    const onEnd = () => {
-      if (!pulling.current || refreshing.current) return;
-      const d = distanceRef.current;
-      const wasActive = activePull.current;
-      pulling.current = false;
-      activePull.current = false;
-      if (wasActive && shouldRefreshOnRelease(d)) {
-        void runRefreshRef.current();
+    const onTouchEnd = () => {
+      if (!active.current) {
+        setPull(0);
+        return;
+      }
+      active.current = false;
+      const current = pullRef.current;
+      startY.current = null;
+      startX.current = null;
+      if (current >= THRESHOLD) {
+        setRefreshing(true);
+        setPull(THRESHOLD);
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 150);
       } else {
-        distanceRef.current = 0;
-        setDistance(0);
-        setPhase("idle");
+        setPull(0);
       }
     };
 
-    document.addEventListener("touchstart", onStart, { passive: true, capture: true });
-    document.addEventListener("touchmove", onMove, { passive: false, capture: true });
-    document.addEventListener("touchend", onEnd, { passive: true, capture: true });
-    document.addEventListener("touchcancel", onEnd, { passive: true, capture: true });
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", onTouchEnd, { passive: true });
+    document.addEventListener("touchcancel", onTouchEnd, { passive: true });
 
     return () => {
-      document.documentElement.classList.remove("ptr-page-lock");
-      document.removeEventListener("touchstart", onStart, true);
-      document.removeEventListener("touchmove", onMove, true);
-      document.removeEventListener("touchend", onEnd, true);
-      document.removeEventListener("touchcancel", onEnd, true);
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchcancel", onTouchEnd);
     };
-  }, [readScrollTop]);
+  }, []);
 
-  const progress = pullProgress(distance);
-  const label = pullLabel(phase);
-  const show = phase !== "idle" || distance > 0;
+  const progress = Math.min(pull / THRESHOLD, 1);
+  const showIndicator = pull > 0 || refreshing;
 
   return (
-    <div className="ptr-root relative w-full max-w-full">
-      {enabled && show ? (
+    <div className="ptr-root relative w-full max-w-full" style={{ overscrollBehaviorY: "contain" }}>
+      {showIndicator ? (
         <div
-          className="ptr-indicator pointer-events-none fixed left-0 right-0 z-50 flex flex-col items-center"
+          aria-hidden
+          className="pointer-events-none fixed left-0 right-0 top-0 z-[9999] flex justify-center"
           style={{
-            top: "calc(env(safe-area-inset-top, 0px) + 3.25rem)",
-            opacity: phase === "refreshing" ? 1 : Math.min(1, 0.35 + progress * 0.65),
-            transform: `translate3d(0, ${Math.max(0, distance * 0.25)}px, 0)`,
+            transform: `translateY(${Math.max(pull - 40, 0)}px)`,
+            transition: active.current ? "none" : "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)",
           }}
-          aria-live="polite"
-          aria-busy={phase === "refreshing"}
         >
-          <div className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-foreground shadow-elevated">
-            <span
-              className={`ptr-spin inline-block h-5 w-5 rounded-full border-2 border-primary border-t-transparent ${
-                phase === "refreshing" && !reducedMotion.current ? "animate-spin" : ""
-              }`}
+          <div
+            className="mt-3 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card shadow-elevated"
+            style={{ opacity: refreshing ? 1 : 0.4 + progress * 0.6 }}
+          >
+            <Loader2
+              className={`h-5 w-5 text-primary ${refreshing ? "animate-spin" : ""}`}
               style={{
-                transform:
-                  phase === "refreshing"
-                    ? undefined
-                    : `rotate(${Math.round(progress * 270)}deg)`,
+                transform: refreshing ? undefined : `rotate(${progress * 270}deg)`,
+                transition: refreshing ? undefined : "transform 60ms linear",
               }}
-              aria-hidden
             />
-            {label ? <span className="text-xs font-semibold">{label}</span> : null}
           </div>
         </div>
       ) : null}

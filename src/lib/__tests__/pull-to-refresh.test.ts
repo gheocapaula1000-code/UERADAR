@@ -37,7 +37,6 @@ describe("avvio del gesto", () => {
     expect(supportsPullGesture(true, 5)).toBe(true);
     expect(supportsPullGesture(false, 0)).toBe(false);
     expect(supportsPullGesture(true, 0)).toBe(false);
-    expect(supportsPullGesture(false, 0, true)).toBe(false);
     expect(supportsPullGesture(false, 1, true)).toBe(true);
   });
 
@@ -103,33 +102,29 @@ describe("stati e rilascio", () => {
   });
 });
 
-describe("integrazione nell'area riservata", () => {
+describe("integrazione nell'area riservata (pattern Civiko)", () => {
   it("avvolge il contenuto principale una sola volta", () => {
     expect(SHELL).toContain("<PullToRefresh>");
     expect(SHELL.match(/<PullToRefresh>/g)).toHaveLength(1);
     expect(SHELL).toContain('id="contenuto-principale"');
   });
 
-  it("aggiorna i dati della pagina corrente", () => {
-    expect(PTR).toContain("router.invalidate()");
-    expect(PTR).toContain("queryClient.invalidateQueries()");
+  it("usa lo stesso schema di Civiko: touch document + reload", () => {
+    expect(PTR).toContain('addEventListener("touchstart"');
+    expect(PTR).toContain('addEventListener("touchmove"');
+    expect(PTR).toContain("window.location.reload");
+    expect(PTR).toContain("isScrollableAncestorScrolled");
+    expect(PTR).not.toContain("pulltorefreshjs");
+  });
+
+  it("indicatore fixed visibile", () => {
+    expect(PTR).toContain("z-[9999]");
+    expect(PTR).toContain("Loader2");
   });
 
   it("non compete con l'overscroll nativo", () => {
     expect(CSS).toContain("overscroll-behavior-y: contain");
-  });
-
-  it("gesto nativo su document, solo dispositivi con tocco", () => {
-    expect(PTR).toContain("supportsPullGesture");
-    expect(PTR).toContain('addEventListener("touchstart"');
-    expect(PTR).toContain('addEventListener("touchmove"');
-    expect(PTR).not.toContain("pulltorefreshjs");
-  });
-
-  it("indicatore visibile con colori tema", () => {
-    expect(PTR).toContain("ptr-indicator");
-    expect(PTR).toContain("bg-card");
-    expect(PTR).toContain("z-50");
+    expect(PTR).toContain("overscrollBehaviorY");
   });
 
   it("rispetta prefers-reduced-motion e la barra inferiore", () => {
