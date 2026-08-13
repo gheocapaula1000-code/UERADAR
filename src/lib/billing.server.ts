@@ -5,7 +5,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { PRICE_ENV_NAMES } from "./catalog";
+import { SELF_SERVICE_PLANS } from "./catalog";
 import {
   CATALOG,
   expectedLivemode,
@@ -25,9 +25,9 @@ export type BillingEnv = {
   publicCheckoutEnabled: boolean;
   secretKey: string;
   webhookSecret: string;
-  /** ID configurazione Portal TEST (`bpc_...`), validato prima dell'uso. */
+  /** ID configurazione Portal (`bpc_...`), validato prima dell'uso. */
   portalConfiguration: string;
-  /** Price ID per `plan:interval`, letti solo da env TEST dedicate. */
+  /** Price ID per `plan:interval` (self-service + eventuali opzionali caricati). */
   priceMap: Record<string, string>;
   missingPriceEnvs: string[];
   appUrl: string;
@@ -114,8 +114,13 @@ export function readBillingEnv(): BillingEnv {
       for (const price of Object.values(plan.prices)) {
         const envName = priceEnvForMode(price.priceEnv, mode);
         const value = process.env[envName]?.trim() ?? "";
-        if (isValidPriceId(value)) priceMap[priceKey(plan.id, price.interval)] = value;
-        else missingPriceEnvs.push(envName);
+        if (isValidPriceId(value)) {
+          priceMap[priceKey(plan.id, price.interval)] = value;
+        } else if (plan.selfService) {
+          // Solo Radar/Pratica bloccano il checkout se manca il Price.
+          // Studio/Executive non sono self-service: price env opzionali.
+          missingPriceEnvs.push(envName);
+        }
       }
     }
   }
@@ -136,10 +141,9 @@ export function readBillingEnv(): BillingEnv {
 }
 
 /**
- * `configured` è vero con modalità valida, secret coerente col modo e tutti e
- * sei i Price validi. Webhook e Portal NON sono richiesti qui: servono solo
- * dove vengono davvero usati (handler webhook e `createPortalSession`), così
- * l'apertura di una Checkout Session non dipende da configurazioni estranee.
+ * `configured` è vero con modalità valida, secret coerente col modo e i Price
+ * self-service (Radar + Pratica) validi. Webhook e Portal NON sono richiesti
+ * qui: servono solo dove vengono davvero usati.
  */
 export function billingConfigured(env: BillingEnv): { ok: boolean; code: string } {
   if (!env.mode || env.expectedLivemode === null)
@@ -151,12 +155,18 @@ export function billingConfigured(env: BillingEnv): { ok: boolean; code: string 
     return { ok: false, code: "BILLING_KEY_MODE_MISMATCH" };
   if (env.mode === "live" && !isLiveSecretKey(env.secretKey))
     return { ok: false, code: "BILLING_KEY_MODE_MISMATCH" };
-  const configuredPriceIds = Object.values(env.priceMap);
-  if (
-    env.missingPriceEnvs.length > 0 ||
-    configuredPriceIds.length !== PRICE_ENV_NAMES.length
-  )
+  if (env.missingPriceEnvs.length > 0)
     return { ok: false, code: "PRICES_NOT_CONFIGURED" };
+  // Almeno un Price per ogni piano self-service (mese o anno caricati in map).
+  for (const planId of SELF_SERVICE_PLANS) {
+    const plan = CATALOG[planId];
+    for (const interval of Object.keys(plan.prices) as Array<keyof typeof plan.prices>) {
+      if (!plan.prices[interval]) continue;
+      if (!env.priceMap[priceKey(planId, interval)])
+        return { ok: false, code: "PRICES_NOT_CONFIGURED" };
+    }
+  }
+  const configuredPriceIds = Object.values(env.priceMap);
   if (new Set(configuredPriceIds).size !== configuredPriceIds.length)
     return { ok: false, code: "PRICE_IDS_NOT_UNIQUE" };
   return { ok: true, code: "OK" };
@@ -182,8 +192,8 @@ export function isPortalConfigurationId(value: string): boolean {
 }
 
 /**
- * Verifica presso il provider che la configurazione Portal esista, sia di test
- * e sia attiva: una stringa qualsiasi non abilita il portale.
+ * Verifica presso il provider che la configurazione Portal esista, sia del
+ * modo atteso e sia attiva: una stringa qualsiasi non abilita il portale.
  */
 export async function fetchPortalConfiguration(
   configurationId: string,
