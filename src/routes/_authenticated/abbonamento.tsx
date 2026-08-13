@@ -250,9 +250,15 @@ function Abbonamento() {
                 {STATE_LABEL[entitlement?.state ?? "NONE"] ?? "Abbonamento non attivo"}
               </h2>
               <dl className="mt-3 grid gap-1 text-sm text-muted-foreground">
-                <div>
-                  Fine prova: <span className="text-foreground">{formatDate(data?.subscription?.trial_ends_at ?? null)}</span>
-                </div>
+                {(entitlement?.state === "TRIAL" ||
+                  entitlement?.state === "TRIAL_EXPIRED") && (
+                  <div>
+                    Fine prova:{" "}
+                    <span className="text-foreground">
+                      {formatDate(data?.subscription?.trial_ends_at ?? null)}
+                    </span>
+                  </div>
+                )}
                 <div>
                   Rinnovo:{" "}
                   <span className="text-foreground">
