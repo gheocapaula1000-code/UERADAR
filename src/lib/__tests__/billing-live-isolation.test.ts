@@ -19,6 +19,11 @@ import {
   type BillingEnv,
 } from "../billing.server";
 import { CATALOG, LIVE_PRICE_ENV_NAMES, PRICE_ENV_NAMES } from "../catalog";
+import { priceKey } from "../billing";
+
+const REAL_PRICE_KEYS = Object.values(CATALOG).flatMap((plan) =>
+  Object.values(plan.prices).map((p) => priceKey(plan.id, p.interval)),
+);
 
 const originalEnv = { ...process.env };
 
@@ -35,7 +40,7 @@ function env(overrides: Partial<BillingEnv> = {}): BillingEnv {
     secretKey: "sk_test_valid123",
     webhookSecret: "whsec_test123",
     portalConfiguration: "bpc_test123",
-    priceMap: Object.fromEntries(PRICE_ENV_NAMES.map((_, i) => [`p:${i}`, `price_test_${i}`])),
+    priceMap: Object.fromEntries(REAL_PRICE_KEYS.map((k, i) => [k, `price_test_${i}`])),
     missingPriceEnvs: [],
     appUrl: "https://ueradar.com",
     ...overrides,
@@ -118,9 +123,8 @@ describe("isolamento Stripe TEST/LIVE", () => {
   });
 
   it("richiede sei Price ID distinti", () => {
-    const keys = Object.keys(env().priceMap);
     const duplicated = Object.fromEntries(
-      keys.map((k, i) => [k, i < 2 ? "price_duplicate" : `price_${i}`]),
+      REAL_PRICE_KEYS.map((k, i) => [k, i < 2 ? "price_duplicate" : `price_${i}`]),
     );
     expect(billingConfigured(env({ priceMap: duplicated })).code).toBe("PRICE_IDS_NOT_UNIQUE");
     expect(billingConfigured(env({ priceMap: { "p:0": "price_only" } })).code).toBe(
