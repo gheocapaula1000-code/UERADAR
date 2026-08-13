@@ -19,11 +19,8 @@ import {
 
 /**
  * Tira-per-aggiornare nativo per area riservata / PWA iOS.
- * - Listener su document (header sticky non intercetta il gesto)
- * - Scroll top da window + scrollingElement + documentElement + body
- * - Indicatore fixed visibile (colori tema, non hsl rotti su oklch)
- * - preventDefault solo mentre si sta davvero tirando
- * - Aggiorna router + react-query, senza reload di pagina
+ * Listener su document, indicatore fixed con colori tema, refresh via
+ * router + react-query (niente reload, niente libreria esterna).
  */
 export function PullToRefresh({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -35,8 +32,11 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
   const startY = useRef(0);
   const startX = useRef(0);
   const pulling = useRef(false);
+  const activePull = useRef(false);
   const refreshing = useRef(false);
+  const distanceRef = useRef(0);
   const reducedMotion = useRef(false);
+  const runRefreshRef = useRef<() => Promise<void>>(async () => {});
 
   const readScrollTop = useCallback(() => {
     return effectiveScrollTop([
@@ -52,6 +52,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
     if (refreshing.current) return;
     refreshing.current = true;
     setPhase("refreshing");
+    distanceRef.current = PTR_THRESHOLD_PX;
     setDistance(PTR_THRESHOLD_PX);
     const started = Date.now();
     try {
@@ -66,10 +67,16 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       await new Promise((r) => setTimeout(r, rest));
       refreshing.current = false;
       pulling.current = false;
+      activePull.current = false;
+      distanceRef.current = 0;
       setDistance(0);
       setPhase("idle");
     }
   }, [queryClient, router]);
+
+  useEffect(() => {
+    runRefreshRef.current = runRefresh;
+  }, [runRefresh]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -80,123 +87,99 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       "ontouchstart" in window,
     );
     if (!touchOk) return;
-    setEnabled(true);
 
+    setEnabled(true);
     reducedMotion.current =
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-
     document.documentElement.classList.add("ptr-page-lock");
+
+    const resetIdle = () => {
+      pulling.current = false;
+      activePull.current = false;
+      distanceRef.current = 0;
+      setDistance(0);
+      setPhase("idle");
+    };
 
     const onStart = (e: TouchEvent) => {
       if (refreshing.current) return;
       if (e.touches.length !== 1) {
-        pulling.current = false;
-        setDistance(0);
-        setPhase("idle");
+        resetIdle();
         return;
       }
       if (!canStartPull(readScrollTop(), false)) {
         pulling.current = false;
+        activePull.current = false;
         return;
       }
       startY.current = e.touches[0].clientY;
       startX.current = e.touches[0].clientX;
       pulling.current = true;
+      activePull.current = false;
     };
 
     const onMove = (e: TouchEvent) => {
       if (!pulling.current || refreshing.current) return;
       if (e.touches.length !== 1) {
-        pulling.current = false;
-        setDistance(0);
-        setPhase("idle");
-        return;
-      }
-      // Se l'utente ha scrollato via dalla cima, abbandona.
-      if (!canStartPull(readScrollTop(), false) && distance <= 0) {
-        pulling.current = false;
-        setDistance(0);
-        setPhase("idle");
+        resetIdle();
         return;
       }
 
       const dy = e.touches[0].clientY - startY.current;
       const dx = e.touches[0].clientX - startX.current;
-      if (!isVerticalPull(dx, dy) && dy < 12) return;
+
+      if (!activePull.current) {
+        if (!canStartPull(readScrollTop(), false)) {
+          pulling.current = false;
+          return;
+        }
+        if (!isVerticalPull(dx, dy)) return;
+        activePull.current = true;
+      }
+
       if (dy <= 0) {
+        distanceRef.current = 0;
         setDistance(0);
         setPhase("idle");
         return;
       }
 
-      // Solo qui blocchiamo il bounce nativo di Safari.
       if (e.cancelable) e.preventDefault();
 
       const d = pullDistance(dy, reducedMotion.current);
+      distanceRef.current = d;
       setDistance(d);
       setPhase(phaseFor(d, false));
     };
 
     const onEnd = () => {
       if (!pulling.current || refreshing.current) return;
-      const d = distance;
+      const d = distanceRef.current;
+      const wasActive = activePull.current;
       pulling.current = false;
-      if (shouldRefreshOnRelease(d)) {
-        void runRefresh();
+      activePull.current = false;
+      if (wasActive && shouldRefreshOnRelease(d)) {
+        void runRefreshRef.current();
       } else {
+        distanceRef.current = 0;
         setDistance(0);
         setPhase("idle");
       }
     };
 
-    // touchmove non-passive solo se necessario: registrato sempre passive:false
-    // ma preventDefault solo quando stiamo tirando (vedi onMove).
-    document.addEventListener("touchstart", onStart, { passive: true });
-    document.addEventListener("touchmove", onMove, { passive: false });
-    document.addEventListener("touchend", onEnd, { passive: true });
-    document.addEventListener("touchcancel", onEnd, { passive: true });
+    document.addEventListener("touchstart", onStart, { passive: true, capture: true });
+    document.addEventListener("touchmove", onMove, { passive: false, capture: true });
+    document.addEventListener("touchend", onEnd, { passive: true, capture: true });
+    document.addEventListener("touchcancel", onEnd, { passive: true, capture: true });
 
     return () => {
       document.documentElement.classList.remove("ptr-page-lock");
-      document.removeEventListener("touchstart", onStart);
-      document.removeEventListener("touchmove", onMove);
-      document.removeEventListener("touchend", onEnd);
-      document.removeEventListener("touchcancel", onEnd);
+      document.removeEventListener("touchstart", onStart, true);
+      document.removeEventListener("touchmove", onMove, true);
+      document.removeEventListener("touchend", onEnd, true);
+      document.removeEventListener("touchcancel", onEnd, true);
     };
-    // distance in onEnd: usiamo ref-synced state via closure; re-bind on distance
-    // would thrash. Keep distance via ref for release decision.
-  }, [distance, readScrollTop, runRefresh]);
-
-  // Release usa distance dallo state aggiornato nel move — per evitare stale
-  // closure sul touchend, teniamo anche un ref.
-  const distanceRef = useRef(0);
-  useEffect(() => {
-    distanceRef.current = distance;
-  }, [distance]);
-
-  // Re-bind touchend con distanceRef (fix stale closure sopra).
-  useEffect(() => {
-    if (!enabled) return;
-
-    const onEnd = () => {
-      if (!pulling.current || refreshing.current) return;
-      const d = distanceRef.current;
-      pulling.current = false;
-      if (shouldRefreshOnRelease(d)) {
-        void runRefresh();
-      } else {
-        setDistance(0);
-        setPhase("idle");
-      }
-    };
-
-    document.addEventListener("touchend", onEnd, { passive: true });
-    document.addEventListener("touchcancel", onEnd, { passive: true });
-    return () => {
-      document.removeEventListener("touchend", onEnd);
-      document.removeEventListener("touchcancel", onEnd);
-    };
-  }, [enabled, runRefresh]);
+  }, [readScrollTop]);
 
   const progress = pullProgress(distance);
   const label = pullLabel(phase);
@@ -204,7 +187,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
 
   return (
     <div className="ptr-root relative w-full max-w-full">
-      {enabled && show && (
+      {enabled && show ? (
         <div
           className="ptr-indicator pointer-events-none fixed left-0 right-0 z-50 flex flex-col items-center"
           style={{
@@ -231,7 +214,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
             {label ? <span className="text-xs font-semibold">{label}</span> : null}
           </div>
         </div>
-      )}
+      ) : null}
       {children}
     </div>
   );
