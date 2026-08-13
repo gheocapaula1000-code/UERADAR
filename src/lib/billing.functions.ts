@@ -604,16 +604,20 @@ export const syncSubscriptionFromProvider = createServerFn({ method: "POST" })
       return { ok: false, code: "SUBSCRIPTION_FETCH_FAILED" };
     }
     if (list.status !== 200 || !list.payload) return { ok: false, code: "SUBSCRIPTION_FETCH_FAILED" };
-    const listMode = modeVerdict(list.payload, false, "SUBSCRIPTION_MODE_UNKNOWN");
-    if (!listMode.ok) return { ok: false, code: listMode.code };
+    // Le risposte "list"/"search" di Stripe non espongono `livemode`: il controllo
+    // di modalità va fatto solo sull'oggetto subscription selezionato.
     const rows = Array.isArray(list.payload["data"]) ? (list.payload["data"] as unknown[]) : [];
     const active = rows.filter(
       (row): row is Record<string, unknown> =>
         Boolean(row) && typeof row === "object" && (row as Record<string, unknown>)["status"] === "active",
     );
     if (active.length === 0) return { ok: false, code: "NO_ACTIVE_SUBSCRIPTION" };
-    if (active.length > 1) return { ok: false, code: "MULTIPLE_ACTIVE_SUBSCRIPTIONS" };
-    const sub = active[0]!;
+    // Più subscription active: si sceglie la più recente per `created`.
+    const sub = active.reduce((best, row) => {
+      const a = typeof row["created"] === "number" ? row["created"] : 0;
+      const b = typeof best["created"] === "number" ? best["created"] : 0;
+      return a > b ? row : best;
+    }, active[0]!);
 
     const subMode = modeVerdict(sub, false, "SUBSCRIPTION_MODE_UNKNOWN");
     if (!subMode.ok) return { ok: false, code: subMode.code };
