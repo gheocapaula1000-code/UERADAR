@@ -159,9 +159,6 @@
   }
 }
 
-/* ---------------------------------------------------------------
-   Apertura radar e microeffetti sobri (nessun layout shift).
-   --------------------------------------------------------------- */
 @keyframes intro-fade-in {
   from {
     opacity: 0;
@@ -240,17 +237,13 @@
   will-change: transform;
 }
 
-/* Ingresso card: solo opacità/translate, mai dimensioni. */
 @utility card-enter {
   animation: card-enter 320ms ease-out both;
 }
-/* Microeffetto per scadenze urgenti e Fondi Flash. */
 @utility urgent-pulse {
   animation: urgent-pulse 2.4s ease-in-out infinite;
 }
-/* ---------------------------------------------------------------
-   Navigazione inferiore: ingresso dal basso e pillola morbida.
-   --------------------------------------------------------------- */
+
 @keyframes bottom-nav-enter {
   from {
     opacity: 0;
@@ -289,46 +282,22 @@
   animation: bottom-nav-pill 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* CTA: nessun salto di layout, solo luminosità e ombra. */
-/* Tira per aggiornare: niente overscroll nativo in competizione col gesto. */
+/* Tira per aggiornare — iOS PWA */
 .ptr-root {
   overscroll-behavior-y: contain;
-  /* iOS: consenti lo scroll verticale nativo ma niente pan orizzontale. */
   touch-action: pan-y;
 }
-/* Applicata solo su dispositivi con tocco, mentre il pannello è montato. */
 .ptr-page-lock,
 .ptr-page-lock body {
   overscroll-behavior-y: contain;
 }
-.ptr-content {
+.ptr-indicator {
+  will-change: transform, opacity;
+}
+.ptr-spin {
+  transform-origin: center;
   will-change: transform;
-}
-/* Indicatore della libreria: sopra l'header sticky e sotto notch/status bar. */
-.ptr--ptr {
-  z-index: 40;
-  box-shadow: none;
-  color: hsl(var(--muted-foreground));
-  background: hsl(var(--background));
-  font-family: inherit;
-}
-.ptr--ptr .ptr--box {
-  padding-top: calc(env(safe-area-inset-top) + 0.75rem);
-}
-.ptr--ptr .ptr--text {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: hsl(var(--foreground));
-}
-.ptr--ptr .ptr--icon {
-  color: hsl(var(--primary));
-  font-size: 1.5rem;
-}
-@media (prefers-reduced-motion: reduce) {
-  .ptr--ptr .ptr--icon {
-    transition: none !important;
-    animation: none !important;
-  }
+  backface-visibility: hidden;
 }
 
 @utility cta-lift {
@@ -337,9 +306,6 @@
     box-shadow 180ms ease;
 }
 
-/* ---------------------------------------------------------------
-   Responsive, iOS safe-area, tipografia italiana e accessibilità.
-   --------------------------------------------------------------- */
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
@@ -347,8 +313,6 @@
   html,
   body {
     max-width: 100%;
-    /* clip evita che html/body diventino container di scroll alternativi
-       (causa dello scroll verticale "bloccato" su desktop) */
     overflow-x: clip;
     overflow-y: visible;
   }
@@ -366,7 +330,6 @@
     hyphens: none;
     -webkit-hyphens: none;
   }
-  /* Su iOS input < 16px provocano zoom automatico. */
   input,
   select,
   textarea {
@@ -379,14 +342,12 @@
   }
 }
 
-/* URL, email e codici: unico caso in cui è ammesso spezzare ovunque. */
 @utility wrap-anywhere {
   overflow-wrap: anywhere;
   word-break: break-word;
   hyphens: manual;
 }
 
-/* Area di tocco minima 44x44 per i controlli principali. */
 @utility tap {
   min-height: 44px;
   min-width: 44px;
@@ -403,7 +364,6 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Spazio per la barra inferiore: solo dove la barra è visibile (< lg). */
 @utility bottom-nav-gap {
   padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
   @media (min-width: 1024px) {
@@ -411,7 +371,6 @@
   }
 }
 
-/* Skip link: visibile solo con tastiera. */
 .skip-link {
   position: absolute;
   left: -9999px;

@@ -37,6 +37,8 @@ describe("avvio del gesto", () => {
     expect(supportsPullGesture(true, 5)).toBe(true);
     expect(supportsPullGesture(false, 0)).toBe(false);
     expect(supportsPullGesture(true, 0)).toBe(false);
+    expect(supportsPullGesture(false, 0, true)).toBe(false);
+    expect(supportsPullGesture(false, 1, true)).toBe(true);
   });
 
   it("su iOS legge la posizione più avanzata e ignora il rimbalzo elastico", () => {
@@ -117,10 +119,17 @@ describe("integrazione nell'area riservata", () => {
     expect(CSS).toContain("overscroll-behavior-y: contain");
   });
 
-  it("usa la libreria pulltorefreshjs solo su dispositivi con tocco", () => {
-    expect(PTR).toContain('import("pulltorefreshjs")');
+  it("gesto nativo su document, solo dispositivi con tocco", () => {
     expect(PTR).toContain("supportsPullGesture");
-    expect(PTR).toContain("shouldPullToRefresh");
+    expect(PTR).toContain('addEventListener("touchstart"');
+    expect(PTR).toContain('addEventListener("touchmove"');
+    expect(PTR).not.toContain("pulltorefreshjs");
+  });
+
+  it("indicatore visibile con colori tema", () => {
+    expect(PTR).toContain("ptr-indicator");
+    expect(PTR).toContain("bg-card");
+    expect(PTR).toContain("z-50");
   });
 
   it("rispetta prefers-reduced-motion e la barra inferiore", () => {
