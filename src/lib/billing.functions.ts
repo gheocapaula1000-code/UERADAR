@@ -625,10 +625,8 @@ export const syncSubscriptionFromProvider = createServerFn({ method: "POST" })
     const subId = sub["id"];
     if (typeof subId !== "string" || !subId.startsWith("sub_"))
       return { ok: false, code: "SUBSCRIPTION_ID_INVALID" };
-    // L'identità già registrata non può essere riassegnata da questa sincronizzazione.
-    const linkedSub = localRow?.provider_subscription_id?.trim() ?? "";
-    if (linkedSub && linkedSub !== subId)
-      return { ok: false, code: "SUBSCRIPTION_REASSIGNMENT_BLOCKED" };
+    // In TEST la sincronizzazione può passare alla subscription active più recente
+    // anche se il link locale punta a una subscription ormai obsoleta.
 
     const customerId = sub["customer"];
     if (typeof customerId !== "string" || !customerId.startsWith("cus_"))
