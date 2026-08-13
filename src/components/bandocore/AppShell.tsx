@@ -33,16 +33,16 @@ export function AppShell({
   ] as const;
 
   return (
-    <div className="min-h-dvh bg-background text-foreground flex">
+    <div className="h-dvh bg-background text-foreground flex overflow-hidden">
       {/* Sidebar desktop */}
-      <aside aria-label="Navigazione area riservata" className="safe-top safe-bottom hidden lg:flex w-64 flex-col border-r border-border bg-sidebar">
+      <aside aria-label="Navigazione area riservata" className="safe-top safe-bottom hidden lg:flex w-64 flex-col border-r border-border bg-sidebar shrink-0">
         <Link
           to="/dashboard"
           className="flex items-center gap-2 px-6 py-6 border-b border-sidebar-border"
         >
           <BrandLogo />
         </Link>
-        <nav aria-label="Sezioni principali" className="flex-1 px-3 py-4 space-y-1">
+        <nav aria-label="Sezioni principali" className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {nav.map((item) => {
             const active = pathname.startsWith(item.to);
             return (
@@ -69,9 +69,9 @@ export function AppShell({
         </button>
       </aside>
 
-      {/* Mobile top bar */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="safe-x safe-top lg:hidden sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
+      {/* Colonna mobile/desktop: altezza fissa, scroll solo nel PTR */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+        <header className="safe-x safe-top lg:hidden sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur shrink-0">
           <div className="flex items-center justify-between px-4 py-3">
             <Link to="/dashboard" className="flex items-center gap-2">
               <BrandLogo size="sm" />
@@ -86,10 +86,10 @@ export function AppShell({
           <main id="contenuto-principale" className="safe-x pb-24 lg:pb-10">
             {requireEntitlement ? <EntitlementGate>{children}</EntitlementGate> : children}
           </main>
+          <div className="bottom-nav-gap">
+            <SiteFooter />
+          </div>
         </PullToRefresh>
-        <div className="bottom-nav-gap">
-          <SiteFooter />
-        </div>
         <BottomNav />
       </div>
     </div>

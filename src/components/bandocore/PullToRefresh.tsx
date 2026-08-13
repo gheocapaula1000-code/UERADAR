@@ -2,27 +2,16 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 
 /**
- * Pattern collaudato da Metodo-Civiko-One (PWA iOS).
- * Listener su document, soglia 80px, reload al rilascio.
+ * Pull-to-refresh per PWA iOS.
+ * Lo scroll vive sul contenitore (ref), non su window: su iOS standalone
+ * window.scrollY è inaffidabile con header sticky + bottom nav.
  */
-const THRESHOLD = 80;
-const MAX_PULL = 140;
-const RESISTANCE = 0.5;
-
-function isScrollableAncestorScrolled(target: EventTarget | null): boolean {
-  let el = target as HTMLElement | null;
-  while (el && el !== document.body && el !== document.documentElement) {
-    const style = window.getComputedStyle(el);
-    const overflowY = style.overflowY;
-    if ((overflowY === "auto" || overflowY === "scroll") && el.scrollTop > 0) {
-      return true;
-    }
-    el = el.parentElement;
-  }
-  return false;
-}
+const THRESHOLD = 56;
+const MAX_PULL = 120;
+const RESISTANCE = 0.55;
 
 export function PullToRefresh({ children }: { children: ReactNode }) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const [pull, setPull] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const startY = useRef<number | null>(null);
@@ -40,10 +29,21 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
     const hasTouch = "ontouchstart" in window || (navigator.maxTouchPoints ?? 0) > 0;
     if (!hasTouch) return;
 
+    const el = scrollerRef.current;
+    if (!el) return;
+
+    const atTop = () => {
+      const a = el.scrollTop;
+      const b = window.scrollY || window.pageYOffset || 0;
+      const c = document.scrollingElement?.scrollTop ?? 0;
+      const d = document.documentElement?.scrollTop ?? 0;
+      const e = document.body?.scrollTop ?? 0;
+      return Math.max(a, b, c, d, e) <= 2;
+    };
+
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
-      if (window.scrollY > 0) return;
-      if (isScrollableAncestorScrolled(e.target)) return;
+      if (!atTop()) return;
       startY.current = e.touches[0].clientY;
       startX.current = e.touches[0].clientX;
       active.current = true;
@@ -68,9 +68,13 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (window.scrollY === 0 && e.cancelable) {
-        e.preventDefault();
+      if (!atTop()) {
+        active.current = false;
+        setPull(0);
+        return;
       }
+
+      if (e.cancelable) e.preventDefault();
       setPull(Math.min(dy * RESISTANCE, MAX_PULL));
     };
 
@@ -88,22 +92,35 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
         setPull(THRESHOLD);
         window.setTimeout(() => {
           window.location.reload();
-        }, 150);
+        }, 120);
       } else {
         setPull(0);
       }
     };
 
-    document.addEventListener("touchstart", onTouchStart, { passive: true });
-    document.addEventListener("touchmove", onTouchMove, { passive: false });
-    document.addEventListener("touchend", onTouchEnd, { passive: true });
-    document.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    // Capture su document + sul contenitore: copre header sticky e area contenuto.
+    const optsStart = { passive: true, capture: true } as const;
+    const optsMove = { passive: false, capture: true } as const;
+    const optsEnd = { passive: true, capture: true } as const;
+
+    el.addEventListener("touchstart", onTouchStart, optsStart);
+    el.addEventListener("touchmove", onTouchMove, optsMove);
+    el.addEventListener("touchend", onTouchEnd, optsEnd);
+    el.addEventListener("touchcancel", onTouchEnd, optsEnd);
+    document.addEventListener("touchstart", onTouchStart, optsStart);
+    document.addEventListener("touchmove", onTouchMove, optsMove);
+    document.addEventListener("touchend", onTouchEnd, optsEnd);
+    document.addEventListener("touchcancel", onTouchEnd, optsEnd);
 
     return () => {
-      document.removeEventListener("touchstart", onTouchStart);
-      document.removeEventListener("touchmove", onTouchMove);
-      document.removeEventListener("touchend", onTouchEnd);
-      document.removeEventListener("touchcancel", onTouchEnd);
+      el.removeEventListener("touchstart", onTouchStart, true);
+      el.removeEventListener("touchmove", onTouchMove, true);
+      el.removeEventListener("touchend", onTouchEnd, true);
+      el.removeEventListener("touchcancel", onTouchEnd, true);
+      document.removeEventListener("touchstart", onTouchStart, true);
+      document.removeEventListener("touchmove", onTouchMove, true);
+      document.removeEventListener("touchend", onTouchEnd, true);
+      document.removeEventListener("touchcancel", onTouchEnd, true);
     };
   }, []);
 
@@ -111,25 +128,29 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
   const showIndicator = pull > 0 || refreshing;
 
   return (
-    <div className="ptr-root relative w-full max-w-full" style={{ overscrollBehaviorY: "contain" }}>
+    <div
+      ref={scrollerRef}
+      className="ptr-root relative w-full max-w-full flex-1 min-h-0 overflow-y-auto overscroll-y-contain"
+      style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+    >
       {showIndicator ? (
         <div
           aria-hidden
           className="pointer-events-none fixed left-0 right-0 top-0 z-[9999] flex justify-center"
           style={{
-            transform: `translateY(${Math.max(pull - 40, 0)}px)`,
-            transition: active.current ? "none" : "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)",
+            paddingTop: "calc(env(safe-area-inset-top, 0px) + 8px)",
+            transform: `translateY(${Math.max(pull - 24, 0)}px)`,
+            transition: active.current ? "none" : "transform 200ms ease-out",
           }}
         >
           <div
-            className="mt-3 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card shadow-elevated"
-            style={{ opacity: refreshing ? 1 : 0.4 + progress * 0.6 }}
+            className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-primary bg-card shadow-elevated"
+            style={{ opacity: refreshing ? 1 : 0.45 + progress * 0.55 }}
           >
             <Loader2
-              className={`h-5 w-5 text-primary ${refreshing ? "animate-spin" : ""}`}
+              className={`h-6 w-6 text-primary ${refreshing ? "animate-spin" : ""}`}
               style={{
                 transform: refreshing ? undefined : `rotate(${progress * 270}deg)`,
-                transition: refreshing ? undefined : "transform 60ms linear",
               }}
             />
           </div>
