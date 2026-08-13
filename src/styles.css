@@ -304,24 +304,30 @@
 .ptr-content {
   will-change: transform;
 }
-@keyframes ptr-spin {
-  to {
-    transform: rotate(360deg) translateZ(0);
-  }
+/* Indicatore della libreria: sopra l'header sticky e sotto notch/status bar. */
+.ptr--ptr {
+  z-index: 40;
+  box-shadow: none;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--background));
+  font-family: inherit;
 }
-.ptr-spin {
-  animation: ptr-spin 900ms linear infinite;
-  transform-origin: 50% 50%;
-  will-change: transform;
-  backface-visibility: hidden;
+.ptr--ptr .ptr--box {
+  padding-top: calc(env(safe-area-inset-top) + 0.75rem);
 }
-/* L'indicatore vive sopra l'header sticky (z-30) e sotto la top bar/notch. */
-.ptr-indicator {
-  top: calc(env(safe-area-inset-top) + 3.5rem);
+.ptr--ptr .ptr--text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
 }
-@media (min-width: 1024px) {
-  .ptr-indicator {
-    top: calc(env(safe-area-inset-top) + 4.5rem);
+.ptr--ptr .ptr--icon {
+  color: hsl(var(--primary));
+  font-size: 1.5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ptr--ptr .ptr--icon {
+    transition: none !important;
+    animation: none !important;
   }
 }
 
