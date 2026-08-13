@@ -38,6 +38,15 @@ const STATE_LABEL: Record<string, string> = {
 };
 
 /** Spiegazioni leggibili dei codici di blocco checkout (nessun segreto in UI). */
+const PAYMENT_LINK_RADAR = "https://buy.stripe.com/7sYeVd3Ph7c41Ad3TGcZa00";
+const PAYMENT_LINK_PRATICA = "https://buy.stripe.com/7sYeVd3Ph7c41Ad3TGcZa00";
+
+/** Fallback Payment Link per piano quando il checkout server non è disponibile. */
+const PAYMENT_LINKS: Record<string, string | undefined> = {
+  professional: PAYMENT_LINK_RADAR,
+  business: PAYMENT_LINK_PRATICA,
+};
+
 const CHECKOUT_BLOCK_LABEL: Record<string, string> = {
   BILLING_NOT_CONFIGURED: "L'attivazione online non è ancora configurata su questo ambiente.",
   BILLING_KEY_MODE_MISMATCH:
