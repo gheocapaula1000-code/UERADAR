@@ -113,13 +113,18 @@ describe("integrazione nell'area riservata", () => {
     expect(PTR).toContain("queryClient.invalidateQueries()");
   });
 
-  it("non compete con l'overscroll nativo e usa solo trasformazioni", () => {
+  it("non compete con l'overscroll nativo", () => {
     expect(CSS).toContain("overscroll-behavior-y: contain");
-    expect(PTR).toContain("translate3d");
+  });
+
+  it("usa la libreria pulltorefreshjs solo su dispositivi con tocco", () => {
+    expect(PTR).toContain('import("pulltorefreshjs")');
+    expect(PTR).toContain("supportsPullGesture");
+    expect(PTR).toContain("shouldPullToRefresh");
   });
 
   it("rispetta prefers-reduced-motion e la barra inferiore", () => {
-    expect(PTR).toContain("prefers-reduced-motion: reduce");
+    expect(CSS).toContain("prefers-reduced-motion: reduce");
     expect(SHELL).toContain("<BottomNav />");
   });
 });
