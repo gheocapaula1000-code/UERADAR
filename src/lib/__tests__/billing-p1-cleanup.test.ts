@@ -10,7 +10,8 @@ const migration = readFileSync(
 describe("billing P1: fail-closed DB e cleanup post-deploy", () => {
   it("richiede cardinalità esatta per Customer e pre-binding Price", () => {
     const exactWrites = functions.match(/\.select\("user_id"\)\s*\.single\(\)/g) ?? [];
-    expect(exactWrites).toHaveLength(2);
+    // customer link, apply canonico e sincronizzazione post-checkout TEST
+    expect(exactWrites).toHaveLength(3);
     expect(functions).toContain('throw new Error("CUSTOMER_LINK_FAILED")');
     expect(functions).toContain('code: "SUBSCRIPTION_UPDATE_FAILED"');
   });
