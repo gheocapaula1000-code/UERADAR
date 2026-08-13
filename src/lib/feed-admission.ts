@@ -39,7 +39,7 @@ export const CORE_SOURCES: CoreSource[] = [
     id: "eu",
     label: "EU Funding & Tenders Portal",
     homepage: "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home",
-    hosts: ["ec.europa.eu", "europa.eu", "eismea.ec.europa.eu", "eurostars.eurekanetwork.org"],
+    hosts: ["ec.europa.eu", "europa.eu", "eismea.ec.europa.eu", "eurekanetwork.org"],
     level: "EUROPEO",
   },
 ];
