@@ -118,8 +118,9 @@ describe("isolamento Stripe TEST/LIVE", () => {
   });
 
   it("richiede sei Price ID distinti", () => {
+    const keys = Object.keys(env().priceMap);
     const duplicated = Object.fromEntries(
-      PRICE_ENV_NAMES.map((_, i) => [`p:${i}`, i < 2 ? "price_duplicate" : `price_${i}`]),
+      keys.map((k, i) => [k, i < 2 ? "price_duplicate" : `price_${i}`]),
     );
     expect(billingConfigured(env({ priceMap: duplicated })).code).toBe("PRICE_IDS_NOT_UNIQUE");
     expect(billingConfigured(env({ priceMap: { "p:0": "price_only" } })).code).toBe(
