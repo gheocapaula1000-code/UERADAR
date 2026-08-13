@@ -293,6 +293,35 @@ function Dashboard() {
         </header>
 
         {/* Esito persistente dell'ultima ricerca */}
+        {query.data?.admission && (
+          <section className="rounded-xl border border-border/60 bg-card/60 p-4 text-sm">
+            <p className="font-semibold">
+              Fonti core attive · {query.data.admission.admitted_count} bandi validi ·{" "}
+              {query.data.admission.rejected_count} scartati
+            </p>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {query.data.admission.active_sources.length === 0 ? (
+                <li className="text-muted-foreground">
+                  Nessuna fonte core ha prodotto schede complete in questo aggiornamento.
+                </li>
+              ) : (
+                query.data.admission.active_sources.map((s) => (
+                  <li
+                    key={s.id}
+                    className="rounded-lg bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground"
+                  >
+                    {s.label} · {s.count}
+                  </li>
+                ))
+              )}
+            </ul>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Sono escluse le schede senza scadenza e senza dato economico: nessuna data o importo
+              viene stimato.
+            </p>
+          </section>
+        )}
+
         {refreshNotice && (
           <div
             role="status"
