@@ -7,6 +7,7 @@ import { BandoCard, BandoCardSkeleton } from "@/components/bandocore/BandoCard";
 import { DeepSearchShimmer } from "@/components/bandocore/DeepSearchShimmer";
 import { RadarIntro } from "@/components/bandocore/RadarIntro";
 import { fetchFeedFromProxyCore, requestFeedRefresh } from "@/lib/proxy-core.functions";
+import { getBillingStatus } from "@/lib/billing.functions";
 import { supabase } from "@/integrations/supabase/client";
 import type { Bando, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
 import { CATEGORY_FILTERS, type CategoryFilterKey } from "@/lib/bando-categories";
@@ -47,6 +48,15 @@ function Dashboard() {
   const navigate = useNavigate();
   const fetchFeed = useServerFn(fetchFeedFromProxyCore);
   const enqueueRefresh = useServerFn(requestFeedRefresh);
+  // Stesso gate (e stessa cache) di EntitlementGate: senza accesso attivo il feed
+  // non viene nemmeno richiesto, così non si genera l'errore FEED_NOT_ENTITLED.
+  const billingStatus = useServerFn(getBillingStatus);
+  const billing = useQuery({
+    queryKey: ["billing-status"],
+    queryFn: () => billingStatus(),
+    staleTime: 60_000,
+  });
+  const entitled = billing.data?.entitlement.entitled === true;
   const queryClient = useQueryClient();
   const refreshAbort = useRef<AbortController | null>(null);
   // Guardia sincrona: `isRefreshing` è state asincrono e due click nello stesso
@@ -124,7 +134,7 @@ function Dashboard() {
         throw error;
       }
     },
-    enabled: !profileMissing,
+    enabled: !profileMissing && entitled,
     retry: false,
   });
 
