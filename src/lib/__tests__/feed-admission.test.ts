@@ -20,8 +20,18 @@ function bando(over: Partial<Bando> = {}): Bando {
 }
 
 describe("registro fonti core", () => {
-  it("copre le quattro fonti obbligatorie nell'ordine richiesto", () => {
-    expect(CORE_SOURCES.map((s) => s.id)).toEqual(["veneto", "invitalia", "mimit", "eu"]);
+  it("copre le fonti obbligatorie nell'ordine richiesto", () => {
+    expect(CORE_SOURCES.map((s) => s.id)).toEqual([
+      "veneto",
+      "invitalia",
+      "mimit",
+      "eu",
+      "padova",
+      "cciaa",
+      "gal",
+      "unioncamere",
+      "provincia",
+    ]);
   });
 
   it("riconosce gli host ufficiali e rifiuta il resto", () => {
@@ -29,6 +39,9 @@ describe("registro fonti core", () => {
     expect(sourceForUrl("https://www.invitalia.it/x")?.id).toBe("invitalia");
     expect(sourceForUrl("https://www.incentivi.gov.it/it/x")?.id).toBe("mimit");
     expect(sourceForUrl("https://ec.europa.eu/info/funding-tenders/x")?.id).toBe("eu");
+    expect(sourceForUrl("https://www.padovanet.it/x")?.id).toBe("padova");
+    expect(sourceForUrl("https://www.pd.camcom.it/x")?.id).toBe("cciaa");
+    expect(sourceForUrl("https://www.provincia.pd.it/x")?.id).toBe("provincia");
     expect(sourceForUrl("https://blog-bandi.example.com/x")).toBeNull();
     expect(sourceForUrl("javascript:alert(1)")).toBeNull();
     expect(sourceForUrl(undefined)).toBeNull();
@@ -76,15 +89,35 @@ describe("ammissione fail-closed", () => {
     ).toMatchObject({ ok: true });
   });
 
-  it("scarta fonti fuori registro e livelli non ammessi", () => {
+  it("ammette schede solide comunali, camerali e provinciali", () => {
+    expect(
+      admitBando(
+        bando({ scope: "COMUNALE", ente: "Comune di Padova", official_url: "https://www.padovanet.it/bando" }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true });
+    expect(
+      admitBando(
+        bando({ scope: "CAMERALE", ente: "CCIAA Padova", official_url: "https://www.pd.camcom.it/bando" }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true });
+    expect(
+      admitBando(
+        bando({ scope: "REGIONALE", ente: "Provincia di Padova", official_url: "https://www.provincia.pd.it/bando" }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true });
+  });
+
+  it("scarta fonti fuori registro", () => {
     expect(admitBando(bando({ official_url: "https://example.com/x", notice_url: undefined }), NOW)).toMatchObject({
       ok: false,
       reason: "SOURCE_NOT_CORE",
     });
-    expect(admitBando(bando({ scope: "COMUNALE" }), NOW)).toMatchObject({
-      ok: false,
-      reason: "LEVEL_NOT_ADMITTED",
-    });
+    expect(
+      admitBando(bando({ official_url: "https://news.example.com/x", notice_url: undefined }), NOW),
+    ).toMatchObject({ ok: false, reason: "SOURCE_NOT_CORE" });
   });
 });
 
