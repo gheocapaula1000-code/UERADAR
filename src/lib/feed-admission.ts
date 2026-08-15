@@ -6,11 +6,20 @@ import type { Bando, BandoScope } from "./bandocore-types";
  * queste fonti: meglio pochi bandi solidi che molti incompleti.
  */
 export interface CoreSource {
-  id: "veneto" | "invitalia" | "mimit" | "eu";
+  id:
+    | "veneto"
+    | "invitalia"
+    | "mimit"
+    | "eu"
+    | "padova"
+    | "cciaa"
+    | "gal"
+    | "unioncamere"
+    | "provincia";
   label: string;
   homepage: string;
   hosts: string[];
-  level: Extract<BandoScope, "REGIONALE" | "NAZIONALE" | "EUROPEO">;
+  level: BandoScope;
 }
 
 export const CORE_SOURCES: CoreSource[] = [
@@ -42,9 +51,50 @@ export const CORE_SOURCES: CoreSource[] = [
     hosts: ["ec.europa.eu", "europa.eu", "eismea.ec.europa.eu", "eurekanetwork.org"],
     level: "EUROPEO",
   },
+  {
+    id: "padova",
+    label: "Comune di Padova — Padovanet",
+    homepage: "https://www.padovanet.it",
+    hosts: ["padovanet.it"],
+    level: "COMUNALE",
+  },
+  {
+    id: "cciaa",
+    label: "Camera di Commercio di Padova",
+    homepage: "https://www.pd.camcom.it",
+    hosts: ["pd.camcom.it", "camcom.it"],
+    level: "CAMERALE",
+  },
+  {
+    id: "gal",
+    label: "GAL Patavino",
+    homepage: "https://www.galpatavino.it",
+    hosts: ["galpatavino.it"],
+    level: "COMUNALE",
+  },
+  {
+    id: "unioncamere",
+    label: "Unioncamere",
+    homepage: "https://www.unioncamere.gov.it",
+    hosts: ["unioncamere.gov.it"],
+    level: "CAMERALE",
+  },
+  {
+    id: "provincia",
+    label: "Provincia di Padova",
+    homepage: "https://www.provincia.pd.it",
+    hosts: ["provincia.pd.it", "provincia.padova.it"],
+    level: "REGIONALE",
+  },
 ];
 
-export const ADMITTED_LEVELS: BandoScope[] = ["REGIONALE", "NAZIONALE", "EUROPEO"];
+export const ADMITTED_LEVELS: BandoScope[] = [
+  "COMUNALE",
+  "CAMERALE",
+  "REGIONALE",
+  "NAZIONALE",
+  "EUROPEO",
+];
 
 export type RejectReason =
   | "NO_TITLE"
