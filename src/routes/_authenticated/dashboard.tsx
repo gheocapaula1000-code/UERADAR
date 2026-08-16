@@ -13,6 +13,7 @@ import type { Bando, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
 import { CATEGORY_FILTERS, type CategoryFilterKey } from "@/lib/bando-categories";
 import { feedMarker, runBoundedRefresh } from "@/lib/feed-refresh";
 import { isActive, isExpired, isFlash, compareByQuality } from "@/lib/bando-status";
+import { splitFeedTiers } from "@/lib/feed-admission";
 import { loadOfflineFeed, saveOfflineFeed } from "@/lib/offline-feed";
 import {
   RefreshCw,
@@ -258,6 +259,9 @@ function Dashboard() {
     (scope !== "ALL" ? 1 : 0) +
     (hyperlocalOnly ? 1 : 0) +
     (hiddenOnly ? 1 : 0);
+
+  // Due fasce: alta priorità e da verificare. Nessuna delle due viene nascosta.
+  const tiers = useMemo(() => splitFeedTiers(filtered), [filtered]);
 
   const resetFilters = () => {
     setCat("TUTTI");
