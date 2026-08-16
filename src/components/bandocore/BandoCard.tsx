@@ -8,8 +8,6 @@ import {
   Sparkles,
   Radar,
   CheckCircle2,
-  AlertTriangle,
-  XCircle,
   CalendarX,
   FileSearch,
 } from "lucide-react";

@@ -190,19 +190,23 @@ describe("fasce vetrina", () => {
     blockers: [],
   });
 
-  it("alta priorita solo con match forte, data e dato economico", () => {
+  it("alta priorita con data e dato economico, indipendente dal match", () => {
     expect(feedTier(bando({ match: strong() }), NOW)).toBe("ALTA_PRIORITA");
+    expect(feedTier(bando(), NOW)).toBe("ALTA_PRIORITA");
     expect(feedTier(bando({ match: strong(), importo_max: undefined, eligible_expenses: [] }), NOW)).toBe(
       "DA_VERIFICARE",
     );
     expect(
       feedTier(bando({ match: strong(), scadenza: undefined, apertura: undefined }), NOW),
     ).toBe("DA_VERIFICARE");
-    expect(feedTier(bando(), NOW)).toBe("DA_VERIFICARE");
+    expect(feedTier(bando({ scadenza: undefined, apertura: undefined }), NOW)).toBe("DA_VERIFICARE");
   });
 
   it("non nasconde nulla: le due fasce coprono tutto il feed", () => {
-    const list = [bando({ id: "a", match: strong() }), bando({ id: "b" })];
+    const list = [
+      bando({ id: "a", match: strong() }),
+      bando({ id: "b", scadenza: undefined, apertura: undefined }),
+    ];
     const { high, review } = splitFeedTiers(list, NOW);
     expect(high.map((b) => b.id)).toEqual(["a"]);
     expect(review.map((b) => b.id)).toEqual(["b"]);
