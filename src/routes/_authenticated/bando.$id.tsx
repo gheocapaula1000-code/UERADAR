@@ -58,6 +58,7 @@ function BandoDetail() {
   const [dossierOpen, setDossierOpen] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [dossierBusy, setDossierBusy] = useState(false);
+  const [dossierError, setDossierError] = useState<string | null>(null);
   const [watermarked, setWatermarked] = useState(false);
   // Il dossier consuma una quota del piano: la decisione è sempre server-side.
   const claimDossier = useServerFn(consumeDossier);
