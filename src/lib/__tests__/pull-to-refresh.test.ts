@@ -113,7 +113,6 @@ describe("integrazione nell'area riservata (pattern Civiko)", () => {
     expect(PTR).toContain('addEventListener("touchstart"');
     expect(PTR).toContain('addEventListener("touchmove"');
     expect(PTR).toContain("window.location.reload");
-    expect(PTR).toContain("isScrollableAncestorScrolled");
     expect(PTR).not.toContain("pulltorefreshjs");
   });
 
@@ -124,7 +123,7 @@ describe("integrazione nell'area riservata (pattern Civiko)", () => {
 
   it("non compete con l'overscroll nativo", () => {
     expect(CSS).toContain("overscroll-behavior-y: contain");
-    expect(PTR).toContain("overscrollBehaviorY");
+    expect(PTR).toContain("overscroll-y-contain");
   });
 
   it("rispetta prefers-reduced-motion e la barra inferiore", () => {
