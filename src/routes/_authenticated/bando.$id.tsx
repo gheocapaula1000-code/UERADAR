@@ -31,6 +31,20 @@ import {
   FileDown,
 } from "lucide-react";
 import { toast } from "sonner";
+
+/** Normalizza un URL ufficiale: forza https e corregge invitalia.it senza www. */
+function safeOfficialHref(raw?: string | null): string | null {
+  if (!raw || !raw.trim()) return null;
+  try {
+    const url = new URL(raw.trim());
+    if (url.protocol === "http:") url.protocol = "https:";
+    if (url.hostname === "invitalia.it") url.hostname = "www.invitalia.it";
+    if (url.protocol !== "https:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
 import {
   hasIncompleteCoreData,
   isExpired,
@@ -328,10 +342,13 @@ function BandoDetail() {
               <div className="mt-6">
                 <h3 className="text-sm font-semibold mb-2">Prove e fonti ufficiali</h3>
                 <div className="space-y-2">
-                  {bando.evidence.map((evidence) => (
+                  {bando.evidence.map((evidence) => {
+                    const evidenceHref = safeOfficialHref(evidence.source_url);
+                    if (!evidenceHref) return null;
+                    return (
                     <a
                       key={evidence.source_url}
-                      href={evidence.source_url}
+                      href={evidenceHref}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-start gap-2 rounded-xl border border-border bg-background/40 p-3 text-sm transition hover:border-primary/50"
@@ -346,7 +363,8 @@ function BandoDetail() {
                         </span>
                       </span>
                     </a>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
@@ -677,19 +695,30 @@ function BandoDetail() {
                 </p>
               )}
 
-              {bando.piattaforma_url && (
+              {(() => {
+                const piattaformaHref =
+                  safeOfficialHref(bando.piattaforma_url) ||
+                  safeOfficialHref(bando.application_url) ||
+                  safeOfficialHref(bando.official_url) ||
+                  safeOfficialHref(bando.notice_url);
+                return piattaformaHref ? (
+                  <a
+                    href={piattaformaHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:brightness-110"
+                  >
+                    <ExternalLink className="h-4 w-4" /> Piattaforma di sottomissione
+                  </a>
+                ) : (
+                  <p className="mt-4 text-xs text-muted-foreground">
+                    Link di presentazione non disponibile sulla fonte ufficiale
+                  </p>
+                );
+              })()}
+              {safeOfficialHref(bando.modulistica_url) && (
                 <a
-                  href={bando.piattaforma_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:brightness-110"
-                >
-                  <ExternalLink className="h-4 w-4" /> Piattaforma di sottomissione
-                </a>
-              )}
-              {bando.modulistica_url && (
-                <a
-                  href={bando.modulistica_url}
+                  href={safeOfficialHref(bando.modulistica_url)!}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-2 flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium hover:bg-surface-elevated transition"
