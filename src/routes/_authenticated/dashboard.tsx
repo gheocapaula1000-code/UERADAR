@@ -330,8 +330,8 @@ function Dashboard() {
               )}
             </ul>
             <p className="mt-2 text-xs text-muted-foreground">
-              Sono escluse le schede senza scadenza e senza dato economico: nessuna data o importo
-              viene stimato.
+              Le schede ufficiali restano visibili anche quando manca la scadenza o l'importo:
+              vengono segnalate come «Da verificare». Nessuna data e nessun importo viene stimato.
             </p>
           </section>
         )}
@@ -604,25 +604,74 @@ function Dashboard() {
             </div>
           )}
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {query.isLoading ? (
-              Array.from({ length: 6 }).map((_, i) => <BandoCardSkeleton key={i} />)
-            ) : filtered.length === 0 ? (
-              <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Nessun Bando corrisponde ai filtri scelti.
-                {activeFilters > 0 && (
-                  <button
-                    onClick={resetFilters}
-                    className="tap ml-2 font-semibold text-primary underline"
-                  >
-                    Azzera i filtri
-                  </button>
+          {query.isLoading ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <BandoCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              Nessun Bando corrisponde ai filtri scelti.
+              {activeFilters > 0 && (
+                <button
+                  onClick={resetFilters}
+                  className="tap ml-2 font-semibold text-primary underline"
+                >
+                  Azzera i filtri
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-base font-semibold">
+                  Alta priorità{" "}
+                  <span className="text-sm font-normal text-muted-foreground">
+                    ({tiers.high.length})
+                  </span>
+                </h3>
+                <p className="mt-1 mb-4 text-xs text-muted-foreground">
+                  Compatibilità confermata con date e dato economico presenti nel testo ufficiale.
+                </p>
+                {tiers.high.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                    Nessuna scheda con match forte, data e importo completi in questo elenco.
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {tiers.high.map((b: Bando, i: number) => (
+                      <BandoCard key={b.id} bando={b} index={i} />
+                    ))}
+                  </div>
                 )}
               </div>
-            ) : (
-              filtered.map((b: Bando, i: number) => <BandoCard key={b.id} bando={b} index={i} />)
-            )}
-          </div>
+
+              <div>
+                <h3 className="text-base font-semibold">
+                  Da verificare{" "}
+                  <span className="text-sm font-normal text-muted-foreground">
+                    ({tiers.review.length})
+                  </span>
+                </h3>
+                <p className="mt-1 mb-4 text-xs text-muted-foreground">
+                  Schede da fonte ufficiale in cui manca l'importo o la scadenza, oppure con campi
+                  ancora da verificare sulla fonte.
+                </p>
+                {tiers.review.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                    Nessuna scheda da verificare in questo elenco.
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {tiers.review.map((b: Bando, i: number) => (
+                      <BandoCard key={b.id} bando={b} index={i} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </section>
 
         <p className="rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground">
