@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { CORE_SOURCES, admitBando, admitFeed, sourceForUrl } from "../feed-admission";
+import {
+  CORE_SOURCES,
+  admitBando,
+  admitFeed,
+  feedTier,
+  sourceForUrl,
+  splitFeedTiers,
+} from "../feed-admission";
 import type { Bando } from "../bandocore-types";
 
 const NOW = Date.parse("2026-08-13T08:00:00Z");
@@ -139,6 +146,19 @@ describe("ammissione fail-closed", () => {
 });
 
 describe("rendiconto feed", () => {
+  it("porta: ufficiale senza data e senza importo entra, scadenza passata ed example.com no", () => {
+    expect(
+      admitBando(
+        bando({ scadenza: undefined, apertura: undefined, importo_max: undefined }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true, gaps: { missing_deadline: true, missing_economics: true } });
+    expect(admitBando(bando({ scadenza: "2020-01-01" }), NOW)).toMatchObject({ ok: false });
+    expect(
+      admitBando(bando({ official_url: "https://example.com/x", notice_url: undefined }), NOW),
+    ).toMatchObject({ ok: false, reason: "SOURCE_NOT_CORE" });
+  });
+
   it("conta validi, scartati e fonti attive", () => {
     const report = admitFeed(
       [
@@ -158,5 +178,33 @@ describe("rendiconto feed", () => {
     expect(report.rejected_count).toBe(2);
     expect(report.rejected_by_reason).toMatchObject({ DEADLINE_PAST: 1, SOURCE_NOT_CORE: 1 });
     expect(report.active_sources.map((s) => s.id)).toEqual(["veneto", "mimit"]);
+  });
+});
+
+describe("fasce vetrina", () => {
+  const strong = (): NonNullable<Bando["match"]> => ({
+    status: "COMPATIBILE",
+    score: 90,
+    confirmed: [],
+    missing: [],
+    blockers: [],
+  });
+
+  it("alta priorita solo con match forte, data e dato economico", () => {
+    expect(feedTier(bando({ match: strong() }), NOW)).toBe("ALTA_PRIORITA");
+    expect(feedTier(bando({ match: strong(), importo_max: undefined, eligible_expenses: [] }), NOW)).toBe(
+      "DA_VERIFICARE",
+    );
+    expect(
+      feedTier(bando({ match: strong(), scadenza: undefined, apertura: undefined }), NOW),
+    ).toBe("DA_VERIFICARE");
+    expect(feedTier(bando(), NOW)).toBe("DA_VERIFICARE");
+  });
+
+  it("non nasconde nulla: le due fasce coprono tutto il feed", () => {
+    const list = [bando({ id: "a", match: strong() }), bando({ id: "b" })];
+    const { high, review } = splitFeedTiers(list, NOW);
+    expect(high.map((b) => b.id)).toEqual(["a"]);
+    expect(review.map((b) => b.id)).toEqual(["b"]);
   });
 });
