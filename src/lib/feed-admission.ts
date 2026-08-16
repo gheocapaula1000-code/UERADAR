@@ -228,16 +228,6 @@ export function splitFeedTiers(
   return { high, review };
 }
 
-interface AdmissionReportLegacy {
-  admitted: Bando[];
-  admitted_count: number;
-  rejected_count: number;
-  missing_deadline_count: number;
-  missing_economics_count: number;
-  rejected_by_reason: Partial<Record<RejectReason, number>>;
-  active_sources: Array<{ id: CoreSource["id"]; label: string; count: number }>;
-}
-
 /** Applica l'ammissione all'intero feed e produce il rendiconto validi/scartati. */
 export function admitFeed(bandi: Bando[], now: number = Date.now()): AdmissionReport {
   const admitted: Bando[] = [];
