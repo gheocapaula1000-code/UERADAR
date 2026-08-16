@@ -363,7 +363,8 @@ function BandoDetail() {
                         </span>
                       </span>
                     </a>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
