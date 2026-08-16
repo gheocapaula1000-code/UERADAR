@@ -691,19 +691,30 @@ function BandoDetail() {
                 </p>
               )}
 
-              {bando.piattaforma_url && (
+              {(() => {
+                const piattaformaHref =
+                  safeOfficialHref(bando.piattaforma_url) ||
+                  safeOfficialHref(bando.application_url) ||
+                  safeOfficialHref(bando.official_url) ||
+                  safeOfficialHref(bando.notice_url);
+                return piattaformaHref ? (
+                  <a
+                    href={piattaformaHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:brightness-110"
+                  >
+                    <ExternalLink className="h-4 w-4" /> Piattaforma di sottomissione
+                  </a>
+                ) : (
+                  <p className="mt-4 text-xs text-muted-foreground">
+                    Link di presentazione non disponibile sulla fonte ufficiale
+                  </p>
+                );
+              })()}
+              {safeOfficialHref(bando.modulistica_url) && (
                 <a
-                  href={bando.piattaforma_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:brightness-110"
-                >
-                  <ExternalLink className="h-4 w-4" /> Piattaforma di sottomissione
-                </a>
-              )}
-              {bando.modulistica_url && (
-                <a
-                  href={bando.modulistica_url}
+                  href={safeOfficialHref(bando.modulistica_url)!}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-2 flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium hover:bg-surface-elevated transition"
