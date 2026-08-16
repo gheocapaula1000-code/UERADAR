@@ -374,24 +374,35 @@ function BandoDetail() {
                   </span>
                 </div>
                 {!dossierOpen && (
+                  <div className="flex flex-col items-start gap-2">
                   <button
                     type="button"
                     disabled={dossierBusy}
                     onClick={async () => {
                       setDossierBusy(true);
+                      setDossierError(null);
                       try {
-                        const res = await claimDossier({ data: { opportunity_id: bando.id } });
+                        const res = await Promise.race([
+                          claimDossier({ data: { opportunity_id: bando.id } }),
+                          new Promise<never>((_, reject) =>
+                            setTimeout(() => reject(new Error("TIMEOUT")), 12_000),
+                          ),
+                        ]);
                         if (!res.allowed) {
-                          toast.error(
+                          const msg =
                             res.code === "QUOTA_EXCEEDED"
                               ? "Hai esaurito i dossier inclusi in questo mese"
-                              : "Dossier non disponibile con il piano attivo",
-                          );
+                              : res.code === "EXPORT_NOT_INCLUDED"
+                                ? "Dossier non disponibile con il piano attivo"
+                                : "Dossier non disponibile in questo momento";
+                          setDossierError(msg);
+                          toast.error(msg);
                           return;
                         }
                         setWatermarked(res.watermarked === true);
                         setDossierOpen(true);
                       } catch {
+                        setDossierError("Dossier non disponibile in questo momento");
                         toast.error("Dossier non disponibile in questo momento");
                       } finally {
                         setDossierBusy(false);
@@ -399,8 +410,15 @@ function BandoDetail() {
                     }}
                     className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
                   >
-                    <FileText className="h-4 w-4" /> Genera dossier candidatura
+                    <FileText className="h-4 w-4" />{" "}
+                    {dossierBusy ? "Apertura…" : "Genera dossier candidatura"}
                   </button>
+                  {dossierError ? (
+                    <p role="alert" className="text-xs font-semibold text-destructive">
+                      {dossierError}
+                    </p>
+                  ) : null}
+                  </div>
                 )}
               </div>
 
