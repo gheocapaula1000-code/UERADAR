@@ -202,15 +202,14 @@ export interface AdmissionReport {
 export type FeedTier = "ALTA_PRIORITA" | "DA_VERIFICARE";
 
 /**
- * Alta priorità = match forte + (scadenza o apertura) + un dato economico.
- * Tutto il resto resta visibile nella fascia «Da verificare».
+ * Alta priorità = (scadenza o apertura) + un dato economico.
+ * Il badge match non incide: tutto il resto resta visibile in «Da verificare».
  */
 export function feedTier(bando: Bando, now: number = Date.now()): FeedTier {
   const hasDate = parseDate(bando.scadenza) !== null || parseDate(bando.apertura) !== null;
-  const strongMatch = bando.match?.status === "COMPATIBILE";
   const deadline = parseDate(bando.scadenza);
   const notExpired = deadline === null || deadline >= now;
-  return strongMatch && hasDate && notExpired && hasEconomicData(bando)
+  return hasDate && notExpired && hasEconomicData(bando)
     ? "ALTA_PRIORITA"
     : "DA_VERIFICARE";
 }
