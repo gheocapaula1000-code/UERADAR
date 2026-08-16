@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { CORE_SOURCES, admitBando, admitFeed, sourceForUrl } from "../feed-admission";
+import {
+  CORE_SOURCES,
+  admitBando,
+  admitFeed,
+  feedTier,
+  sourceForUrl,
+  splitFeedTiers,
+} from "../feed-admission";
 import type { Bando } from "../bandocore-types";
 
 const NOW = Date.parse("2026-08-13T08:00:00Z");
@@ -139,6 +146,19 @@ describe("ammissione fail-closed", () => {
 });
 
 describe("rendiconto feed", () => {
+  it("porta: ufficiale senza data e senza importo entra, scadenza passata ed example.com no", () => {
+    expect(
+      admitBando(
+        bando({ scadenza: undefined, apertura: undefined, importo_max: undefined }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true, gaps: { missing_deadline: true, missing_economics: true } });
+    expect(admitBando(bando({ scadenza: "2020-01-01" }), NOW)).toMatchObject({ ok: false });
+    expect(
+      admitBando(bando({ official_url: "https://example.com/x", notice_url: undefined }), NOW),
+    ).toMatchObject({ ok: false, reason: "SOURCE_NOT_CORE" });
+  });
+
   it("conta validi, scartati e fonti attive", () => {
     const report = admitFeed(
       [
