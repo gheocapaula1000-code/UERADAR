@@ -5,10 +5,21 @@ import { Loader2 } from "lucide-react";
  * Pull-to-refresh per PWA iOS.
  * Lo scroll vive sul contenitore (ref), non su window: su iOS standalone
  * window.scrollY è inaffidabile con header sticky + bottom nav.
+ *
+ * I tap su link e pulsanti (es. Genera dossier) non devono mai avviare
+ * il gesto: altrimenti preventDefault su touchmove mangia il click.
  */
 const THRESHOLD = 56;
 const MAX_PULL = 120;
 const RESISTANCE = 0.55;
+const PULL_LOCK = 12;
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  return Boolean(
+    target.closest("a, button, input, textarea, select, label, [role='button'], [role='link']"),
+  );
+}
 
 export function PullToRefresh({ children }: { children: ReactNode }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -44,6 +55,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
       if (!atTop()) return;
+      if (isInteractiveTarget(e.target)) return;
       startY.current = e.touches[0].clientY;
       startX.current = e.touches[0].clientX;
       active.current = true;
@@ -74,6 +86,9 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Sotto PULL_LOCK è ancora un tap: non bloccare il click.
+      if (dy < PULL_LOCK) return;
+
       if (e.cancelable) e.preventDefault();
       setPull(Math.min(dy * RESISTANCE, MAX_PULL));
     };
@@ -98,7 +113,6 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       }
     };
 
-    // Capture su document + sul contenitore: copre header sticky e area contenuto.
     const optsStart = { passive: true, capture: true } as const;
     const optsMove = { passive: false, capture: true } as const;
     const optsEnd = { passive: true, capture: true } as const;
