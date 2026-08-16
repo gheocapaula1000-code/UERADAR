@@ -182,21 +182,27 @@ describe("rendiconto feed", () => {
 });
 
 describe("fasce vetrina", () => {
-  const strong = { status: "COMPATIBILE", score: 90, confirmed: [], missing: [], blockers: [] } as const;
+  const strong = (): NonNullable<Bando["match"]> => ({
+    status: "COMPATIBILE",
+    score: 90,
+    confirmed: [],
+    missing: [],
+    blockers: [],
+  });
 
   it("alta priorita solo con match forte, data e dato economico", () => {
-    expect(feedTier(bando({ match: { ...strong } }), NOW)).toBe("ALTA_PRIORITA");
-    expect(feedTier(bando({ match: { ...strong }, importo_max: undefined, eligible_expenses: [] }), NOW)).toBe(
+    expect(feedTier(bando({ match: strong() }), NOW)).toBe("ALTA_PRIORITA");
+    expect(feedTier(bando({ match: strong(), importo_max: undefined, eligible_expenses: [] }), NOW)).toBe(
       "DA_VERIFICARE",
     );
     expect(
-      feedTier(bando({ match: { ...strong }, scadenza: undefined, apertura: undefined }), NOW),
+      feedTier(bando({ match: strong(), scadenza: undefined, apertura: undefined }), NOW),
     ).toBe("DA_VERIFICARE");
     expect(feedTier(bando(), NOW)).toBe("DA_VERIFICARE");
   });
 
   it("non nasconde nulla: le due fasce coprono tutto il feed", () => {
-    const list = [bando({ id: "a", match: { ...strong } }), bando({ id: "b" })];
+    const list = [bando({ id: "a", match: strong() }), bando({ id: "b" })];
     const { high, review } = splitFeedTiers(list, NOW);
     expect(high.map((b) => b.id)).toEqual(["a"]);
     expect(review.map((b) => b.id)).toEqual(["b"]);
