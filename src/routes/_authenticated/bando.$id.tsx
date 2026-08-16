@@ -31,6 +31,20 @@ import {
   FileDown,
 } from "lucide-react";
 import { toast } from "sonner";
+
+/** Normalizza un URL ufficiale: forza https e corregge invitalia.it senza www. */
+function safeOfficialHref(raw?: string | null): string | null {
+  if (!raw || !raw.trim()) return null;
+  try {
+    const url = new URL(raw.trim());
+    if (url.protocol === "http:") url.protocol = "https:";
+    if (url.hostname === "invitalia.it") url.hostname = "www.invitalia.it";
+    if (url.protocol !== "https:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
 import {
   hasIncompleteCoreData,
   isExpired,
