@@ -121,7 +121,7 @@ export function CookieConsent() {
 
   return (
     <div
-      className="bottom-nav-gap fixed inset-x-0 bottom-0 z-50 flex justify-center px-2 sm:px-4"
+      className="bottom-nav-gap pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-2 sm:px-4"
       data-testid="cookie-banner-wrapper"
     >
       <div
@@ -131,7 +131,7 @@ export function CookieConsent() {
         aria-labelledby={titleId}
         aria-describedby={descId}
         data-testid="cookie-banner"
-        className="safe-x safe-bottom w-full max-w-2xl rounded-2xl border border-border bg-card p-4 shadow-2xl sm:p-6"
+        className="pointer-events-auto safe-x safe-bottom w-full max-w-2xl rounded-2xl border border-border bg-card p-4 shadow-2xl sm:p-6"
       >
         <div className="flex items-start justify-between gap-3">
           <h2 id={titleId} className="text-base font-semibold text-foreground">

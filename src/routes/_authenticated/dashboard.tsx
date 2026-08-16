@@ -217,8 +217,9 @@ function Dashboard() {
     const soonestFirst = (a: Bando, bb: Bando) =>
       (a.scadenza ? new Date(a.scadenza).getTime() : Infinity) -
       (bb.scadenza ? new Date(bb.scadenza).getTime() : Infinity);
-    const local = bandiAttivi.filter(isLocalMicro).sort(soonestFirst);
-    const rest = bandiAttivi
+    const usable = bandiAttivi.filter((b) => b.match?.status !== "NON_COMPATIBILE");
+    const local = usable.filter(isLocalMicro).sort(soonestFirst);
+    const rest = usable
       .filter((b) => !isLocalMicro(b))
       .filter((b) => isFlash(b))
       .sort(soonestFirst);
@@ -228,6 +229,7 @@ function Dashboard() {
   const filtered = useMemo(() => {
     return bandi
       .filter((b) => {
+        if (b.match?.status === "NON_COMPATIBILE") return false;
         if (cat !== "TUTTI" && b.categoria !== cat) return false;
       if (scope !== "ALL" && b.scope !== scope) return false;
       if (hiddenOnly && !b.is_hidden) return false;

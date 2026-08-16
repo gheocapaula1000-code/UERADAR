@@ -71,7 +71,7 @@ export function RadarIntro() {
       aria-live="polite"
       aria-label="Apertura UEradar in corso"
       className={`fixed inset-0 z-[120] grid place-items-center overflow-hidden bg-background ${
-        closing ? "intro-fade-out" : "intro-fade-in"
+        closing ? "intro-fade-out pointer-events-none" : "intro-fade-in"
       }`}
     >
       <div className="absolute inset-0 gradient-hero opacity-95" aria-hidden="true" />
