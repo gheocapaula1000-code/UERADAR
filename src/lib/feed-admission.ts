@@ -189,6 +189,8 @@ export interface AdmissionReport {
   admitted: Bando[];
   admitted_count: number;
   rejected_count: number;
+  missing_deadline_count: number;
+  missing_economics_count: number;
   rejected_by_reason: Partial<Record<RejectReason, number>>;
   active_sources: Array<{ id: CoreSource["id"]; label: string; count: number }>;
 }
@@ -198,11 +200,15 @@ export function admitFeed(bandi: Bando[], now: number = Date.now()): AdmissionRe
   const admitted: Bando[] = [];
   const rejected_by_reason: Partial<Record<RejectReason, number>> = {};
   const counts = new Map<CoreSource["id"], number>();
+  let missing_deadline_count = 0;
+  let missing_economics_count = 0;
 
   for (const bando of bandi) {
     const verdict = admitBando(bando, now);
     if (verdict.ok) {
       admitted.push(bando);
+      if (verdict.gaps.missing_deadline) missing_deadline_count += 1;
+      if (verdict.gaps.missing_economics) missing_economics_count += 1;
       counts.set(verdict.source.id, (counts.get(verdict.source.id) ?? 0) + 1);
     } else {
       rejected_by_reason[verdict.reason] = (rejected_by_reason[verdict.reason] ?? 0) + 1;
@@ -213,6 +219,8 @@ export function admitFeed(bandi: Bando[], now: number = Date.now()): AdmissionRe
     admitted,
     admitted_count: admitted.length,
     rejected_count: bandi.length - admitted.length,
+    missing_deadline_count,
+    missing_economics_count,
     rejected_by_reason,
     active_sources: CORE_SOURCES.filter((source) => (counts.get(source.id) ?? 0) > 0).map(
       (source) => ({ id: source.id, label: source.label, count: counts.get(source.id) ?? 0 }),
