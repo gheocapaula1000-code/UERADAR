@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import {
   Calendar,
   MapPin,
@@ -247,16 +246,15 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         </p>
       )}
 
-      <Link
-        to="/bando/$id"
-        params={{ id: bando.id }}
+      <a
+        href={`/bando/${encodeURIComponent(bando.id)}`}
         aria-label={`Genera dossier candidatura per ${bando.titolo} — bozza informativa da verificare`}
         title="Genera un dossier di candidatura in bozza: contenuto informativo da verificare, nessuna domanda viene inviata"
-        className="cta-lift mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
+        className="cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
       >
         {partial ? "Genera dossier parziale" : "Genera dossier candidatura"}{" "}
         <ArrowRight className="h-4 w-4" />
-      </Link>
+      </a>
     </div>
   );
 }
