@@ -342,10 +342,13 @@ function BandoDetail() {
               <div className="mt-6">
                 <h3 className="text-sm font-semibold mb-2">Prove e fonti ufficiali</h3>
                 <div className="space-y-2">
-                  {bando.evidence.map((evidence) => (
+                  {bando.evidence.map((evidence) => {
+                    const evidenceHref = safeOfficialHref(evidence.source_url);
+                    if (!evidenceHref) return null;
+                    return (
                     <a
                       key={evidence.source_url}
-                      href={evidence.source_url}
+                      href={evidenceHref}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-start gap-2 rounded-xl border border-border bg-background/40 p-3 text-sm transition hover:border-primary/50"
