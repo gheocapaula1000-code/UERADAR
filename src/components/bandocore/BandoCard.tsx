@@ -24,6 +24,7 @@ import {
 } from "@/lib/bando-status";
 import { formatItalianInteger } from "@/lib/catalog";
 import { missingOfficialData } from "@/lib/dossier";
+import { admitBando, MISSING_DEADLINE_LABEL, MISSING_ECONOMICS_LABEL } from "@/lib/feed-admission";
 import { cardEnterDelayMs } from "@/lib/motion";
 import { MatchScore } from "@/components/bandocore/MatchScore";
 
@@ -97,6 +98,8 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
   const partial = missingOfficial.length > 0;
   const verified = isVerified(bando);
   const incompleteCore = !verified && hasIncompleteCoreData(bando);
+  const verdict = admitBando(bando);
+  const gaps = verdict.ok ? verdict.gaps : null;
 
   return (
     <div
@@ -246,6 +249,21 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
           </div>
         ) : null}
       </div>
+
+      {(gaps?.missing_deadline || gaps?.missing_economics) && (
+        <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
+          {gaps.missing_deadline && (
+            <li className="flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5" /> {MISSING_DEADLINE_LABEL}
+            </li>
+          )}
+          {gaps.missing_economics && (
+            <li className="flex items-center gap-1.5">
+              <Euro className="h-3.5 w-3.5" /> {MISSING_ECONOMICS_LABEL}
+            </li>
+          )}
+        </ul>
+      )}
 
       {partial && (
         <p className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">

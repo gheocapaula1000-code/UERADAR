@@ -53,11 +53,37 @@ describe("ammissione fail-closed", () => {
     expect(admitBando(bando(), NOW)).toMatchObject({ ok: true });
   });
 
-  it("scarta senza scadenza e senza apertura", () => {
-    expect(admitBando(bando({ scadenza: undefined, apertura: undefined }), NOW)).toMatchObject({
-      ok: false,
-      reason: "NO_DEADLINE_OR_OPENING",
-    });
+  it("ammette senza scadenza e senza importo, segnando i buchi", () => {
+    expect(
+      admitBando(
+        bando({
+          scadenza: undefined,
+          apertura: undefined,
+          importo_max: undefined,
+          aid_intensity_percent: undefined,
+          eligible_expenses: [],
+          scope: "COMUNALE",
+          ente: "Comune di Padova",
+          official_url: "https://www.padovanet.it/bando",
+        }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true, gaps: { missing_deadline: true, missing_economics: true } });
+    expect(
+      admitBando(
+        bando({
+          scadenza: undefined,
+          apertura: undefined,
+          importo_max: undefined,
+          aid_intensity_percent: undefined,
+          eligible_expenses: [],
+          scope: "NAZIONALE",
+          ente: "MIMIT",
+          official_url: "https://www.incentivi.gov.it/it/bando",
+        }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true });
   });
 
   it("accetta apertura dichiarata al posto della scadenza", () => {
@@ -71,15 +97,6 @@ describe("ammissione fail-closed", () => {
       ok: false,
       reason: "DEADLINE_PAST",
     });
-  });
-
-  it("scarta senza alcun dato economico", () => {
-    expect(
-      admitBando(
-        bando({ importo_max: undefined, aid_intensity_percent: undefined, eligible_expenses: [] }),
-        NOW,
-      ),
-    ).toMatchObject({ ok: false, reason: "NO_ECONOMICS" });
   });
 
   it("accetta intensita aiuto o spese ammissibili come dato economico", () => {

@@ -102,9 +102,16 @@ export type RejectReason =
   | "NO_OFFICIAL_URL"
   | "SOURCE_NOT_CORE"
   | "LEVEL_NOT_ADMITTED"
-  | "NO_DEADLINE_OR_OPENING"
-  | "DEADLINE_PAST"
-  | "NO_ECONOMICS";
+  | "DEADLINE_PAST";
+
+/** Buchi informativi tollerati: la scheda entra nel feed, ma dichiara cosa manca. */
+export interface AdmissionGaps {
+  missing_deadline: boolean;
+  missing_economics: boolean;
+}
+
+export const MISSING_DEADLINE_LABEL = "Manca la scadenza nel testo ufficiale";
+export const MISSING_ECONOMICS_LABEL = "Manca l'importo nel testo ufficiale";
 
 function hostOf(url: string): string | null {
   try {
@@ -144,13 +151,14 @@ function parseDate(value: unknown): number | null {
 }
 
 export type Admission =
-  | { ok: true; source: CoreSource }
+  | { ok: true; source: CoreSource; gaps: AdmissionGaps }
   | { ok: false; reason: RejectReason };
 
 /**
- * Ammissione fail-closed: nessun dato viene dedotto o inventato.
- * Serve titolo, ente, URL ufficiale su fonte core, livello ammesso,
- * scadenza futura oppure apertura dichiarata, e almeno un dato economico.
+ * Ammissione: nessun dato viene dedotto o inventato.
+ * Obbligatori titolo, ente, URL ufficiale su fonte core, livello ammesso e
+ * scadenza non passata. Scadenza/apertura o dato economico assenti non
+ * scartano la scheda: vengono segnalati come buchi dichiarati.
  */
 export function admitBando(bando: Bando, now: number = Date.now()): Admission {
   if (!bando.titolo?.trim()) return { ok: false, reason: "NO_TITLE" };
@@ -165,19 +173,24 @@ export function admitBando(bando: Bando, now: number = Date.now()): Admission {
 
   const deadline = parseDate(bando.scadenza);
   const opening = parseDate(bando.apertura);
-  if (deadline === null && opening === null)
-    return { ok: false, reason: "NO_DEADLINE_OR_OPENING" };
   if (deadline !== null && deadline < now) return { ok: false, reason: "DEADLINE_PAST" };
 
-  if (!hasEconomicData(bando)) return { ok: false, reason: "NO_ECONOMICS" };
-
-  return { ok: true, source };
+  return {
+    ok: true,
+    source,
+    gaps: {
+      missing_deadline: deadline === null && opening === null,
+      missing_economics: !hasEconomicData(bando),
+    },
+  };
 }
 
 export interface AdmissionReport {
   admitted: Bando[];
   admitted_count: number;
   rejected_count: number;
+  missing_deadline_count: number;
+  missing_economics_count: number;
   rejected_by_reason: Partial<Record<RejectReason, number>>;
   active_sources: Array<{ id: CoreSource["id"]; label: string; count: number }>;
 }
@@ -187,11 +200,15 @@ export function admitFeed(bandi: Bando[], now: number = Date.now()): AdmissionRe
   const admitted: Bando[] = [];
   const rejected_by_reason: Partial<Record<RejectReason, number>> = {};
   const counts = new Map<CoreSource["id"], number>();
+  let missing_deadline_count = 0;
+  let missing_economics_count = 0;
 
   for (const bando of bandi) {
     const verdict = admitBando(bando, now);
     if (verdict.ok) {
       admitted.push(bando);
+      if (verdict.gaps.missing_deadline) missing_deadline_count += 1;
+      if (verdict.gaps.missing_economics) missing_economics_count += 1;
       counts.set(verdict.source.id, (counts.get(verdict.source.id) ?? 0) + 1);
     } else {
       rejected_by_reason[verdict.reason] = (rejected_by_reason[verdict.reason] ?? 0) + 1;
@@ -202,6 +219,8 @@ export function admitFeed(bandi: Bando[], now: number = Date.now()): AdmissionRe
     admitted,
     admitted_count: admitted.length,
     rejected_count: bandi.length - admitted.length,
+    missing_deadline_count,
+    missing_economics_count,
     rejected_by_reason,
     active_sources: CORE_SOURCES.filter((source) => (counts.get(source.id) ?? 0) > 0).map(
       (source) => ({ id: source.id, label: source.label, count: counts.get(source.id) ?? 0 }),
