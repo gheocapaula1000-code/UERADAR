@@ -33,13 +33,27 @@ import {
 import { toast } from "sonner";
 
 /** Normalizza un URL ufficiale: forza https e corregge invitalia.it senza www. */
-function safeOfficialHref(raw?: string | null): string | null {
+const INVITALIA_ON_PLATFORM_URL =
+  "https://www.invitalia.it/incentivi-e-strumenti/nuove-imprese-tasso-zero/presenta-la-domanda/come-si-presenta-la-domanda";
+
+function safeOfficialHref(
+  raw?: string | null,
+  kind?: "platform",
+): string | null {
   if (!raw || !raw.trim()) return null;
   try {
     const url = new URL(raw.trim());
     if (url.protocol === "http:") url.protocol = "https:";
     if (url.hostname === "invitalia.it") url.hostname = "www.invitalia.it";
     if (url.protocol !== "https:") return null;
+    if (
+      kind === "platform" &&
+      url.hostname === "www.invitalia.it" &&
+      url.pathname.replace(/\/+$/, "") ===
+        "/incentivi-e-strumenti/ON-nuove-imprese-tasso-zero"
+    ) {
+      return INVITALIA_ON_PLATFORM_URL;
+    }
     return url.toString();
   } catch {
     return null;
@@ -697,10 +711,10 @@ function BandoDetail() {
 
               {(() => {
                 const piattaformaHref =
-                  safeOfficialHref(bando.piattaforma_url) ||
-                  safeOfficialHref(bando.application_url) ||
-                  safeOfficialHref(bando.official_url) ||
-                  safeOfficialHref(bando.notice_url);
+                  safeOfficialHref(bando.piattaforma_url, "platform") ||
+                  safeOfficialHref(bando.application_url, "platform") ||
+                  safeOfficialHref(bando.official_url, "platform") ||
+                  safeOfficialHref(bando.notice_url, "platform");
                 return piattaformaHref ? (
                   <a
                     href={piattaformaHref}
