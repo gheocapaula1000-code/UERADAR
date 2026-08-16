@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/bandocore/AppShell";
-import { loadCachedFeed } from "@/lib/proxy-core.functions";
+import { fetchFeedFromProxyCore, loadCachedFeed } from "@/lib/proxy-core.functions";
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanyProfile } from "@/lib/bandocore-types";
 import { buildDossier, renderDossierText } from "@/lib/dossier";
@@ -45,9 +45,16 @@ export const Route = createFileRoute("/_authenticated/bando/$id")({
 });
 
 function BandoDetail() {
-  const { id } = Route.useParams();
+  const { id: rawId } = Route.useParams();
+  let id = rawId;
+  try {
+    id = decodeURIComponent(rawId);
+  } catch {
+    id = rawId;
+  }
   const navigate = useNavigate();
   const loadFeed = useServerFn(loadCachedFeed);
+  const fetchLive = useServerFn(fetchFeedFromProxyCore);
   const [dossierOpen, setDossierOpen] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [dossierBusy, setDossierBusy] = useState(false);
@@ -57,7 +64,11 @@ function BandoDetail() {
 
   const feedQ = useQuery({
     queryKey: ["bandi-feed"],
-    queryFn: () => loadFeed(),
+    queryFn: async () => {
+      const cached = await loadFeed();
+      if (cached?.bandi?.some((b) => b.id === id)) return cached;
+      return fetchLive({ data: {} });
+    },
   });
 
   const profileQ = useQuery<CompanyProfile | null>({
