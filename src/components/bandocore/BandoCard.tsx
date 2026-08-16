@@ -16,10 +16,8 @@ import {
 import type { Bando } from "@/lib/bandocore-types";
 import {
   daysLeft as daysLeftOf,
-  hasIncompleteCoreData,
   isExpired,
   isVerified,
-  matchStatusMeta,
   VERIFIED_HINT,
 } from "@/lib/bando-status";
 import { formatItalianInteger } from "@/lib/catalog";
@@ -93,11 +91,9 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
   const expired = isExpired(bando);
   const urgent = !expired && daysLeft !== null && daysLeft <= 10 && daysLeft >= 0;
   const match = bando.match;
-  const matchMeta = match ? matchStatusMeta(match.status) : null;
   const missingOfficial = missingOfficialData(bando);
   const partial = missingOfficial.length > 0;
   const verified = isVerified(bando);
-  const incompleteCore = !verified && hasIncompleteCoreData(bando);
   const verdict = admitBando(bando);
   const gaps = verdict.ok ? verdict.gaps : null;
 
@@ -129,14 +125,6 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
               title={VERIFIED_HINT}
             >
               <CheckCircle2 className="h-3 w-3" /> Verificato
-            </span>
-          )}
-          {incompleteCore && (
-            <span
-              className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
-              title="Scadenza o importo non presenti nella fonte: da completare sulla fonte ufficiale"
-            >
-              <AlertTriangle className="h-3 w-3" /> Dati incompleti
             </span>
           )}
           {(bando.rarity_score ?? 0) >= 4 && (
@@ -193,30 +181,20 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
 
       <p className="mt-3 text-sm text-muted-foreground line-clamp-3 flex-1">{bando.descrizione}</p>
 
-      {match && matchMeta && (
-        <div
-          className={`mt-4 rounded-lg border p-2.5 ${matchMeta.boxClass}`}
-        >
+      {match && match.status === "COMPATIBILE" && (
+        <div className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5">
           <div className="flex items-center justify-between gap-2 text-xs">
-            <span className="flex items-center gap-1.5 font-medium">
-              {matchMeta.tone === "positive" ? (
-                <CheckCircle2 className={`h-4 w-4 ${matchMeta.textClass}`} />
-              ) : matchMeta.tone === "negative" ? (
-                <XCircle className={`h-4 w-4 ${matchMeta.textClass}`} />
-              ) : (
-                <AlertTriangle className={`h-4 w-4 ${matchMeta.textClass}`} />
-              )}
-              {matchMeta.label}
+            <span className="flex items-center gap-1.5 font-medium text-emerald-400">
+              <CheckCircle2 className="h-4 w-4" /> Compatibile
             </span>
             <MatchScore score={match.score} />
           </div>
-          <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">
-            {(matchMeta.tone === "negative" ? match.blockers?.[0] : undefined) ??
-              match.confirmed[0] ??
-              match.missing[0] ??
-              "Controlla i requisiti nella fonte ufficiale"}
-          </p>
         </div>
+      )}
+      {match && match.status !== "COMPATIBILE" && (
+        <p className="mt-3 text-[11px] text-muted-foreground">
+          Controlla i requisiti sul bando ufficiale
+        </p>
       )}
 
       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
