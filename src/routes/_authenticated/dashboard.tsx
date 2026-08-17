@@ -238,6 +238,25 @@ function Dashboard() {
   }, [profile]);
 
   // Stessa misura, schede diverse: una sola scheda in vetrina (nessun dato fuso o inventato).
+  // Filtro settore: nasconde i bandi chiaramente fuori dal settore ATECO del profilo.
+  const settoreOk = useMemo(() => {
+    const prefix = (profile?.codice_ateco ?? "").replace(/[^0-9]/g, "").slice(0, 2);
+    return (b: Bando) => {
+      if (!prefix) return true;
+      if (b.categoria === "AGRICOLTURA_RURALE") {
+        return prefix === "01" || prefix === "02" || prefix === "03";
+      }
+      const lista = (b as Bando & { atecoCompatibili?: string[] }).ateco_compatibili ??
+        (b as Bando & { atecoCompatibili?: string[] }).atecoCompatibili;
+      if (Array.isArray(lista) && lista.length > 0) {
+        return lista.some(
+          (code) => String(code).replace(/[^0-9]/g, "").slice(0, 2) === prefix,
+        );
+      }
+      return true;
+    };
+  }, [profile]);
+
   const sameMeasureKey = (b: Bando): string => {
     const raw = b.official_url || b.notice_url || b.application_url || b.piattaforma_url || "";
     let host = "";
@@ -306,7 +325,9 @@ function Dashboard() {
       (a.scadenza ? new Date(a.scadenza).getTime() : Infinity) -
       (bb.scadenza ? new Date(bb.scadenza).getTime() : Infinity);
     const usable = unaSchedaPerMisura(
-      bandiAttivi.filter((b) => b.match?.status !== "NON_COMPATIBILE" && sedeOk(b)),
+      bandiAttivi.filter(
+        (b) => b.match?.status !== "NON_COMPATIBILE" && sedeOk(b) && settoreOk(b),
+      ),
     );
     const local = usable.filter(isLocalMicro).sort(soonestFirst);
     const rest = usable
@@ -314,13 +335,14 @@ function Dashboard() {
       .filter((b) => isFlash(b))
       .sort(soonestFirst);
     return [...local, ...rest].slice(0, 6);
-  }, [bandiAttivi, profile, sedeOk]);
+  }, [bandiAttivi, profile, sedeOk, settoreOk]);
 
   const filtered = useMemo(() => {
     const base = bandi
       .filter((b) => {
         if (b.match?.status === "NON_COMPATIBILE") return false;
         if (!sedeOk(b)) return false;
+        if (!settoreOk(b)) return false;
         if (cat !== "TUTTI" && b.categoria !== cat) return false;
       if (scope !== "ALL" && b.scope !== scope) return false;
       if (hiddenOnly && !b.is_hidden) return false;
@@ -333,7 +355,7 @@ function Dashboard() {
         return true;
       });
     return unaSchedaPerMisura(base).sort((a, b) => compareByQuality(a, b));
-  }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile, sedeOk]);
+  }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile, sedeOk, settoreOk]);
 
   const stats = useMemo(() => {
     const s = { totale: bandiAttivi.length, femm: 0, flash: 0, hidden: 0, euPnrr: 0, importo: 0 };
