@@ -226,7 +226,65 @@ function Dashboard() {
     };
   }, [profile]);
 
-  // Priorità assoluta ai micro-finanziamenti iper-locali (Comune / Camera di Commercio locale)
+  // Stessa misura, schede diverse: una sola scheda in vetrina (nessun dato fuso o inventato).
+  const sameMeasureKey = (b: Bando): string => {
+    const raw = b.official_url || b.notice_url || b.application_url || b.piattaforma_url || "";
+    let host = "";
+    let path = "";
+    let normalized = "";
+    const trimmed = raw.trim();
+    if (trimmed) {
+      try {
+        const u = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+        host = u.hostname.toLowerCase().replace(/^www\./, "");
+        path = u.pathname.toLowerCase().replace(/\/+$/, "");
+        normalized = `${host}${path}`;
+      } catch {
+        normalized = trimmed
+          .toLowerCase()
+          .replace(/^https?:\/\//, "")
+          .replace(/^www\./, "")
+          .split(/[?#]/)[0]
+          .replace(/\/+$/, "");
+        host = normalized.split("/")[0] ?? "";
+        path = normalized.slice(host.length);
+      }
+    }
+    if (host === "invitalia.it" && (path.includes("nuove-imprese-tasso-zero") || path.includes("nito"))) {
+      return "invitalia:on-nito";
+    }
+    if (normalized) return normalized;
+    const t = (b.titolo ?? "").toLowerCase();
+    if ((t.includes("nuove imprese") && t.includes("tasso zero")) || t.includes("nito-on") || t.includes("nito on")) {
+      return "invitalia:on-nito";
+    }
+    return b.id;
+  };
+
+  const unaSchedaPerMisura = (lista: Bando[]): Bando[] => {
+    const rank = (b: Bando) => {
+      const hasDate = Boolean(b.scadenza);
+      const hasAmount = typeof b.importo_max === "number" && b.importo_max > 0;
+      if (hasDate && hasAmount) return 0;
+      if (hasDate) return 1;
+      if (hasAmount) return 2;
+      return 3;
+    };
+    const best = new Map<string, Bando>();
+    const order: string[] = [];
+    for (const b of lista) {
+      const key = sameMeasureKey(b);
+      const current = best.get(key);
+      if (!current) {
+        best.set(key, b);
+        order.push(key);
+      } else if (rank(b) < rank(current)) {
+        best.set(key, b);
+      }
+    }
+    return order.map((k) => best.get(k)!);
+  };
+
   const flashBandi = useMemo(() => {
     const isLocalMicro = (b: Bando) =>
       (b.scope === "COMUNALE" || b.scope === "CAMERALE") &&
@@ -236,8 +294,8 @@ function Dashboard() {
     const soonestFirst = (a: Bando, bb: Bando) =>
       (a.scadenza ? new Date(a.scadenza).getTime() : Infinity) -
       (bb.scadenza ? new Date(bb.scadenza).getTime() : Infinity);
-    const usable = bandiAttivi.filter(
-      (b) => b.match?.status !== "NON_COMPATIBILE" && sedeOk(b),
+    const usable = unaSchedaPerMisura(
+      bandiAttivi.filter((b) => b.match?.status !== "NON_COMPATIBILE" && sedeOk(b)),
     );
     const local = usable.filter(isLocalMicro).sort(soonestFirst);
     const rest = usable
@@ -248,7 +306,7 @@ function Dashboard() {
   }, [bandiAttivi, profile, sedeOk]);
 
   const filtered = useMemo(() => {
-    return bandi
+    const base = bandi
       .filter((b) => {
         if (b.match?.status === "NON_COMPATIBILE") return false;
         if (!sedeOk(b)) return false;
@@ -262,8 +320,8 @@ function Dashboard() {
         if (!matchIstat && !matchComune && !matchProvincia) return false;
       }
         return true;
-      })
-      .sort((a, b) => compareByQuality(a, b));
+      });
+    return unaSchedaPerMisura(base).sort((a, b) => compareByQuality(a, b));
   }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile, sedeOk]);
 
   const stats = useMemo(() => {
