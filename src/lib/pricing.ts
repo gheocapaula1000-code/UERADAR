@@ -17,6 +17,7 @@ import {
   type PlanId,
 } from "./catalog";
 import { TRIAL_COPY, TRIAL_DAYS, TRIAL_SCOPE } from "./trial";
+import { LAUNCH_OFFER, launchOfferActive } from "./launch-offer";
 
 export const BILLING_ENABLED = true;
 
@@ -139,7 +140,9 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Che differenza c'è tra Radar e Pratica?",
-    a: "Radar è lo strumento sempre acceso: matching sul profilo, push quando esce una novità e 3 bozze di richiesta / Dossier al mese, a 249 € al mese. Pratica aggiunge una ricerca più profonda su camere, fonti provinciali e nicchie, priorità per imprese femminili, giovanili e startup, aggiornamento più frequente con alert prioritari e 10 bozze di richiesta / Dossier al mese, a 449 € al mese.",
+    a:
+      "Radar è lo strumento sempre acceso: matching sul profilo, push quando esce una novità e 3 bozze di richiesta / Dossier al mese, a 249 € al mese. Pratica aggiunge una ricerca più profonda su camere, fonti provinciali e nicchie, priorità per imprese femminili, giovanili e startup, aggiornamento più frequente con alert prioritari e 10 bozze di richiesta / Dossier al mese, a 449 € al mese." +
+      (launchOfferActive() ? ` ${LAUNCH_OFFER.note}` : ""),
   },
   {
     q: "Cosa significa l'etichetta Verificato?",
