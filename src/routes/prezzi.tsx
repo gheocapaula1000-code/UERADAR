@@ -24,6 +24,7 @@ import {
   TRIAL_TERMS,
   VERIFIED_DEFINITION,
 } from "@/lib/pricing";
+import { LAUNCH_OFFER, launchOfferApplies } from "@/lib/launch-offer";
 
 export const Route = createFileRoute("/prezzi")({
   head: () => ({
@@ -153,13 +154,25 @@ function Pricing() {
               </div>
               <div className="mt-6">
                 <span className="text-3xl font-bold sm:text-4xl">
-                  {interval === "month" ? plan.monthly : plan.annual}
+                  {launchOfferApplies(plan.id, interval)
+                    ? LAUNCH_OFFER.priceLabel
+                    : interval === "month"
+                      ? plan.monthly
+                      : plan.annual}
                 </span>
                 <span className="text-muted-foreground">
                   {" "}
                   {interval === "month" ? plan.vatNote : plan.annualNote}
                 </span>
               </div>
+              {launchOfferApplies(plan.id, interval) ? (
+                <>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Listino <s>{LAUNCH_OFFER.listLabel}</s> / mese + IVA
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-accent">{LAUNCH_OFFER.note}</p>
+                </>
+              ) : null}
               <ul className="mt-6 space-y-3 text-[15px] sm:text-base">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
