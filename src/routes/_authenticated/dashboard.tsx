@@ -241,11 +241,15 @@ function Dashboard() {
   // Filtro settore: nasconde i bandi chiaramente fuori dal settore ATECO del profilo.
   const settoreOk = useMemo(() => {
     const prefix = (profile?.codice_ateco ?? "").replace(/[^0-9]/g, "").slice(0, 2);
+    // Categorie settoriali: solo queste possono nascondere per ATECO.
+    const SETTORI: Partial<Record<string, string[]>> = {
+      AGRICOLTURA_RURALE: ["01", "02", "03"],
+      TURISMO_CULTURA: ["55", "56", "79", "90", "91", "93"],
+    };
     return (b: Bando) => {
       if (!prefix) return true;
-      if (b.categoria === "AGRICOLTURA_RURALE") {
-        return prefix === "01" || prefix === "02" || prefix === "03";
-      }
+      const consentiti = b.categoria ? SETTORI[b.categoria] : undefined;
+      if (consentiti && !consentiti.includes(prefix)) return false;
       const lista = (b as Bando & { atecoCompatibili?: string[] }).ateco_compatibili ??
         (b as Bando & { atecoCompatibili?: string[] }).atecoCompatibili;
       if (Array.isArray(lista) && lista.length > 0) {
@@ -357,9 +361,18 @@ function Dashboard() {
     return unaSchedaPerMisura(base).sort((a, b) => compareByQuality(a, b));
   }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile, sedeOk, settoreOk]);
 
+  // Conteggi solo sui bandi pertinenti al profilo in sessione.
+  const bandiPerProfilo = useMemo(
+    () =>
+      bandiAttivi.filter(
+        (b) => b.match?.status !== "NON_COMPATIBILE" && sedeOk(b) && settoreOk(b),
+      ),
+    [bandiAttivi, sedeOk, settoreOk],
+  );
+
   const stats = useMemo(() => {
-    const s = { totale: bandiAttivi.length, femm: 0, flash: 0, hidden: 0, euPnrr: 0, importo: 0 };
-    for (const b of bandiAttivi) {
+    const s = { totale: bandiPerProfilo.length, femm: 0, flash: 0, hidden: 0, euPnrr: 0, importo: 0 };
+    for (const b of bandiPerProfilo) {
       if (b.categoria === "IMPRENDITORIA_FEMMINILE") s.femm++;
       if (isFlash(b)) s.flash++;
       if (b.is_hidden) s.hidden++;
@@ -367,7 +380,7 @@ function Dashboard() {
       if (b.importo_max) s.importo += b.importo_max;
     }
     return s;
-  }, [bandiAttivi]);
+  }, [bandiPerProfilo]);
 
   const activeFilters =
     (cat !== "TUTTI" ? 1 : 0) +
@@ -747,7 +760,7 @@ function Dashboard() {
                   </span>
                 </h3>
                 <p className="mt-1 mb-4 text-xs text-muted-foreground">
-                  Compatibilità confermata con date e dato economico presenti nel testo ufficiale.
+                  Hanno scadenza o apertura e un importo nel testo ufficiale.
                 </p>
                 {tiers.high.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
