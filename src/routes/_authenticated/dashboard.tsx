@@ -306,7 +306,7 @@ function Dashboard() {
   }, [bandiAttivi, profile, sedeOk]);
 
   const filtered = useMemo(() => {
-    return bandi
+    const base = bandi
       .filter((b) => {
         if (b.match?.status === "NON_COMPATIBILE") return false;
         if (!sedeOk(b)) return false;
@@ -320,8 +320,8 @@ function Dashboard() {
         if (!matchIstat && !matchComune && !matchProvincia) return false;
       }
         return true;
-      })
-      .sort((a, b) => compareByQuality(a, b));
+      });
+    return unaSchedaPerMisura(base).sort((a, b) => compareByQuality(a, b));
   }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile, sedeOk]);
 
   const stats = useMemo(() => {
