@@ -207,6 +207,25 @@ function Dashboard() {
   const bandiAttivi = useMemo(() => bandi.filter((b) => isActive(b)), [bandi]);
   const isOffline = query.data?.source === "cache";
 
+  // Filtro sede: nasconde solo i bandi di territori diversi da quello del profilo.
+  const sedeOk = useMemo(() => {
+    const norm = (v?: string | null) => (typeof v === "string" ? v.trim().toLowerCase() : "");
+    return (b: Bando) => {
+      if (!profile) return true;
+      if (b.scope === "NAZIONALE" || b.scope === "EUROPEO") return true;
+      const bc = norm(b.comune);
+      const pc = norm(profile.comune);
+      if (bc && pc) return bc === pc;
+      const bp = norm(b.provincia);
+      const pp = norm(profile.provincia);
+      if (bp && pp) return bp === pp;
+      const br = norm(b.regione);
+      const pr = norm(profile.regione);
+      if (br && pr) return br === pr;
+      return true;
+    };
+  }, [profile]);
+
   // Priorità assoluta ai micro-finanziamenti iper-locali (Comune / Camera di Commercio locale)
   const flashBandi = useMemo(() => {
     const isLocalMicro = (b: Bando) =>
@@ -217,19 +236,22 @@ function Dashboard() {
     const soonestFirst = (a: Bando, bb: Bando) =>
       (a.scadenza ? new Date(a.scadenza).getTime() : Infinity) -
       (bb.scadenza ? new Date(bb.scadenza).getTime() : Infinity);
-    const usable = bandiAttivi.filter((b) => b.match?.status !== "NON_COMPATIBILE");
+    const usable = bandiAttivi.filter(
+      (b) => b.match?.status !== "NON_COMPATIBILE" && sedeOk(b),
+    );
     const local = usable.filter(isLocalMicro).sort(soonestFirst);
     const rest = usable
       .filter((b) => !isLocalMicro(b))
       .filter((b) => isFlash(b))
       .sort(soonestFirst);
     return [...local, ...rest].slice(0, 6);
-  }, [bandiAttivi, profile]);
+  }, [bandiAttivi, profile, sedeOk]);
 
   const filtered = useMemo(() => {
     return bandi
       .filter((b) => {
         if (b.match?.status === "NON_COMPATIBILE") return false;
+        if (!sedeOk(b)) return false;
         if (cat !== "TUTTI" && b.categoria !== cat) return false;
       if (scope !== "ALL" && b.scope !== scope) return false;
       if (hiddenOnly && !b.is_hidden) return false;
@@ -242,7 +264,7 @@ function Dashboard() {
         return true;
       })
       .sort((a, b) => compareByQuality(a, b));
-  }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile]);
+  }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile, sedeOk]);
 
   const stats = useMemo(() => {
     const s = { totale: bandiAttivi.length, femm: 0, flash: 0, hidden: 0, euPnrr: 0, importo: 0 };
