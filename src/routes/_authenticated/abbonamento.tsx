@@ -363,13 +363,25 @@ function Abbonamento() {
               <p className="mt-1 text-sm text-muted-foreground">{plan.audience}</p>
               <p className="mt-4">
                 <span className="text-3xl font-bold">
-                  {interval === "month" ? plan.monthly : plan.annual}
+                  {launchOfferApplies(plan.id, interval)
+                    ? LAUNCH_OFFER.priceLabel
+                    : interval === "month"
+                      ? plan.monthly
+                      : plan.annual}
                 </span>
                 <span className="text-muted-foreground">
                   {" "}
                   {interval === "month" ? plan.vatNote : plan.annualNote}
                 </span>
               </p>
+              {launchOfferApplies(plan.id, interval) ? (
+                <>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Listino <s>{LAUNCH_OFFER.listLabel}</s> / mese + IVA
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-accent">{LAUNCH_OFFER.note}</p>
+                </>
+              ) : null}
               <ul className="mt-4 space-y-2 text-sm">
                 {plan.features.slice(0, 4).map((f) => (
                   <li key={f} className="flex items-start gap-2">
@@ -387,7 +399,11 @@ function Abbonamento() {
                     payMutation.mutate(plan.id as "professional" | "business" | "executive");
                     return;
                   }
-                  const link = PAYMENT_LINKS[plan.id];
+                  // Il Payment Link statico di Radar è il vecchio 249: durante
+                  // l'offerta lancio non deve mai essere usato per il mensile.
+                  const link = launchOfferApplies(plan.id, interval)
+                    ? undefined
+                    : PAYMENT_LINKS[plan.id];
                   if (link) {
                     window.location.assign(link);
                     return;
@@ -397,7 +413,10 @@ function Abbonamento() {
                   }
                 }}
                 disabled={payMutation.isPending}
-                aria-disabled={Boolean(disabledReason) && !PAYMENT_LINKS[plan.id]}
+                aria-disabled={
+                  Boolean(disabledReason) &&
+                  (launchOfferApplies(plan.id, interval) || !PAYMENT_LINKS[plan.id])
+                }
                 className="tap mt-6 w-full rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground disabled:opacity-50"
               >
                 Attiva {plan.name}
