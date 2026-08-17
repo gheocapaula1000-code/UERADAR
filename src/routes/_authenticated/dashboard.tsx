@@ -226,7 +226,7 @@ function Dashboard() {
     };
   }, [profile]);
 
-  // Priorità assoluta ai micro-finanziamenti iper-locali (Comune / Camera di Commercio locale)
+  // Stessa misura, schede diverse: una sola scheda in vetrina (nessun dato fuso o inventato).
   const flashBandi = useMemo(() => {
     const isLocalMicro = (b: Bando) =>
       (b.scope === "COMUNALE" || b.scope === "CAMERALE") &&
@@ -236,8 +236,8 @@ function Dashboard() {
     const soonestFirst = (a: Bando, bb: Bando) =>
       (a.scadenza ? new Date(a.scadenza).getTime() : Infinity) -
       (bb.scadenza ? new Date(bb.scadenza).getTime() : Infinity);
-    const usable = bandiAttivi.filter(
-      (b) => b.match?.status !== "NON_COMPATIBILE" && sedeOk(b),
+    const usable = unaSchedaPerMisura(
+      bandiAttivi.filter((b) => b.match?.status !== "NON_COMPATIBILE" && sedeOk(b)),
     );
     const local = usable.filter(isLocalMicro).sort(soonestFirst);
     const rest = usable
