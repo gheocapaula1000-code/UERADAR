@@ -215,13 +215,24 @@ function Dashboard() {
       if (b.scope === "NAZIONALE" || b.scope === "EUROPEO") return true;
       const bc = norm(b.comune);
       const pc = norm(profile.comune);
-      if (bc && pc) return bc === pc;
       const bp = norm(b.provincia);
       const pp = norm(profile.provincia);
-      if (bp && pp) return bp === pp;
       const br = norm(b.regione);
       const pr = norm(profile.regione);
-      if (br && pr) return br === pr;
+      if (b.scope === "REGIONALE") {
+        if (!br || !pr) return true;
+        return br === pr;
+      }
+      if (b.scope === "CAMERALE") {
+        if (bp && pp) return bp === pp;
+        if (bc && pc) return bc === pc;
+        return true;
+      }
+      if (b.scope === "COMUNALE") {
+        if (bc && pc) return bc === pc;
+        if (bp && pp) return bp === pp;
+        return true;
+      }
       return true;
     };
   }, [profile]);
