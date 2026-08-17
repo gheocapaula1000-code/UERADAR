@@ -37,6 +37,8 @@ const STATE_LABEL: Record<string, string> = {
   NONE: "Abbonamento non attivo",
 };
 
+import { LAUNCH_OFFER, launchOfferApplies } from "@/lib/launch-offer";
+
 /** Spiegazioni leggibili dei codici di blocco checkout (nessun segreto in UI). */
 const PAYMENT_LINK_RADAR = "https://buy.stripe.com/7sYeVd3Ph7c41Ad3TGcZa00";
 const PAYMENT_LINK_PRATICA = "https://buy.stripe.com/7sYeVd3Ph7c41Ad3TGcZa00";
