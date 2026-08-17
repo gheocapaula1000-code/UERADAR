@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { BrandLogo, BrandLockup } from "@/components/bandocore/BrandLogo";
 import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { ENTERPRISE_PLAN, PRODUCT_BOUNDARIES, PUBLIC_PLANS, TRIAL_TERMS } from "@/lib/pricing";
+import { LAUNCH_OFFER, launchOfferApplies } from "@/lib/launch-offer";
 import { TrialBanner, TrialStickyBar } from "@/components/bandocore/TrialBanner";
 import { ORGANIZATION_JSONLD, SOFTWARE_APPLICATION_JSONLD, seoHead } from "@/lib/seo";
 import {
@@ -262,13 +263,31 @@ function Landing() {
                   </span>
                 ) : null}
               </div>
-              <div className="mt-3">
-                <span className="text-3xl font-bold">{plan.monthly}</span>
-                <span className="text-base text-muted-foreground"> {plan.vatNote}</span>
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {plan.annual} {plan.annualNote}
-              </p>
+              {launchOfferApplies(plan.id, "month") ? (
+                <>
+                  <div className="mt-3">
+                    <span className="text-3xl font-bold">{LAUNCH_OFFER.priceLabel}</span>
+                    <span className="text-base text-muted-foreground"> {LAUNCH_OFFER.vatNote}</span>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Listino <s>{LAUNCH_OFFER.listLabel}</s> / mese + IVA
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-accent">{LAUNCH_OFFER.note}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {plan.annual} {plan.annualNote}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="mt-3">
+                    <span className="text-3xl font-bold">{plan.monthly}</span>
+                    <span className="text-base text-muted-foreground"> {plan.vatNote}</span>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {plan.annual} {plan.annualNote}
+                  </p>
+                </>
+              )}
               <ul className="mt-4 space-y-2 text-[15px] text-muted-foreground">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
