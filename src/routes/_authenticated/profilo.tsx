@@ -256,7 +256,7 @@ function Profilo() {
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-success/15">
               <CheckCircle2 className="h-7 w-7 text-success" aria-hidden="true" />
             </div>
-            <h1 className="mt-5 text-2xl font-bold">Profilo salvato</h1>
+            <h2 className="mt-5 text-2xl font-bold">Profilo salvato</h2>
             <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
               {done.trialStarted
                 ? "La tua Prova Gratuita di 7 Giorni è attiva: nessuna carta di credito, nessuna disdetta. Ora puoi vedere i Bandi selezionati per la tua impresa."

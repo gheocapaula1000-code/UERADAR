@@ -23,7 +23,7 @@ export type RouteSeo = {
 export const ROUTE_SEO = {
   "/": {
     path: "/",
-    title: "UEradar.com — Bandi, Incentivi e Finanziamenti per PMI e Partita IVA",
+    title: "UEradar.com — Bandi e incentivi per PMI e P.IVA",
     description:
       "Radar dei Bandi per Imprese italiane: Fondo Perduto, PNRR, Fondi Europei e Finanziamenti Agevolati filtrati su ATECO, sede e Profilo Aziendale della tua Impresa.",
     indexable: true,
@@ -33,7 +33,7 @@ export const ROUTE_SEO = {
     path: "/prezzi",
     title: "Prezzi UEradar.com — Piani Radar, Pratica e Studio",
     description:
-      "Piani Radar e Pratica per Partita IVA e PMI, Studio su richiesta: prezzi IVA esclusa e 7 Giorni Gratuiti, senza carta di credito né dati bancari e senza dover dare disdetta.",
+      "Piani Radar e Pratica per Partita IVA e PMI, Studio su richiesta: prezzi IVA esclusa, 7 giorni gratuiti, senza carta di credito e senza disdetta.",
     indexable: true,
     ogType: "website",
   },
