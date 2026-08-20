@@ -82,7 +82,7 @@ function Landing() {
         <div className="relative mx-auto w-full max-w-3xl px-4 py-14 text-center sm:px-6 sm:py-20 md:py-28">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1.5 text-sm text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
-            Trova Tutti i Bandi. Anche quelli che gli altri non vedono.
+            Trova i Bandi pertinenti. Anche quelli che gli altri non vedono.
           </div>
           <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl md:text-6xl">
             I soldi ci sono già.{" "}
@@ -97,7 +97,7 @@ function Landing() {
           <p className="mt-4 text-base text-muted-foreground sm:text-lg">
             UEradar scova Bandi, Contributi a Fondo Perduto, Finanziamenti Agevolati ed
             Incentivi ad Ogni Livello — Locale, Provinciale, Regionale, Nazionale ed
-            Europeo — e ti prepara la Domanda pronta da firmare.
+            Europeo — e ti prepara la bozza di domanda da verificare e firmare.
           </p>
           <ul
             aria-label="Livelli coperti dalla ricerca"
@@ -176,8 +176,8 @@ function Landing() {
             },
             {
               icon: Target,
-              t: "3. Domanda Pronta",
-              d: "Ricevi la Domanda già compilata con i tuoi dati. Controlli, firmi a mano e invii.",
+              t: "3. Bozza da firmare",
+              d: "Ricevi la bozza già compilata con i tuoi dati. Controlli, firmi a mano e invii.",
             },
           ].map((f) => (
             <div

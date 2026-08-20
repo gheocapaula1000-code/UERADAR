@@ -64,7 +64,7 @@ describe("copertura su cinque livelli", () => {
     }
     // Home ha un messaggio principale dedicato, sempre con i livelli e la prova.
     expect(HOME).toContain("UEradar scova Bandi");
-    expect(HOME).toContain("Domanda pronta da firmare");
+    expect(HOME).toContain("bozza di domanda da verificare e firmare");
     expect(HOME).toContain("COVERAGE_LEVELS");
     expect(HOME).toContain("TRIAL_HIGHLIGHT");
     expect(HOME.match(/\{TRIAL_HIGHLIGHT\}/g) ?? []).toHaveLength(1);
