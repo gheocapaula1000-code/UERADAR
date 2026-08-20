@@ -1,6 +1,6 @@
 -- replay-safe: idempotent
 -- UERADAR only (config.toml project_id fbqjrmhvxxujpzztgvsc).
--- Schedules trovabandi-digest. Does not touch billing, Stripe, or the feed contract.
+-- Schedules trovabandi-digest. Does not change billing or the feed contract.
 -- pg_cron.timezone cannot be changed without a server restart (stays GMT).
 -- Morning 04:40 GMT = 06:40 Europe/Rome CEST, after Core release_gate 06:25.
 -- Urgent 10:15 GMT = 12:15 Europe/Rome CEST. Winter these are 05:40 / 11:15 CET;
