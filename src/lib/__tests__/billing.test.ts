@@ -48,13 +48,13 @@ async function sign(payload: string, secret: string, timestamp: number) {
     .join("");
 }
 
-/** Configurazione Price TEST completa: il webhook non mappa nulla senza. */
-function fullPriceMap(overrides: Record<string, string> = {}): Record<string, string> {
-  const base: Record<string, string> = {};
-  for (const plan of ["professional", "business", "executive"] as const)
-    for (const interval of ["month", "year"] as const)
-      base[priceKey(plan, interval)] = `price_${plan}_${interval}`;
-  return { ...base, ...overrides };
+/** Price self-service (Istruttoria): Radar/Studio opzionali. */
+function selfServicePriceMap(overrides: Record<string, string> = {}): Record<string, string> {
+  return {
+    [priceKey("business", "month")]: "price_business_month",
+    [priceKey("business", "year")]: "price_business_year",
+    ...overrides,
+  };
 }
 
 describe("catalogo piani UEradar", () => {
@@ -203,7 +203,7 @@ describe("sincronizzazione webhook", () => {
       priceId: "price_t",
       subscriptionId: "sub_1",
       customerId: "cus_1",
-      priceMap: fullPriceMap({ [priceKey("executive", "year")]: "price_t" }),
+      priceMap: selfServicePriceMap({ [priceKey("executive", "year")]: "price_t" }),
     });
     expect(update.ok).toBe(true);
     const patch = update.patch!;
@@ -341,6 +341,7 @@ describe("gate di review Stripe TEST", () => {
     expect(src).toContain("ueradar_billing_settle_event");
     expect(src).toContain("_ok: ok");
     // Nessun 200 che consuma l'evento quando l'utente non è collegabile.
+    expect(src).toContain("webhookUserLookup");
     expect(src).toContain('settle("USER_NOT_FOUND", false)');
     expect(src).not.toMatch(/Response\.json\(\{\s*ok:\s*true,\s*code:\s*"USER_NOT_FOUND"/);
     for (const guard of [

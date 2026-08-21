@@ -7,6 +7,7 @@ import {
   orderingDecision,
   subscriptionUpdateFromEvent,
   verifyWebhookSignature,
+  webhookUserLookup,
 } from "@/lib/billing";
 
 type Obj = Record<string, unknown>;
@@ -39,8 +40,8 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         if (!mode.ok) return Response.json({ ok: false, code: mode.code }, { status: 503 });
         if (!env.webhookSecret.startsWith("whsec_"))
           return Response.json({ ok: false, code: "WEBHOOK_NOT_CONFIGURED" }, { status: 503 });
-        // Nessuna mappatura senza configurazione Price TEST completa:
-        // meglio ritentare l'evento che scrivere un piano di ripiego.
+        // Self-service (Istruttoria) già richiesto da assertBillingMode;
+        // Radar/Studio restano opzionali. Meglio ritentare che un ripiego.
         if (env.missingPriceEnvs.length > 0)
           return Response.json({ ok: false, code: "PRICES_NOT_CONFIGURED" }, { status: 503 });
 
@@ -159,8 +160,11 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         type UserLookup = { ok: boolean; userId: string | null };
 
         async function resolveUserId(metadata: Obj | null): Promise<UserLookup> {
-          const fromMeta = metadata?.["supabase_user_id"];
-          if (typeof fromMeta === "string" && fromMeta) return { ok: true, userId: fromMeta };
+          const fromMeta = webhookUserLookup({
+            metadataUserId: metadata?.["supabase_user_id"],
+            linkedUserId: null,
+          });
+          if (fromMeta.ok) return { ok: true, userId: fromMeta.userId };
           if (!customerId) return { ok: true, userId: null };
           const { data, error } = await admin
             .from("ueradar_subscriptions")
@@ -170,7 +174,11 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             .maybeSingle();
           // Errore di lettura: mai dedurre "utente non collegato".
           if (error) return { ok: false, userId: null };
-          return { ok: true, userId: (data as { user_id: string } | null)?.user_id ?? null };
+          const linked = webhookUserLookup({
+            metadataUserId: null,
+            linkedUserId: (data as { user_id: string } | null)?.user_id ?? null,
+          });
+          return { ok: true, userId: linked.ok ? linked.userId : null };
         }
 
         type SyncOutcome = { ok: boolean; code: string; skippable: boolean };
