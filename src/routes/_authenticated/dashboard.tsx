@@ -411,30 +411,30 @@ function Dashboard() {
   return (
     <AppShell>
       <RadarIntro />
-      <div className="mx-auto max-w-7xl px-4 md:px-8 py-6 md:py-10 space-y-8">
+      <div className="mx-auto min-w-0 max-w-7xl overflow-x-clip px-4 md:px-8 py-6 md:py-10 space-y-8">
         {/* HEADER */}
-        <header className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-2">
-              <Radar className="h-7 w-7 text-accent" /> Radar Bandi
+        <header className="flex min-w-0 flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0 max-w-full">
+            <h1 className="text-3xl md:text-4xl font-bold flex min-w-0 flex-wrap items-center gap-2">
+              <Radar className="h-7 w-7 shrink-0 text-accent" /> Radar Bandi
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 min-w-0 wrap-anywhere text-sm text-muted-foreground">
               I Bandi selezionati per la tua impresa.
               {query.data?.fetched_at
                 ? ` · Aggiornato il ${new Date(query.data.fetched_at).toLocaleString("it-IT")}`
                 : ""}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             {isOffline && (
-              <span className="inline-flex items-center gap-1.5 rounded-lg bg-warning/15 px-3 py-2 text-xs text-warning">
-                <WifiOff className="h-3.5 w-3.5" /> Dati salvati
+              <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-warning/15 px-3 py-2 text-xs text-warning">
+                <WifiOff className="h-3.5 w-3.5 shrink-0" /> Dati salvati
               </span>
             )}
             <button
               onClick={handleManualRefresh}
               disabled={query.isFetching || isRefreshing}
-              className="tap inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-base font-semibold text-primary-foreground shadow-glow transition hover:brightness-110 disabled:opacity-60"
+              className="tap inline-flex max-w-full items-center gap-2 rounded-lg bg-primary px-5 py-3 text-base font-semibold text-primary-foreground shadow-glow transition hover:brightness-110 disabled:opacity-60"
             >
               <RefreshCw
                 className={`h-5 w-5 ${query.isFetching || isRefreshing ? "animate-spin" : ""}`}
@@ -451,7 +451,7 @@ function Dashboard() {
               Fonti core attive · {query.data.admission.admitted_count} bandi validi ·{" "}
               {query.data.admission.rejected_count} scartati
             </p>
-            <ul className="mt-2 flex flex-wrap gap-2">
+            <ul className="mt-2 flex min-w-0 flex-wrap gap-2">
               {query.data.admission.active_sources.length === 0 ? (
                 <li className="text-muted-foreground">
                   Nessuna fonte core ha prodotto schede complete in questo aggiornamento.
@@ -460,7 +460,7 @@ function Dashboard() {
                 query.data.admission.active_sources.map((s) => (
                   <li
                     key={s.id}
-                    className="rounded-lg bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground"
+                    className="max-w-full wrap-anywhere rounded-lg bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground"
                   >
                     {s.label} · {s.count}
                   </li>
@@ -477,7 +477,7 @@ function Dashboard() {
         {refreshNotice && (
           <div
             role="status"
-            className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${
+            className={`flex min-w-0 items-start gap-3 rounded-xl border p-4 text-sm ${
               refreshNotice.tone === "ok"
                 ? "border-success/40 bg-success/10"
                 : refreshNotice.tone === "error"
@@ -490,7 +490,7 @@ function Dashboard() {
             ) : (
               <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
             )}
-            <p className="flex-1">{refreshNotice.text}</p>
+            <p className="min-w-0 flex-1 wrap-anywhere">{refreshNotice.text}</p>
             <button
               onClick={() => setRefreshNotice(null)}
               aria-label="Chiudi il messaggio"
@@ -514,8 +514,8 @@ function Dashboard() {
         ) : null}
 
         <section className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
+          <div className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
               <h2 className="flex items-center gap-2 text-lg font-semibold">
                 <Bell className="h-5 w-5 text-primary" aria-hidden="true" /> {ALERTS_HEADING}
               </h2>
@@ -551,8 +551,8 @@ function Dashboard() {
                   }}
                   className="rounded-xl border border-border bg-card p-3 text-left transition hover:border-primary/50"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-sm font-medium line-clamp-1">{item.title}</span>
+                  <div className="flex min-w-0 items-start justify-between gap-2">
+                    <span className="min-w-0 wrap-anywhere text-sm font-medium line-clamp-1">{item.title}</span>
                     {item.read_at ? (
                       <CheckCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                     ) : (
@@ -590,9 +590,9 @@ function Dashboard() {
               d: "Somma dei tetti massimi dei bandi attivi. Non è un importo garantito.",
             },
           ].map((s) => (
-            <div key={s.l} className="rounded-xl border border-border bg-card p-4">
-              <div className="text-sm text-muted-foreground">{s.l}</div>
-              <div className={`mt-1 text-3xl font-bold ${s.c}`}>{s.v}</div>
+            <div key={s.l} className="min-w-0 overflow-x-clip rounded-xl border border-border bg-card p-4">
+              <div className="wrap-anywhere text-sm text-muted-foreground">{s.l}</div>
+              <div className={`mt-1 wrap-anywhere text-3xl font-bold ${s.c}`}>{s.v}</div>
               <p className="mt-2 text-xs text-muted-foreground">{s.d}</p>
             </div>
           ))}
@@ -620,20 +620,20 @@ function Dashboard() {
 
         {/* FLASH */}
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
+          <div className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <div className="grid h-8 w-8 place-items-center rounded-lg bg-warning/20 text-warning">
                 <Zap className="h-4 w-4" />
               </div>
-              <div>
-                <h2 className="text-lg font-semibold">Opportunità locali e scadenze ravvicinate</h2>
+              <div className="min-w-0">
+                <h2 className="wrap-anywhere text-lg font-semibold">Opportunità locali e scadenze ravvicinate</h2>
                 <p className="text-xs text-muted-foreground">
                   Priorità ai bandi comunali e camerali della tua zona e alle scadenze più vicine.
                 </p>
               </div>
             </div>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {query.isLoading ? (
               Array.from({ length: 3 }).map((_, i) => <BandoCardSkeleton key={i} />)
             ) : query.error ? (
@@ -653,8 +653,8 @@ function Dashboard() {
 
         {/* FILTRI */}
         <section className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+            <h2 className="min-w-0 wrap-anywhere text-lg font-semibold">
               Tutti i Bandi{" "}
               <span className="text-sm font-normal text-muted-foreground">
                 ({filtered.length}
@@ -687,16 +687,16 @@ function Dashboard() {
           </div>
 
           {filtersOpen && (
-            <div className="space-y-4 rounded-2xl border border-border bg-card p-4">
+            <div className="min-w-0 space-y-4 overflow-x-clip rounded-2xl border border-border bg-card p-4">
               <p className="text-sm text-muted-foreground">
                 I filtri restringono l'elenco qui sotto. Se non sei sicuro, lasciali come sono.
               </p>
               {/* Filtri per zona */}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex min-w-0 max-w-full flex-wrap gap-2">
                 <button
                   onClick={() => setHyperlocalOnly((v) => !v)}
                   disabled={!profile}
-                  className={`tap inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm border transition ${
+                  className={`tap inline-flex max-w-full min-w-0 wrap-anywhere items-center gap-1.5 rounded-full px-4 py-2 text-sm border transition ${
                     hyperlocalOnly
                       ? "bg-accent text-accent-foreground border-accent shadow-glow"
                       : "bg-card border-border text-muted-foreground hover:text-foreground"
@@ -715,7 +715,7 @@ function Dashboard() {
                 </button>
                 <button
                   onClick={() => setHiddenOnly((v) => !v)}
-                  className={`tap inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm border transition ${
+                  className={`tap inline-flex max-w-full min-w-0 wrap-anywhere items-center gap-1.5 rounded-full px-4 py-2 text-sm border transition ${
                     hiddenOnly
                       ? "bg-accent text-accent-foreground border-accent shadow-glow"
                       : "bg-card border-border text-muted-foreground hover:text-foreground"
@@ -730,12 +730,12 @@ function Dashboard() {
                 poco conosciute» mostra i bandi pubblicati da enti minori, spesso con meno domande.
               </p>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex min-w-0 max-w-full flex-wrap gap-2">
                 {CATEGORY_FILTERS.map((c) => (
                   <button
                     key={c.key}
                     onClick={() => setCat(c.key)}
-                    className={`rounded-full px-4 py-1.5 text-sm border transition ${
+                    className={`max-w-full min-w-0 wrap-anywhere rounded-full px-4 py-1.5 text-sm border transition ${
                       cat === c.key
                         ? "bg-primary text-primary-foreground border-primary shadow-glow"
                         : "bg-card border-border text-muted-foreground hover:text-foreground"
@@ -746,12 +746,12 @@ function Dashboard() {
                 ))}
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex min-w-0 max-w-full flex-wrap gap-2">
                 {SCOPES.map((s) => (
                   <button
                     key={s.key}
                     onClick={() => setScope(s.key)}
-                    className={`rounded-full px-3 py-1 text-xs border transition ${
+                    className={`max-w-full min-w-0 wrap-anywhere rounded-full px-3 py-1 text-xs border transition ${
                       scope === s.key
                         ? "bg-accent/20 text-accent border-accent/40"
                         : "bg-card border-border text-muted-foreground hover:text-foreground"
@@ -765,7 +765,7 @@ function Dashboard() {
           )}
 
           {query.isLoading ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <BandoCardSkeleton key={i} />
               ))}
@@ -807,7 +807,7 @@ function Dashboard() {
                     Nessuna scheda con match forte, data e importo completi in questo elenco.
                   </div>
                 ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {tiers.high.map((b: Bando, i: number) => (
                       <BandoCard key={b.id} bando={b} index={i} />
                     ))}
@@ -831,7 +831,7 @@ function Dashboard() {
                     Nessuna scheda da verificare in questo elenco.
                   </div>
                 ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {tiers.review.map((b: Bando, i: number) => (
                       <BandoCard key={b.id} bando={b} index={i} />
                     ))}

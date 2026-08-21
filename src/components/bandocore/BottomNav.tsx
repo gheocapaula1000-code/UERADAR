@@ -53,19 +53,19 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Navigazione principale"
-      className="safe-x safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/85 backdrop-blur-xl lg:hidden"
+      className="safe-x safe-bottom fixed inset-x-0 bottom-0 z-40 max-w-full overflow-x-clip border-t border-border bg-background/85 backdrop-blur-xl lg:hidden"
     >
       <ul className="mx-auto flex max-w-md items-stretch justify-around gap-1 px-2 py-1.5 lg:max-w-lg">
         {BOTTOM_NAV_ITEMS.map((item, i) => {
           const active = isBottomNavActive(item, pathname);
           const Icon = ICONS[item.to];
           return (
-            <li key={item.to} className="flex-1">
+            <li key={item.to} className="min-w-0 flex-1">
               <Link
                 to={item.to}
                 aria-current={active ? "page" : undefined}
                 style={{ animationDelay: `${bottomNavEnterDelayMs(i)}ms` }}
-                className={`tap bottom-nav-item touch-manipulation select-none ${entered ? "bottom-nav-enter" : "opacity-0"} relative flex w-full flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium sm:text-xs ${
+                className={`tap bottom-nav-item touch-manipulation select-none ${entered ? "bottom-nav-enter" : "opacity-0"} relative flex w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium sm:text-xs ${
                   active ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -76,7 +76,7 @@ export function BottomNav() {
                   />
                 )}
                 <Icon className={`relative h-5 w-5 ${active ? "bottom-nav-icon-active" : ""}`} />
-                <span className="relative leading-none">{item.label}</span>
+                <span className="relative max-w-full wrap-anywhere text-center leading-none">{item.label}</span>
               </Link>
             </li>
           );

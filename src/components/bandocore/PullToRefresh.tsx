@@ -36,6 +36,13 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
   }, [pull]);
 
   useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    root.classList.add("ptr-page-lock");
+    return () => root.classList.remove("ptr-page-lock");
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const hasTouch = "ontouchstart" in window || (navigator.maxTouchPoints ?? 0) > 0;
     if (!hasTouch) return;
@@ -144,7 +151,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
   return (
     <div
       ref={scrollerRef}
-      className="ptr-root relative w-full max-w-full flex-1 min-h-0 overflow-y-auto overscroll-y-contain"
+      className="ptr-root relative w-full max-w-full min-w-0 flex-1 min-h-0 overflow-x-clip overflow-y-auto overscroll-x-none overscroll-y-contain"
       style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
     >
       {showIndicator ? (

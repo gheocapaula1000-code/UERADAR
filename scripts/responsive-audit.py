@@ -24,6 +24,9 @@ ROUTES = [
     ("/termini", CRITICAL),
     ("/cookie", CRITICAL),
     ("/contatti", CRITICAL),
+    # /dashboard richiede sessione: senza cookie l'audit lo marca [skip].
+    # L'assert overflow a 390px dell'area autenticata è in
+    # src/lib/__tests__/dashboard-overflow.test.ts (IPHONE_DASHBOARD_VIEWPORT).
     ("/dashboard", CRITICAL),
     ("/bando/qa-fixture", CRITICAL),
 ]

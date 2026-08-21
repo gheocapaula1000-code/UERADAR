@@ -101,14 +101,14 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
   return (
     <div
       style={{ animationDelay: `${cardEnterDelayMs(index)}ms` }}
-      className={`group card-enter rounded-2xl border bg-card p-5 shadow-elevated transition hover:border-primary/50 flex flex-col ${
+      className={`group card-enter min-w-0 max-w-full overflow-x-clip rounded-2xl border bg-card p-5 shadow-elevated transition flex flex-col ${
         bando.is_hidden ? "border-accent/50 ring-1 ring-accent/25" : "border-border"
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <span
-            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${cat.class}`}
+            className={`inline-flex max-w-full wrap-anywhere items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${cat.class}`}
           >
             {cat.label}
           </span>
@@ -149,19 +149,19 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         )}
       </div>
 
-      <h3 className="mt-3 font-semibold leading-tight line-clamp-2">{bando.titolo}</h3>
-      <p className="mt-1 text-xs text-muted-foreground">{bando.ente}</p>
+      <h3 className="mt-3 min-w-0 wrap-anywhere font-semibold leading-tight line-clamp-2">{bando.titolo}</h3>
+      <p className="mt-1 min-w-0 wrap-anywhere text-xs text-muted-foreground">{bando.ente}</p>
 
       {(bando.pnrr_mission || bando.programme_name || bando.programme_code) && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-2 flex min-w-0 flex-wrap gap-1.5">
           {bando.pnrr_mission && (
-            <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">
+            <span className="max-w-full wrap-anywhere rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">
               PNRR {bando.pnrr_mission}
               {bando.pnrr_component ? ` · ${bando.pnrr_component}` : ""}
             </span>
           )}
           {(bando.programme_name || bando.programme_code) && (
-            <span className="rounded-md border border-info/30 bg-info/10 px-2 py-1 text-[11px] font-semibold text-info">
+            <span className="max-w-full wrap-anywhere rounded-md border border-info/30 bg-info/10 px-2 py-1 text-[11px] font-semibold text-info">
               🇪🇺 {bando.programme_name || bando.programme_code}
             </span>
           )}
@@ -180,12 +180,12 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         </div>
       )}
 
-      <p className="mt-3 text-sm text-muted-foreground line-clamp-3 flex-1">{bando.descrizione}</p>
+      <p className="mt-3 min-w-0 wrap-anywhere text-sm text-muted-foreground line-clamp-3 flex-1">{bando.descrizione}</p>
 
       {preview && (
         <div className={`mt-4 rounded-lg border p-2.5 ${preview.boxClass}`}>
-          <div className="flex items-center justify-between gap-2 text-xs">
-            <span className={`flex items-center gap-1.5 font-medium ${preview.textClass}`}>
+          <div className="flex min-w-0 items-center justify-between gap-2 text-xs">
+            <span className={`flex min-w-0 flex-wrap items-center gap-1.5 font-medium ${preview.textClass}`}>
               {preview.tone === "positive" ? (
                 <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
               ) : preview.tone === "negative" ? (
@@ -222,16 +222,20 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         </div>
       )}
 
-      <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-        <div className="flex items-center gap-1.5 text-muted-foreground">
-          <MapPin className="h-3.5 w-3.5" />
+      <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 text-xs">
+        <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+          <MapPin className="h-3.5 w-3.5 shrink-0" />
+          <span className="min-w-0 wrap-anywhere">
           {scopeLabels[bando.scope]}
           {bando.comune ? ` · ${bando.comune}` : bando.regione ? ` · ${bando.regione}` : ""}
+          </span>
         </div>
         {bando.importo_max ? (
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Euro className="h-3.5 w-3.5" />
+          <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
+            <Euro className="h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 wrap-anywhere">
             fino a {formatItalianInteger(bando.importo_max)} €
+            </span>
           </div>
         ) : null}
         {bando.scadenza ? (
@@ -290,7 +294,7 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
 
 export function BandoCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-elevated">
+    <div className="min-w-0 max-w-full overflow-x-clip rounded-2xl border border-border bg-card p-5 shadow-elevated">
       <div className="skeleton-shimmer h-5 w-24 rounded-full" />
       <div className="skeleton-shimmer mt-4 h-5 w-full rounded" />
       <div className="skeleton-shimmer mt-2 h-5 w-3/4 rounded" />
