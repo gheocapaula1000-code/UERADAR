@@ -1,5 +1,6 @@
 import type { Bando } from "./bandocore-types";
 import {
+  coerceOptionalHttpUrl,
   sanitizeFeedResponse,
   type ContractRow,
 } from "../../supabase/functions/_shared/trovabandi-contract.ts";
@@ -62,8 +63,8 @@ export function mapCoreOpportunity(item: CoreOpportunity): Bando {
     ? Math.ceil((new Date(deadline).getTime() - Date.now()) / 86_400_000)
     : null;
   const officialUrl = item.official_url as string;
-  const applicationUrl = (item.application_url as string | null | undefined) ?? undefined;
-  const formsUrl = (item.forms_url as string | null | undefined) ?? undefined;
+  const applicationUrl = coerceOptionalHttpUrl(item.application_url);
+  const formsUrl = coerceOptionalHttpUrl(item.forms_url);
   const protocolEmail = (item.protocol_email as string | null | undefined) ?? undefined;
   const rarity = (item.rarity_score as number | null | undefined) ?? undefined;
   const sourceKind = (item.source_kind as string | null | undefined) ?? undefined;
@@ -86,7 +87,7 @@ export function mapCoreOpportunity(item: CoreOpportunity): Bando {
     flash: item.click_day === true || (daysLeft != null && daysLeft >= 0 && daysLeft <= 10),
     pec: protocolEmail,
     ufficio_protocollo_pec: protocolEmail,
-    piattaforma_url: applicationUrl ?? officialUrl,
+    piattaforma_url: applicationUrl,
     modulistica_url: formsUrl,
     notice_url: officialUrl,
     application_url: applicationUrl,
