@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CORE_OFFICIAL_DOMAINS,
   CORE_SOURCES,
   admitBando,
   admitFeed,
@@ -26,6 +27,148 @@ function bando(over: Partial<Bando> = {}): Bando {
   } as Bando;
 }
 
+/**
+ * official_domain delle trovabandi_sources abilitate su Core.
+ * Contratto: ammettere questi host (o un sottodominio), senza inventarne altri.
+ */
+const LIVE_CORE_OFFICIAL_DOMAINS = [
+  "padovanet.it",
+  "camcom.it",
+  "europa.eu",
+  "eurekanetwork.org",
+  "bur.regione.emilia-romagna.it",
+  "bur.regione.fvg.it",
+  "bur.regione.veneto.it",
+  "burl.it",
+  "regione.abruzzo.it",
+  "regione.basilicata.it",
+  "regione.calabria.it",
+  "regione.campania.it",
+  "regione.emilia-romagna.it",
+  "regione.fvg.it",
+  "regione.lazio.it",
+  "regione.liguria.it",
+  "regione.lombardia.it",
+  "regione.marche.it",
+  "regione.molise.it",
+  "regione.piemonte.it",
+  "regione.puglia.it",
+  "regione.sardegna.it",
+  "regione.sicilia.it",
+  "regione.toscana.it",
+  "regione.umbria.it",
+  "regione.vda.it",
+  "regione.veneto.it",
+  "pd.camcom.it",
+  "aa.camcom.it",
+  "ao.camcom.it",
+  "as.camcom.it",
+  "bg.camcom.it",
+  "bs.camcom.it",
+  "cn.camcom.it",
+  "cmp.camcom.it",
+  "dl.camcom.it",
+  "emilia.camcom.it",
+  "fera.camcom.it",
+  "lg.camcom.it",
+  "milomb.camcom.it",
+  "mo.camcom.it",
+  "pno.camcom.it",
+  "pnud.camcom.it",
+  "ptpo.camcom.it",
+  "romagna.camcom.it",
+  "so.camcom.it",
+  "tn.camcom.it",
+  "tno.camcom.it",
+  "to.camcom.it",
+  "va.camcom.it",
+  "vg.camcom.it",
+  "vi.camcom.it",
+  "vr.camcom.it",
+  "comolecco.camcom.it",
+  "bo.camcom.gov.it",
+  "fi.camcom.gov.it",
+  "ge.camcom.gov.it",
+  "rivlig.camcom.gov.it",
+  "tb.camcom.gov.it",
+  "camcom.bz.it",
+  "unioncamere.gov.it",
+  "unioncamereveneto.it",
+  "agenziaentrate.gov.it",
+  "incentivi.gov.it",
+  "invitalia.it",
+  "italiadomani.gov.it",
+  "mimit.gov.it",
+  "padigitale2026.gov.it",
+  "gazzettaufficiale.it",
+  "mase.gov.it",
+  "ministeroturismo.gov.it",
+  "mur.gov.it",
+  "pariopportunita.gov.it",
+  "politichecoesione.governo.it",
+  "politichegiovanili.gov.it",
+  "ec.europa.eu",
+  "agriculture.ec.europa.eu",
+  "cinea.ec.europa.eu",
+  "commission.europa.eu",
+  "culture.ec.europa.eu",
+  "digital-strategy.ec.europa.eu",
+  "eic.ec.europa.eu",
+  "eismea.ec.europa.eu",
+  "european-social-fund-plus.ec.europa.eu",
+  "funding-tenders.ec.europa.eu",
+  "interregeurope.eu",
+  "research-and-innovation.ec.europa.eu",
+  "amministrazionetrasparente.provincia.pc.it",
+  "amministrazionetrasparente.provincia.treviso.it",
+  "ammtrasp.provincia.livorno.it",
+  "at.provincia.brescia.it",
+  "cittametropolitana.fi.it",
+  "cittametropolitana.mi.it",
+  "cittametropolitana.ve.it",
+  "dati.cittametropolitana.genova.it",
+  "provincia.arezzo.it",
+  "provincia.bz.it",
+  "provincia.como.it",
+  "provincia.cremona.it",
+  "provincia.cuneo.it",
+  "provincia.imperia.it",
+  "provincia.lecco.it",
+  "provincia.mantova.it",
+  "provincia.padova.it",
+  "provincia.pd.it",
+  "provincia.ra.it",
+  "provincia.savona.it",
+  "provincia.tn.it",
+  "provinciams.etrasparenza.it",
+  "provinciasondrio.it",
+  "trasparenza.cittametropolitana.torino.it",
+  "trasparenza.provincia.pistoia.it",
+  "web.provincia.vr.it",
+  "baldolessinia.it",
+  "farmaremma.it",
+  "gal-start.it",
+  "galadige.it",
+  "galaltamarca.tv.it",
+  "galaltobellunese.com",
+  "galaretino.it",
+  "galdeltapo.it",
+  "galpatavino.it",
+  "galprealpidolomiti.it",
+  "galterretrusche.com",
+  "leadersiena.it",
+  "montagnappennino.it",
+  "montagnavicentina.com",
+  "sviluppolunigiana.it",
+  "vegal.net",
+] as const;
+
+function coveredByLiveCatalog(host: string): boolean {
+  return LIVE_CORE_OFFICIAL_DOMAINS.some(
+    (domain) => host === domain || host.endsWith(`.${domain}`),
+  );
+}
+
 describe("registro fonti core", () => {
   it("copre le fonti obbligatorie nell'ordine richiesto", () => {
     expect(CORE_SOURCES.map((s) => s.id)).toEqual([
@@ -38,6 +181,9 @@ describe("registro fonti core", () => {
       "gal",
       "unioncamere",
       "provincia",
+      "bur",
+      "regionale",
+      "nazionale",
     ]);
   });
 
@@ -52,6 +198,19 @@ describe("registro fonti core", () => {
     expect(sourceForUrl("https://blog-bandi.example.com/x")).toBeNull();
     expect(sourceForUrl("javascript:alert(1)")).toBeNull();
     expect(sourceForUrl(undefined)).toBeNull();
+  });
+
+  it("ammette ogni official_domain live Core e i sottodomini, senza inventare siti", () => {
+    for (const domain of LIVE_CORE_OFFICIAL_DOMAINS) {
+      expect(sourceForUrl(`https://${domain}/bando`), domain).not.toBeNull();
+      expect(sourceForUrl(`https://www.${domain}/bando`), `www.${domain}`).not.toBeNull();
+    }
+    for (const host of CORE_OFFICIAL_DOMAINS) {
+      expect(coveredByLiveCatalog(host), host).toBe(true);
+    }
+    expect(sourceForUrl("https://comune.milano.it/albo")).toBeNull();
+    expect(sourceForUrl("https://comune.firenze.it/albo")).toBeNull();
+    expect(sourceForUrl("https://random-bandi.example.com/x")).toBeNull();
   });
 });
 
@@ -132,6 +291,53 @@ describe("ammissione fail-closed", () => {
         NOW,
       ),
     ).toMatchObject({ ok: true });
+  });
+
+  it("ammette Camera toscana, BUR, provincia e GAL già in Core", () => {
+    expect(
+      admitBando(
+        bando({
+          scope: "CAMERALE",
+          ente: "Camera di Commercio di Firenze",
+          official_url: "https://www.fi.camcom.gov.it/bandi/1",
+        }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true });
+    expect(sourceForUrl("https://www.ptpo.camcom.it/bando")?.id).toBe("cciaa");
+    expect(
+      admitBando(
+        bando({
+          scope: "REGIONALE",
+          ente: "Regione Emilia-Romagna",
+          official_url: "https://bur.regione.emilia-romagna.it/bur/dettaglio/1",
+        }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true });
+    expect(
+      admitBando(
+        bando({
+          scope: "REGIONALE",
+          ente: "Provincia di Arezzo",
+          official_url: "https://www.provincia.arezzo.it/bando",
+        }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true });
+    expect(
+      admitBando(
+        bando({
+          scope: "COMUNALE",
+          ente: "GAL Far Maremma",
+          official_url: "https://www.farmaremma.it/bando",
+        }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true });
+    expect(
+      admitBando(bando({ official_url: "https://random-bandi.example.com/x", notice_url: undefined }), NOW),
+    ).toMatchObject({ ok: false, reason: "SOURCE_NOT_CORE" });
   });
 
   it("scarta fonti fuori registro", () => {
