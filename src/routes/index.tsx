@@ -92,7 +92,8 @@ function Landing() {
           </h1>
           <p className="mt-6 text-base text-foreground sm:text-lg md:text-xl">
             Ti diciamo quali sono i tuoi, dove sono, e ti prepariamo la bozza di richiesta.
-            Radar sempre acceso. Push appena esce una novità. Anche nel weekend.
+            Radar sempre acceso, anche nel weekend. Gli avvisi in-app arrivano quando il
+            catalogo ufficiale ha novità compatibili.
           </p>
           <p className="mt-4 text-base text-muted-foreground sm:text-lg">
             UEradar scova Bandi, Contributi a Fondo Perduto, Finanziamenti Agevolati ed

@@ -23,6 +23,7 @@ import {
   TRIAL_COPY,
   TRIAL_TERMS,
   VERIFIED_DEFINITION,
+  planCompareRows,
 } from "@/lib/pricing";
 import { LAUNCH_OFFER, launchOfferApplies } from "@/lib/launch-offer";
 
@@ -200,6 +201,47 @@ function Pricing() {
               </p>
             </div>
           ))}
+        </section>
+
+        <section aria-label="Confronto Radar, Pratica e Studio" className="mt-10 overflow-x-auto rounded-2xl border border-border bg-card">
+          <h2 className="px-6 pt-6 text-xl font-semibold sm:px-8">Radar, Pratica e Studio a confronto</h2>
+          <p className="px-6 pt-2 text-sm text-muted-foreground sm:px-8">
+            Tutti i prezzi sono IVA esclusa. Radar in offerta lancio: 99 €/mese fino al 30 nov 2026,
+            poi 249 €/mese. Pratica 449 €/mese. Studio da 990 €/mese su richiesta.
+          </p>
+          <table className="mt-4 w-full min-w-[36rem] text-left text-sm">
+            <caption className="sr-only">
+              Confronto dei piani Radar, Pratica e Studio: prezzi, utenti, imprese e dossier
+            </caption>
+            <thead>
+              <tr className="border-y border-border bg-muted/40">
+                <th scope="col" className="px-6 py-3 font-semibold sm:px-8">
+                  Voce
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Radar
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Pratica
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold sm:pr-8">
+                  Studio
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {planCompareRows().map((row) => (
+                <tr key={row.label} className="border-b border-border/70">
+                  <th scope="row" className="px-6 py-3 font-medium sm:px-8">
+                    {row.label}
+                  </th>
+                  <td className="px-4 py-3 text-muted-foreground">{row.radar}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{row.pratica}</td>
+                  <td className="px-4 py-3 text-muted-foreground sm:pr-8">{row.studio}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </section>
 
         <section className="mt-6 rounded-2xl border border-dashed border-border bg-card/60 p-6 sm:p-8">

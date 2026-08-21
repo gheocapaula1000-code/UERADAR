@@ -8,6 +8,8 @@ import { DeepSearchShimmer } from "@/components/bandocore/DeepSearchShimmer";
 import { RadarIntro } from "@/components/bandocore/RadarIntro";
 import { fetchFeedFromProxyCore, requestFeedRefresh } from "@/lib/proxy-core.functions";
 import { getBillingStatus } from "@/lib/billing.functions";
+import { getUsageSummary } from "@/lib/usage.functions";
+import { ALERTS_EMPTY, ALERTS_ERROR, ALERTS_HEADING, ALERTS_LEAD } from "@/lib/alerts";
 import { supabase } from "@/integrations/supabase/client";
 import type { Bando, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
 import { CATEGORY_FILTERS, type CategoryFilterKey } from "@/lib/bando-categories";
@@ -58,6 +60,13 @@ function Dashboard() {
     staleTime: 60_000,
   });
   const entitled = billing.data?.entitlement.entitled === true;
+  const loadUsage = useServerFn(getUsageSummary);
+  const usage = useQuery({
+    queryKey: ["usage-summary"],
+    queryFn: () => loadUsage(),
+    enabled: entitled,
+    staleTime: 60_000,
+  });
   const queryClient = useQueryClient();
   const refreshAbort = useRef<AbortController | null>(null);
   // Guardia sincrona: `isRefreshing` è state asincrono e due click nello stesso
@@ -191,8 +200,9 @@ function Dashboard() {
         .order("created_at", { ascending: false })
         .limit(10);
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
+    enabled: entitled,
   });
 
   useEffect(() => {
@@ -494,25 +504,43 @@ function Dashboard() {
         {/* Deep Search shimmer con messaggi dinamici */}
         {(query.isFetching || isRefreshing) && <DeepSearchShimmer />}
 
-        {(notificationsQ.data?.length ?? 0) > 0 && (
-          <section className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="flex items-center gap-2 text-lg font-semibold">
-                  <Bell className="h-5 w-5 text-primary" /> Novità di oggi
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Elementi rilevati dall'ultimo aggiornamento del catalogo.
-                </p>
-              </div>
-              <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
-                {notificationsQ.data?.filter((item) => !item.read_at).length ?? 0} nuove
-              </span>
+        {usage.data?.watermarked ? (
+          <p className="rounded-xl border border-accent/40 bg-accent/10 p-4 text-sm">
+            Durante la prova il dossier è filigranato e non utilizzabile per la presentazione.
+            Incluso: {usage.data.limits.dossiersPerMonth} bozza
+            {usage.data.dossiers_used > 0 ? ` · già aperta: ${usage.data.dossiers_used}` : ""}.
+            Nessuna domanda viene inviata agli enti.
+          </p>
+        ) : null}
+
+        <section className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold">
+                <Bell className="h-5 w-5 text-primary" aria-hidden="true" /> {ALERTS_HEADING}
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">{ALERTS_LEAD}</p>
             </div>
+            {(notificationsQ.data?.length ?? 0) > 0 ? (
+              <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
+                {notificationsQ.data?.filter((item) => !item.read_at).length ?? 0} non letti
+              </span>
+            ) : null}
+          </div>
+          {notificationsQ.isLoading ? (
+            <p className="text-sm text-muted-foreground" aria-live="polite">
+              Caricamento avvisi…
+            </p>
+          ) : notificationsQ.error ? (
+            <p className="text-sm text-muted-foreground">{ALERTS_ERROR}</p>
+          ) : (notificationsQ.data?.length ?? 0) === 0 ? (
+            <p className="text-sm text-muted-foreground">{ALERTS_EMPTY}</p>
+          ) : (
             <div className="grid gap-2 md:grid-cols-2">
               {notificationsQ.data?.slice(0, 6).map((item) => (
                 <button
                   key={item.id}
+                  type="button"
                   onClick={async () => {
                     await supabase
                       .from("daily_notifications")
@@ -535,8 +563,8 @@ function Dashboard() {
                 </button>
               ))}
             </div>
-          </section>
-        )}
+          )}
+        </section>
 
         {/* STATS: tre numeri chiari, il dettaglio è a richiesta */}
         <div className="grid gap-3 sm:grid-cols-3">
@@ -608,10 +636,14 @@ function Dashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {query.isLoading ? (
               Array.from({ length: 3 }).map((_, i) => <BandoCardSkeleton key={i} />)
+            ) : query.error ? (
+              <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                Elenco non disponibile in questo momento. Non mostriamo schede di esempio: riprova
+                con «Cerca nuovi Bandi» oppure consulta lo snapshot già salvato, se presente.
+              </div>
             ) : flashBandi.length === 0 ? (
               <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Nessuna scadenza ravvicinata tra le opportunità caricate. Usa Aggiorna per una nuova
-                ricerca sulle fonti ufficiali.
+                Nessuna scadenza ravvicinata tra le opportunità caricate dal catalogo ufficiale.
               </div>
             ) : (
               flashBandi.map((b, i) => <BandoCard key={b.id} bando={b} index={i} />)
@@ -738,11 +770,19 @@ function Dashboard() {
                 <BandoCardSkeleton key={i} />
               ))}
             </div>
+          ) : query.error ? (
+            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              Il catalogo ufficiale non è raggiungibile in questo momento. Non inventiamo Bandi:
+              riprova tra poco con «Cerca nuovi Bandi».
+            </div>
           ) : filtered.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              Nessun Bando corrisponde ai filtri scelti.
+              {bandi.length === 0
+                ? "Nessun Bando ufficiale in questo aggiornamento. Non inventiamo schede."
+                : "Nessun Bando corrisponde ai filtri scelti."}
               {activeFilters > 0 && (
                 <button
+                  type="button"
                   onClick={resetFilters}
                   className="tap ml-2 font-semibold text-primary underline"
                 >

@@ -8,7 +8,7 @@ import { fetchFeedFromProxyCore, loadCachedFeed } from "@/lib/proxy-core.functio
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanyProfile } from "@/lib/bandocore-types";
 import { buildDossier, renderDossierText } from "@/lib/dossier";
-import { consumeDossier } from "@/lib/usage.functions";
+import { consumeDossier, getUsageSummary } from "@/lib/usage.functions";
 import type { DossierField } from "@/lib/dossier";
 import { downloadDossierPdf } from "@/lib/dossier-pdf";
 import {
@@ -90,6 +90,12 @@ function BandoDetail() {
   const [watermarked, setWatermarked] = useState(false);
   // Il dossier consuma una quota del piano: la decisione è sempre server-side.
   const claimDossier = useServerFn(consumeDossier);
+  const loadUsage = useServerFn(getUsageSummary);
+  const usageQ = useQuery({
+    queryKey: ["usage-summary"],
+    queryFn: () => loadUsage(),
+    staleTime: 60_000,
+  });
 
   const feedQ = useQuery({
     queryKey: ["bandi-feed"],
@@ -453,6 +459,16 @@ function BandoDetail() {
                   </div>
                 )}
               </div>
+
+              {usageQ.data?.watermarked && !dossierOpen ? (
+                <p className="mt-3 rounded-lg border border-accent/40 bg-accent/10 p-3 text-xs">
+                  Durante la prova la bozza è filigranata e non utilizzabile per la presentazione.
+                  Incluso: {usageQ.data.limits.dossiersPerMonth} dossier
+                  {usageQ.data.dossiers_used > 0
+                    ? ` · già aperti in questo periodo: ${usageQ.data.dossiers_used}`
+                    : ""}.
+                </p>
+              ) : null}
 
               <p
                 role="note"

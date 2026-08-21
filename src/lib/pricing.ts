@@ -77,6 +77,64 @@ export const ENTERPRISE_PLAN = {
 /** Compatibilità con la pagina abbonamento: stessa fonte, stesso testo. */
 export const CUSTOM_PLAN = ENTERPRISE_PLAN;
 
+export type PlanCompareRow = {
+  label: string;
+  radar: string;
+  pratica: string;
+  studio: string;
+};
+
+/**
+ * Confronto Radar / Pratica / Studio: numeri dal catalogo, IVA esclusa.
+ * L'offerta lancio RADAR (99 € poi 249 €) è visibile solo finché è attiva.
+ */
+export function planCompareRows(now: Date = new Date()): readonly PlanCompareRow[] {
+  const radarMonth = CATALOG.professional.prices.month?.amountCents ?? 24900;
+  const praticaMonth = CATALOG.business.prices.month?.amountCents ?? 44900;
+  const radarAnnual = CATALOG.professional.prices.year?.amountCents ?? 249000;
+  const praticaAnnual = CATALOG.business.prices.year?.amountCents ?? 449000;
+  return [
+    {
+      label: "Prezzo mensile (IVA esclusa)",
+      radar: launchOfferActive(now)
+        ? `${LAUNCH_OFFER.priceLabel} in offerta lancio, poi ${LAUNCH_OFFER.listLabel} / mese`
+        : `${formatEuro(radarMonth)} / mese`,
+      pratica: `${formatEuro(praticaMonth)} / mese`,
+      studio: `da ${formatEuro(ENTERPRISE_FROM_CENTS)} / mese`,
+    },
+    {
+      label: "Prezzo annuale (2 mesi inclusi, IVA esclusa)",
+      radar: `${formatEuro(radarAnnual)} / anno`,
+      pratica: `${formatEuro(praticaAnnual)} / anno`,
+      studio: "su preventivo",
+    },
+    {
+      label: "Utenti operativi (capienza tecnica)",
+      radar: String(CATALOG.professional.limits.seats),
+      pratica: String(CATALOG.business.limits.seats),
+      studio: "da contratto",
+    },
+    {
+      label: "Imprese",
+      radar: String(CATALOG.professional.limits.companies),
+      pratica: String(CATALOG.business.limits.companies),
+      studio: "anche multi-impresa",
+    },
+    {
+      label: "Dossier / bozze al mese",
+      radar: String(CATALOG.professional.limits.dossiersPerMonth),
+      pratica: String(CATALOG.business.limits.dossiersPerMonth),
+      studio: "da contratto",
+    },
+    {
+      label: "Acquisto online",
+      radar: "self-service",
+      pratica: "self-service",
+      studio: "nessun acquisto online",
+    },
+  ];
+}
+
 /**
  * Campi obbligatori dell'etichetta "Verificato": se anche uno manca, la
  * label non viene mostrata (fail-closed). Non è una garanzia di ammissibilità.

@@ -40,15 +40,6 @@ const STATE_LABEL: Record<string, string> = {
 import { LAUNCH_OFFER, launchOfferApplies } from "@/lib/launch-offer";
 
 /** Spiegazioni leggibili dei codici di blocco checkout (nessun segreto in UI). */
-const PAYMENT_LINK_RADAR = "https://buy.stripe.com/7sYeVd3Ph7c41Ad3TGcZa00";
-const PAYMENT_LINK_PRATICA = "https://buy.stripe.com/7sYeVd3Ph7c41Ad3TGcZa00";
-
-/** Fallback Payment Link per piano quando il checkout server non è disponibile. */
-const PAYMENT_LINKS: Record<string, string | undefined> = {
-  professional: PAYMENT_LINK_RADAR,
-  business: PAYMENT_LINK_PRATICA,
-};
-
 const CHECKOUT_BLOCK_LABEL: Record<string, string> = {
   BILLING_NOT_CONFIGURED: "L'attivazione online non è ancora configurata su questo ambiente.",
   BILLING_KEY_MODE_MISMATCH:
@@ -298,7 +289,8 @@ function Abbonamento() {
           {data && !data.checkout_available ? (
             <p className="mt-4 flex items-start gap-2 rounded-lg border border-border bg-muted p-3 text-sm">
               <ShieldCheck aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-              Attivazione sicura tramite Stripe. Verrai reindirizzato al pagamento.
+              Gli addebiti sono disabilitati su questo ambiente. La prova non richiede pagamento.
+              L'attivazione a pagamento resta riservata ai test.
             </p>
           ) : null}
 
@@ -401,24 +393,14 @@ function Abbonamento() {
                     payMutation.mutate(plan.id as "professional" | "business" | "executive");
                     return;
                   }
-                  // Il Payment Link statico di Radar è il vecchio 249: durante
-                  // l'offerta lancio non deve mai essere usato per il mensile.
-                  const link = launchOfferApplies(plan.id, interval)
-                    ? undefined
-                    : PAYMENT_LINKS[plan.id];
-                  if (link) {
-                    window.location.assign(link);
-                    return;
-                  }
-                  if (disabledReason) {
-                    toast.error("Attivazione non disponibile", { description: disabledReason });
-                  }
+                  toast.error("Attivazione non disponibile", {
+                    description:
+                      disabledReason ??
+                      "Gli addebiti sono disabilitati: nessun pagamento live da questa pagina.",
+                  });
                 }}
-                disabled={payMutation.isPending}
-                aria-disabled={
-                  Boolean(disabledReason) &&
-                  (launchOfferApplies(plan.id, interval) || !PAYMENT_LINKS[plan.id])
-                }
+                disabled={payMutation.isPending || Boolean(disabledReason) || !data?.checkout_available}
+                aria-disabled={Boolean(disabledReason) || !data?.checkout_available}
                 className="tap mt-6 w-full rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground disabled:opacity-50"
               >
                 Attiva {plan.name}
