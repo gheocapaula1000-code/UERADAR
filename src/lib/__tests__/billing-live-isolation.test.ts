@@ -122,10 +122,51 @@ describe("isolamento Stripe TEST/LIVE", () => {
     ).toBe("BILLING_KEY_MODE_MISMATCH");
   });
 
-  it("richiede sei Price ID distinti", () => {
-    const duplicated = Object.fromEntries(
-      REAL_PRICE_KEYS.map((k, i) => [k, i < 2 ? "price_duplicate" : `price_${i}`]),
-    );
+  it("richiede i Price Istruttoria e ID distinti tra quelli caricati", () => {
+    const istruttoriaOnly = {
+      [priceKey("business", "month")]: "price_live_biz_m",
+      [priceKey("business", "year")]: "price_live_biz_y",
+    };
+    expect(
+      billingConfigured(
+        env({
+          mode: "live",
+          expectedLivemode: true,
+          liveEnabled: true,
+          secretKey: "sk_live_valid123",
+          priceMap: istruttoriaOnly,
+        }),
+      ),
+    ).toEqual({ ok: true, code: "OK" });
+    expect(
+      billingConfigured(
+        env({
+          mode: "live",
+          expectedLivemode: true,
+          liveEnabled: true,
+          secretKey: "sk_live_valid123",
+          priceMap: { [priceKey("business", "month")]: "price_live_biz_m" },
+        }),
+      ).code,
+    ).toBe("PRICES_NOT_CONFIGURED");
+    expect(
+      billingConfigured(
+        env({
+          mode: "live",
+          expectedLivemode: true,
+          liveEnabled: true,
+          secretKey: "sk_live_valid123",
+          priceMap: {
+            [priceKey("professional", "month")]: "price_radar_m",
+            [priceKey("professional", "year")]: "price_radar_y",
+          },
+        }),
+      ).code,
+    ).toBe("PRICES_NOT_CONFIGURED");
+    const duplicated = {
+      [priceKey("business", "month")]: "price_duplicate",
+      [priceKey("business", "year")]: "price_duplicate",
+    };
     expect(billingConfigured(env({ priceMap: duplicated })).code).toBe("PRICE_IDS_NOT_UNIQUE");
     expect(billingConfigured(env({ priceMap: { "p:0": "price_only" } })).code).toBe(
       "PRICES_NOT_CONFIGURED",
@@ -242,12 +283,8 @@ describe("isolamento Stripe TEST/LIVE", () => {
       subscriptionId: "sub_123",
       customerId: "cus_123",
       priceMap: {
-        "professional:month": "p1",
-        "professional:year": "p2",
-        "business:month": "price_live_business",
-        "business:year": "p4",
-        "executive:month": "p5",
-        "executive:year": "p6",
+        [priceKey("business", "month")]: "price_live_business",
+        [priceKey("business", "year")]: "price_live_business_year",
       },
       billingMode: "live",
     });

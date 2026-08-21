@@ -5,7 +5,6 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { SELF_SERVICE_PLANS } from "./catalog";
 import {
   CATALOG,
   expectedLivemode,
@@ -13,6 +12,7 @@ import {
   isTestSecretKey,
   isValidPriceId,
   priceKey,
+  selfServicePricesConfigured,
   type BillingMode,
 } from "./billing";
 
@@ -184,17 +184,8 @@ export function billingConfigured(env: BillingEnv): { ok: boolean; code: string 
     return { ok: false, code: "BILLING_KEY_MODE_MISMATCH" };
   if (env.mode === "live" && !isLiveSecretKey(env.secretKey))
     return { ok: false, code: "BILLING_KEY_MODE_MISMATCH" };
-  if (env.missingPriceEnvs.length > 0)
+  if (env.missingPriceEnvs.length > 0 || !selfServicePricesConfigured(env.priceMap))
     return { ok: false, code: "PRICES_NOT_CONFIGURED" };
-  // Almeno un Price per ogni piano self-service (mese o anno caricati in map).
-  for (const planId of SELF_SERVICE_PLANS) {
-    const plan = CATALOG[planId];
-    for (const interval of Object.keys(plan.prices) as Array<keyof typeof plan.prices>) {
-      if (!plan.prices[interval]) continue;
-      if (!env.priceMap[priceKey(planId, interval)])
-        return { ok: false, code: "PRICES_NOT_CONFIGURED" };
-    }
-  }
   const configuredPriceIds = Object.values(env.priceMap);
   if (new Set(configuredPriceIds).size !== configuredPriceIds.length)
     return { ok: false, code: "PRICE_IDS_NOT_UNIQUE" };

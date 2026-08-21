@@ -5,8 +5,8 @@
  * limiti, capienza) vive in `catalog.ts` ed è l'unica fonte di verità.
  */
 import {
-  PRICE_ENV_NAMES,
   CATALOG,
+  SELF_SERVICE_PLANS,
   checkoutTarget,
   formatEuro,
   intervalFromCode,
@@ -74,6 +74,37 @@ export function seatsForPlanCode(planCode: unknown): number {
 
 export function limitsForPlanCode(planCode: unknown): PlanLimits {
   return planFromCode(planCode).limits;
+}
+
+/**
+ * Price self-service (Istruttoria) obbligatori per checkout e webhook apply.
+ * Radar e Studio restano opzionali: se presenti in mappa sono allowlistati,
+ * se assenti non bloccano l'applicazione di un evento Istruttoria.
+ */
+export function selfServicePricesConfigured(priceMap: Record<string, string>): boolean {
+  for (const planId of SELF_SERVICE_PLANS) {
+    const plan = CATALOG[planId];
+    for (const price of Object.values(plan.prices)) {
+      if (!priceMap[priceKey(planId, price.interval)]) return false;
+    }
+  }
+  return Object.keys(priceMap).length > 0;
+}
+
+/**
+ * Collegamento utente da evento webhook: metadata `supabase_user_id` oppure
+ * customer già legato in anagrafica per la modalità attiva. Payment Link,
+ * Dashboard o metadata assenti senza riga customer non inventano un utente.
+ */
+export function webhookUserLookup(input: {
+  metadataUserId: unknown;
+  linkedUserId: string | null;
+}): { ok: true; userId: string } | { ok: false; code: "USER_NOT_FOUND" } {
+  if (typeof input.metadataUserId === "string" && input.metadataUserId)
+    return { ok: true, userId: input.metadataUserId };
+  if (typeof input.linkedUserId === "string" && input.linkedUserId)
+    return { ok: true, userId: input.linkedUserId };
+  return { ok: false, code: "USER_NOT_FOUND" };
 }
 
 /** Risolve piano e intervallo a partire dal Price ID ricevuto dal provider. */
@@ -598,8 +629,9 @@ export type SubscriptionUpdate = {
 };
 
 /**
- * Nessun fallback: se il Price non è nella configurazione TEST completa,
- * l'evento non viene mappato (mai piano prova o zero posti per ripiego).
+ * Nessun fallback: i Price self-service (Istruttoria) devono essere in mappa;
+ * Radar/Studio restano opzionali. Un Price fuori allowlist non viene mappato
+ * (mai piano prova o zero posti per ripiego).
  */
 export function subscriptionUpdateFromEvent(input: {
   status: unknown;
@@ -611,7 +643,7 @@ export function subscriptionUpdateFromEvent(input: {
   priceMap: Record<string, string>;
   billingMode?: BillingMode;
 }): SubscriptionUpdate {
-  if (Object.keys(input.priceMap).length < PRICE_ENV_NAMES.length)
+  if (!selfServicePricesConfigured(input.priceMap))
     return { ok: false, code: "PRICES_NOT_CONFIGURED", patch: null };
   const match = planFromPriceId(input.priceId, input.priceMap);
   if (!match) return { ok: false, code: "PRICE_NOT_ALLOWLISTED", patch: null };
