@@ -122,7 +122,7 @@ describe("isolamento Stripe TEST/LIVE", () => {
     ).toBe("BILLING_KEY_MODE_MISMATCH");
   });
 
-  it("richiede sei Price ID distinti", () => {
+  it("richiede Price self-service distinti; Radar e Studio restano opzionali", () => {
     const duplicated = Object.fromEntries(
       REAL_PRICE_KEYS.map((k, i) => [k, i < 2 ? "price_duplicate" : `price_${i}`]),
     );
@@ -130,6 +130,22 @@ describe("isolamento Stripe TEST/LIVE", () => {
     expect(billingConfigured(env({ priceMap: { "p:0": "price_only" } })).code).toBe(
       "PRICES_NOT_CONFIGURED",
     );
+    const istruttoriaOnly = {
+      [priceKey("business", "month")]: "price_live_istruttoria_month",
+      [priceKey("business", "year")]: "price_live_istruttoria_year",
+    };
+    expect(
+      billingConfigured(
+        env({
+          mode: "live",
+          expectedLivemode: true,
+          liveEnabled: true,
+          publicCheckoutEnabled: true,
+          secretKey: "sk_live_valid123",
+          priceMap: istruttoriaOnly,
+        }),
+      ),
+    ).toEqual({ ok: true, code: "OK" });
   });
 
   it("il verdetto richiede un booleano identico al contesto", () => {
