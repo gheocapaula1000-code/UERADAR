@@ -20,6 +20,7 @@ const row = {
   summary: "Sintesi",
   official_url: "https://example.gov.it/a",
   application_url: "https://example.gov.it/a/domanda",
+  forms_url: "https://example.gov.it/a/modulo.pdf",
   requirements: ["PMI"],
   eligible_expenses: ["Macchinari"],
   match: {
@@ -87,6 +88,32 @@ describe("contratto upstream rigoroso", () => {
     expect(mapped.id).toBe("a");
     expect(mapped.notice_url).toBe(row.official_url);
     expect(mapped.piattaforma_url).toBe(row.application_url);
+    expect(mapped.application_url).toBe(row.application_url);
+    expect(mapped.modulistica_url).toBe(row.forms_url);
+  });
+
+  it("mantiene forms_url e application_url nel contratto e non copia official_url", () => {
+    const withUrls = sanitizeFeedResponse(
+      { ok: true, bandi: [{ ...row, forms_url: "https://ente.it/moduli", application_url: "https://ente.it/domanda" }] },
+      200,
+    );
+    expect(withUrls.ok).toBe(true);
+    if (withUrls.ok) {
+      expect(withUrls.bandi[0]?.forms_url).toBe("https://ente.it/moduli");
+      expect(withUrls.bandi[0]?.application_url).toBe("https://ente.it/domanda");
+    }
+
+    const blank = sanitizeFeedResponse({ ok: true, bandi: [{ ...row, forms_url: "", application_url: "  " }] }, 200);
+    expect(blank.ok).toBe(true);
+    if (blank.ok) {
+      expect(blank.bandi[0]).not.toHaveProperty("forms_url");
+      expect(blank.bandi[0]).not.toHaveProperty("application_url");
+      const mapped = mapCoreOpportunity(blank.bandi[0] as typeof row);
+      expect(mapped.modulistica_url).toBeUndefined();
+      expect(mapped.application_url).toBeUndefined();
+      expect(mapped.piattaforma_url).toBeUndefined();
+      expect(mapped.official_url).toBe(row.official_url);
+    }
   });
 
   it("rifiuta categoria, scope, URL, match e tipi fuori contratto", () => {

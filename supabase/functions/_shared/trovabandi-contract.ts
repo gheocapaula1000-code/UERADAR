@@ -99,7 +99,17 @@ export function isHttpUrl(value: unknown): value is string {
 }
 
 function optionalHttpUrl(value: unknown): value is string | null | undefined {
-  return value == null || isHttpUrl(value);
+  if (value == null) return true;
+  if (typeof value !== "string") return false;
+  return value.trim() === "" || isHttpUrl(value.trim());
+}
+
+/** URL opzionale valido; stringa vuota o non-HTTP → assente, non errore di riga. */
+export function coerceOptionalHttpUrl(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || !isHttpUrl(trimmed)) return undefined;
+  return trimmed;
 }
 
 function optionalIsoDate(value: unknown): value is string | null | undefined {
@@ -204,8 +214,17 @@ const OUTPUT_FIELDS = [
 
 function sanitizeOpportunity(row: ContractRow): ContractRow {
   const clean: ContractRow = {};
+  const optionalUrls = OPTIONAL_URL as readonly string[];
   for (const field of OUTPUT_FIELDS) {
-    if (row[field] !== undefined && row[field] !== null) clean[field] = row[field];
+    const value = row[field];
+    if (value === undefined || value === null) continue;
+    if (optionalUrls.includes(field)) {
+      const url = coerceOptionalHttpUrl(value);
+      if (url) clean[field] = url;
+      continue;
+    }
+    if (typeof value === "string" && value.trim() === "") continue;
+    clean[field] = value;
   }
   return clean;
 }

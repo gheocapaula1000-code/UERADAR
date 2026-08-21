@@ -144,8 +144,74 @@ export interface OfficialFillPlan {
   leftEmpty: Array<{ fieldName: string; reason: string }>;
 }
 
-export function hasOfficialModulistica(bando: Pick<Bando, "modulistica_url"> | null | undefined): boolean {
-  return Boolean(bando?.modulistica_url?.trim());
+export type ApplyChannelBando = Pick<
+  Bando,
+  "modulistica_url" | "application_url" | "piattaforma_url" | "official_url" | "notice_url"
+>;
+
+function presentUrl(value: string | undefined | null): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function sameHref(left: string, right: string): boolean {
+  const normalize = (raw: string): string => {
+    try {
+      const url = new URL(raw);
+      url.hash = "";
+      url.pathname = url.pathname.replace(/\/+$/, "") || "/";
+      return url.toString();
+    } catch {
+      return raw.replace(/\/+$/, "");
+    }
+  };
+  return normalize(left) === normalize(right);
+}
+
+/** Solo URL che il Core ha etichettato come modulistica: mai official_url. */
+export function realFormsUrl(bando: ApplyChannelBando | null | undefined): string | undefined {
+  return presentUrl(bando?.modulistica_url);
+}
+
+/** Solo URL che il Core ha etichettato come domanda: mai official_url. */
+export function realApplicationUrl(bando: ApplyChannelBando | null | undefined): string | undefined {
+  const apply = presentUrl(bando?.application_url);
+  if (apply) return apply;
+  const platform = presentUrl(bando?.piattaforma_url);
+  const official = presentUrl(bando?.official_url) ?? presentUrl(bando?.notice_url);
+  if (!platform) return undefined;
+  if (official && sameHref(platform, official)) return undefined;
+  return platform;
+}
+
+export function hasOfficialModulistica(bando: ApplyChannelBando | null | undefined): boolean {
+  return Boolean(realFormsUrl(bando) || realApplicationUrl(bando));
+}
+
+export function countRealApplyLinks(bandi: ApplyChannelBando[]): {
+  total: number;
+  withForms: number;
+  withApply: number;
+  withEither: number;
+  dossierOnly: number;
+} {
+  let withForms = 0;
+  let withApply = 0;
+  let withEither = 0;
+  for (const bando of bandi) {
+    const forms = Boolean(realFormsUrl(bando));
+    const apply = Boolean(realApplicationUrl(bando));
+    if (forms) withForms += 1;
+    if (apply) withApply += 1;
+    if (forms || apply) withEither += 1;
+  }
+  return {
+    total: bandi.length,
+    withForms,
+    withApply,
+    withEither,
+    dossierOnly: bandi.length - withEither,
+  };
 }
 
 export function looksLikePdfUrl(url: string): boolean {
@@ -430,18 +496,22 @@ function listItem(field: AllowedProfileField, profile: AllowedProfile): Official
 }
 
 export function renderOfficialModuleText(
-  bando: Pick<Bando, "titolo" | "ente" | "modulistica_url" | "pdf_field_mapping">,
+  bando: Pick<Bando, "titolo" | "ente" | "modulistica_url" | "application_url" | "pdf_field_mapping">,
   profile: CompanyProfile | null | undefined,
 ): string {
   const items = buildOfficialModuleList(profile, bando.pdf_field_mapping);
   const lines = items.map((item) =>
     item.missing ? `${item.label}: — non presente nel profilo` : `${item.label}: ${item.value}`,
   );
+  const pages = [
+    bando.modulistica_url ? `Modulistica: ${bando.modulistica_url}` : null,
+    bando.application_url ? `Presentazione: ${bando.application_url}` : null,
+  ].filter(Boolean);
   return `BOZZA DATI PER MODULO UFFICIALE — ${bando.titolo}
 ${DRAFT_DISCLAIMER}
 
 Ente: ${bando.ente}
-Pagina ufficiale: ${bando.modulistica_url ?? "—"}
+${pages.join("\n") || "Nessun URL di modulistica o presentazione distinto dalla scheda ufficiale."}
 
 ── Campi da inserire nel modulo ufficiale ──
 ${lines.join("\n")}
@@ -451,12 +521,19 @@ ${OFFICIAL_MODULE_FIRMA_NOTE}
 }
 
 export function resolveModulisticaFetchTarget(
-  bando: Pick<Bando, "modulistica_url"> | null | undefined,
+  bando: ApplyChannelBando | null | undefined,
 ): { ok: true; url: string } | { ok: false; kind: "missing" | "invalid_url" } {
-  const raw = bando?.modulistica_url?.trim();
+  const raw = realFormsUrl(bando) ?? realApplicationUrl(bando);
   if (!raw) return { ok: false, kind: "missing" };
-  if (!isPublicHttpsUrl(raw)) return { ok: false, kind: "invalid_url" };
-  return { ok: true, url: raw };
+  try {
+    const url = new URL(raw);
+    if (url.protocol === "http:") url.protocol = "https:";
+    const href = url.toString();
+    if (!isPublicHttpsUrl(href)) return { ok: false, kind: "invalid_url" };
+    return { ok: true, url: href };
+  } catch {
+    return { ok: false, kind: "invalid_url" };
+  }
 }
 
 const MAX_OFFICIAL_BYTES = 6_000_000;

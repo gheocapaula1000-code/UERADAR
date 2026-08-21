@@ -6,12 +6,14 @@ import { DOSSIER_DISCLAIMER } from "@/lib/dossier";
 import {
   classifyFetchedDocument,
   classifyModulisticaHint,
+  countRealApplyLinks,
   DRAFT_DISCLAIMER,
   fetchOfficialDocument,
   hasOfficialModulistica,
   isPublicHttpsUrl,
   matchOfficialFieldTarget,
   planOfficialPdfFill,
+  realApplicationUrl,
   renderOfficialModuleText,
   resolveModulisticaFetchTarget,
 } from "@/lib/official-module";
@@ -68,13 +70,64 @@ async function makeFillablePdf(): Promise<Uint8Array> {
 }
 
 describe("modulistica ufficiale: assenza URL", () => {
-  it("non inventa un modulo se manca modulistica_url", () => {
-    const bando = { titolo: "X", ente: "Y" } as Bando;
+  it("non inventa un modulo da official_url", () => {
+    const bando = {
+      titolo: "X",
+      ente: "Y",
+      official_url: "https://www.gse.it/",
+      notice_url: "https://www.gse.it/",
+      piattaforma_url: "https://www.gse.it/",
+    } as Bando;
     expect(hasOfficialModulistica(bando)).toBe(false);
+    expect(realApplicationUrl(bando)).toBeUndefined();
     expect(classifyModulisticaHint(undefined)).toBe("missing");
     expect(resolveModulisticaFetchTarget(bando)).toEqual({ ok: false, kind: "missing" });
-    expect(PAGE).toContain("modulisticaHref ?");
+    expect(PAGE).toContain("officialModuleHref ?");
+    expect(PAGE).not.toMatch(/safeOfficialHref\(bando\.official_url, "platform"\)/);
     expect(PAGE).not.toMatch(/pdf_field_mapping\?\.length \?\s*\n\s*<div className="mt-8 rounded-xl border border-primary/);
+  });
+
+  it("mostra il blocco se c'è solo application_url", () => {
+    const bando = {
+      official_url: "https://www.gse.it/",
+      application_url: "https://portale.gse.it/domanda",
+    } as Bando;
+    expect(hasOfficialModulistica(bando)).toBe(true);
+    expect(realApplicationUrl(bando)).toBe("https://portale.gse.it/domanda");
+    expect(resolveModulisticaFetchTarget(bando)).toEqual({
+      ok: true,
+      url: "https://portale.gse.it/domanda",
+    });
+  });
+});
+
+describe("canali apply sui 74 live", () => {
+  it("conta solo forms/application veri: sui 74 restano 63–68 dossier-only", () => {
+    const withFormsOnly = Array.from({ length: 5 }, () => ({
+      modulistica_url: "https://ente.it/moduli",
+      official_url: "https://ente.it/",
+    }));
+    const withApplyOnly = Array.from({ length: 6 }, () => ({
+      application_url: "https://ente.it/domanda",
+      official_url: "https://ente.it/",
+    }));
+    const rest = Array.from({ length: 63 }, () => ({ official_url: "https://ente.it/" }));
+    const disjoint = countRealApplyLinks([...withFormsOnly, ...withApplyOnly, ...rest]);
+    expect(disjoint).toMatchObject({ total: 74, withForms: 5, withApply: 6, withEither: 11, dossierOnly: 63 });
+
+    const overlap = countRealApplyLinks([
+      ...Array.from({ length: 5 }, () => ({
+        modulistica_url: "https://ente.it/moduli",
+        application_url: "https://ente.it/domanda",
+        official_url: "https://ente.it/",
+      })),
+      ...Array.from({ length: 1 }, () => ({
+        application_url: "https://ente.it/domanda",
+        official_url: "https://ente.it/",
+      })),
+      ...Array.from({ length: 68 }, () => ({ official_url: "https://ente.it/" })),
+    ]);
+    expect(overlap).toMatchObject({ total: 74, withForms: 5, withApply: 6, withEither: 6, dossierOnly: 68 });
   });
 });
 

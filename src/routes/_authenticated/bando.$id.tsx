@@ -15,6 +15,8 @@ import {
   classifyModulisticaHint,
   hasOfficialModulistica,
   planOfficialPdfFill,
+  realApplicationUrl,
+  realFormsUrl,
   renderOfficialModuleText,
 } from "@/lib/official-module";
 import { fetchOfficialModulistica } from "@/lib/official-module.functions";
@@ -203,8 +205,10 @@ function BandoDetail() {
   // quota non esiste testo da copiare, scaricare o un PDF precompilato.
   const instanceText =
     dossierOpen && hasOfficialModulistica(bando) ? renderOfficialModuleText(bando, profile) : "";
-  const modulisticaHref = safeOfficialHref(bando.modulistica_url);
-  const modulisticaHint = classifyModulisticaHint(bando.modulistica_url);
+  const formsHref = safeOfficialHref(realFormsUrl(bando));
+  const applyHref = safeOfficialHref(realApplicationUrl(bando), "platform");
+  const officialModuleHref = formsHref || applyHref;
+  const modulisticaHint = classifyModulisticaHint(realFormsUrl(bando) ?? realApplicationUrl(bando));
 
   const protocolloPec = bando.ufficio_protocollo_pec ?? bando.pec;
 
@@ -710,7 +714,7 @@ function BandoDetail() {
               )}
             </div>
 
-            {modulisticaHref ? (
+            {officialModuleHref ? (
             <div className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <FileText className="h-4 w-4 text-primary" />
@@ -736,14 +740,28 @@ function BandoDetail() {
                 pronta alla firma. Controlla dati, requisiti, modulistica e scadenze sulla fonte
                 ufficiale del bando prima di qualsiasi utilizzo.
               </p>
-              <a
-                href={modulisticaHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mb-3 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-surface-elevated"
-              >
-                <ExternalLink className="h-4 w-4" /> Apri la pagina ufficiale
-              </a>
+              <div className="mb-3 flex flex-wrap gap-2">
+                {formsHref ? (
+                  <a
+                    href={formsHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-surface-elevated"
+                  >
+                    <ExternalLink className="h-4 w-4" /> Apri la modulistica ufficiale
+                  </a>
+                ) : null}
+                {applyHref && applyHref !== formsHref ? (
+                  <a
+                    href={applyHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-surface-elevated"
+                  >
+                    <ExternalLink className="h-4 w-4" /> Apri la pagina di presentazione
+                  </a>
+                ) : null}
+              </div>
               <p className="mb-3 text-xs text-muted-foreground">
                 {modulisticaHint === "likely_pdf"
                   ? "Il link sembra un PDF. Se è compilabile possiamo allineare solo i campi di profilo noti."
@@ -882,15 +900,9 @@ function BandoDetail() {
                 </p>
               )}
 
-              {(() => {
-                const piattaformaHref =
-                  safeOfficialHref(bando.piattaforma_url, "platform") ||
-                  safeOfficialHref(bando.application_url, "platform") ||
-                  safeOfficialHref(bando.official_url, "platform") ||
-                  safeOfficialHref(bando.notice_url, "platform");
-                return piattaformaHref ? (
+              {applyHref ? (
                   <a
-                    href={piattaformaHref}
+                    href={applyHref}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:brightness-110"
@@ -901,18 +913,17 @@ function BandoDetail() {
                   <p className="mt-4 text-xs text-muted-foreground">
                     Link di presentazione non disponibile sulla fonte ufficiale
                   </p>
-                );
-              })()}
-              {safeOfficialHref(bando.modulistica_url) && (
+                )}
+              {formsHref && formsHref !== applyHref ? (
                 <a
-                  href={safeOfficialHref(bando.modulistica_url)!}
+                  href={formsHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-2 flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium hover:bg-surface-elevated transition"
                 >
                   <FileText className="h-4 w-4" /> Modulistica ufficiale
                 </a>
-              )}
+              ) : null}
             </div>
 
             {profile && (
