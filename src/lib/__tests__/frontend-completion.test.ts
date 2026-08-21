@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { TRIAL_HIGHLIGHT } from "@/lib/coverage";
 import { ALERTS_EMPTY, ALERTS_ERROR, ALERTS_HEADING } from "@/lib/alerts";
 import { planCompareRows } from "@/lib/pricing";
-import { LAUNCH_OFFER } from "@/lib/launch-offer";
 
 describe("completamento frontend UEradar.com", () => {
   it("espone pagine legali e prezzi pubbliche", () => {
@@ -63,14 +62,20 @@ describe("completamento frontend UEradar.com", () => {
     expect(billing).toContain("Gli addebiti sono disabilitati");
   });
 
-  it("confronta Radar, Istruttoria e Studio con i prezzi approvati", () => {
+  it("confronta solo Istruttoria e Studio, senza Radar in listino", () => {
     const prezzi = readFileSync("src/routes/prezzi.tsx", "utf8");
+    const home = readFileSync("src/routes/index.tsx", "utf8");
+    const billing = readFileSync("src/routes/_authenticated/abbonamento.tsx", "utf8");
     expect(prezzi).toContain("planCompareRows");
     expect(prezzi).toContain("Istruttoria");
     expect(prezzi).not.toMatch(/\bPratica\b/);
-    const rows = planCompareRows(new Date("2026-08-21T10:00:00+02:00"));
-    expect(rows[0]?.radar).toContain(LAUNCH_OFFER.priceLabel);
-    expect(rows[0]?.radar).toContain(LAUNCH_OFFER.listLabel);
+    expect(prezzi).not.toMatch(/99\s*€/);
+    expect(prezzi).not.toContain("€249");
+    expect(prezzi).not.toMatch(/offerta lancio/i);
+    expect(home).not.toMatch(/99\s*€/);
+    expect(billing).not.toMatch(/99\s*€/);
+    const rows = planCompareRows();
+    expect(rows[0]).not.toHaveProperty("radar");
     expect(rows[0]?.istruttoria).toContain("449");
     expect(rows[0]?.studio).toContain("990");
   });

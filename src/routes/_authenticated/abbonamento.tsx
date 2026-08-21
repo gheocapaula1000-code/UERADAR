@@ -37,8 +37,6 @@ const STATE_LABEL: Record<string, string> = {
   NONE: "Abbonamento non attivo",
 };
 
-import { LAUNCH_OFFER, launchOfferApplies } from "@/lib/launch-offer";
-
 /** Spiegazioni leggibili dei codici di blocco checkout (nessun segreto in UI). */
 const CHECKOUT_BLOCK_LABEL: Record<string, string> = {
   BILLING_NOT_CONFIGURED: "L'attivazione online non è ancora configurata su questo ambiente.",
@@ -347,7 +345,7 @@ function Abbonamento() {
           <p className="text-xs uppercase tracking-wide text-accent">{TRIAL_COPY.headline}</p>
         </div>
 
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="mx-auto grid max-w-xl gap-4">
           {PUBLIC_PLANS.map((plan) => (
             <div
               key={plan.id}
@@ -357,25 +355,13 @@ function Abbonamento() {
               <p className="mt-1 text-sm text-muted-foreground">{plan.audience}</p>
               <p className="mt-4">
                 <span className="text-3xl font-bold">
-                  {launchOfferApplies(plan.id, interval)
-                    ? LAUNCH_OFFER.priceLabel
-                    : interval === "month"
-                      ? plan.monthly
-                      : plan.annual}
+                  {interval === "month" ? plan.monthly : plan.annual}
                 </span>
                 <span className="text-muted-foreground">
                   {" "}
                   {interval === "month" ? plan.vatNote : plan.annualNote}
                 </span>
               </p>
-              {launchOfferApplies(plan.id, interval) ? (
-                <>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Listino <s>{LAUNCH_OFFER.listLabel}</s> / mese + IVA
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-accent">{LAUNCH_OFFER.note}</p>
-                </>
-              ) : null}
               <ul className="mt-4 space-y-2 text-sm">
                 {plan.features.slice(0, 4).map((f) => (
                   <li key={f} className="flex items-start gap-2">

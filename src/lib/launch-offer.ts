@@ -1,8 +1,8 @@
 /**
- * Offerta lancio RADAR mensile.
- * Solo presentazione + gating del fallback Payment Link: il Price ID LIVE è
- * letto dall'ambiente (STRIPE_PRICE_PROFESSIONAL_MONTHLY_LIVE), mai hardcodato.
- * Il listino pubblico resta 249 €/mese + IVA.
+ * Offerta lancio RADAR mensile — ritirata dal listino pubblico.
+ * Radar non è più un piano acquistabile. Questo modulo resta solo per
+ * abbonamenti già attivi e non deve essere mostrato in home, /prezzi o checkout.
+ * Nessun Price ID è hardcoded.
  */
 import type { BillingInterval, PlanId } from "./catalog";
 

@@ -31,9 +31,9 @@ export const ROUTE_SEO = {
   },
   "/prezzi": {
     path: "/prezzi",
-    title: "Prezzi UEradar.com — Piani Radar, Istruttoria e Studio",
+    title: "Prezzi UEradar.com — Istruttoria 449 €/mese + IVA",
     description:
-      "Piani Radar e Istruttoria per Partita IVA e PMI, Studio su richiesta: prezzi IVA esclusa, 7 giorni gratuiti, senza carta di credito e senza disdetta.",
+      "Istruttoria 449 €/mese + IVA: matching, dossier e bozza domanda. Non invia nulla agli enti. Studio su preventivo da 990 €/mese + IVA. 7 giorni gratis, senza carta.",
     indexable: true,
     ogType: "website",
   },
@@ -101,7 +101,7 @@ export const ROUTE_SEO = {
     path: "/abbonamento",
     title: "Abbonamento e utenti — area riservata di UEradar.com",
     description:
-      "Area riservata: stato della prova gratuita, piani disponibili, fatture, dati fiscali, disdetta online e utenti operativi della tua impresa.",
+      "Area riservata: stato della prova gratuita, piano Istruttoria, fatture, dati fiscali, disdetta online e utenti operativi della tua impresa.",
     indexable: false,
   },
 } satisfies Record<string, RouteSeo>;

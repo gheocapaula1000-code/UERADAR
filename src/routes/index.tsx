@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { BrandLogo, BrandLockup } from "@/components/bandocore/BrandLogo";
 import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { ENTERPRISE_PLAN, PRODUCT_BOUNDARIES, PUBLIC_PLANS, TRIAL_TERMS } from "@/lib/pricing";
-import { LAUNCH_OFFER, launchOfferApplies } from "@/lib/launch-offer";
 import { TrialBanner, TrialStickyBar } from "@/components/bandocore/TrialBanner";
 import { ORGANIZATION_JSONLD, SOFTWARE_APPLICATION_JSONLD, seoHead } from "@/lib/seo";
 import {
@@ -240,17 +239,18 @@ function Landing() {
         <div className="mx-auto mb-10 max-w-2xl text-center">
           <div className="text-xs uppercase tracking-widest text-primary font-semibold">Piani</div>
           <h2 className="mt-2 text-3xl font-bold md:text-4xl">
-            Tre Piani self-service, IVA esclusa.
+            Un piano a checkout: Istruttoria.
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Cambia la capienza di Utenti Operativi e i Dossier inclusi. Le opportunità
-            pertinenti mostrate non sono mai limitate. Annuale con 2 mesi inclusi.
+            Istruttoria è l’unico piano acquistabile online, IVA esclusa. Include matching,
+            dossier e bozza domanda: non invia nulla agli enti. Annuale con 2 mesi inclusi.
+            Studio resta su preventivo.
           </p>
         </div>
         <div className="mx-auto mb-8 max-w-2xl">
           <TrialBanner compact />
         </div>
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2">
           {PUBLIC_PLANS.map((plan) => (
             <div
               key={plan.id}
@@ -258,37 +258,17 @@ function Landing() {
             >
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-xl font-semibold">{plan.name}</h3>
-                {plan.highlighted ? (
-                  <span className="rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground">
-                    Più scelto
-                  </span>
-                ) : null}
+                <span className="rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground">
+                  Piano pubblico
+                </span>
               </div>
-              {launchOfferApplies(plan.id, "month") ? (
-                <>
-                  <div className="mt-3">
-                    <span className="text-3xl font-bold">{LAUNCH_OFFER.priceLabel}</span>
-                    <span className="text-base text-muted-foreground"> {LAUNCH_OFFER.vatNote}</span>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Listino <s>{LAUNCH_OFFER.listLabel}</s> / mese + IVA
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-accent">{LAUNCH_OFFER.note}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {plan.annual} {plan.annualNote}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="mt-3">
-                    <span className="text-3xl font-bold">{plan.monthly}</span>
-                    <span className="text-base text-muted-foreground"> {plan.vatNote}</span>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {plan.annual} {plan.annualNote}
-                  </p>
-                </>
-              )}
+              <div className="mt-3">
+                <span className="text-3xl font-bold">{plan.monthly}</span>
+                <span className="text-base text-muted-foreground"> {plan.vatNote}</span>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {plan.annual} {plan.annualNote}
+              </p>
               <ul className="mt-4 space-y-2 text-[15px] text-muted-foreground">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
@@ -298,11 +278,23 @@ function Landing() {
               </ul>
             </div>
           ))}
+          <div className="rounded-2xl border border-dashed border-border bg-card/60 p-6">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-xl font-semibold">{ENTERPRISE_PLAN.name}</h3>
+              <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground">
+                Su preventivo
+              </span>
+            </div>
+            <div className="mt-3">
+              <span className="text-3xl font-bold">{ENTERPRISE_PLAN.price}</span>
+              <span className="text-base text-muted-foreground"> {ENTERPRISE_PLAN.vatNote}</span>
+            </div>
+            <p className="mt-3 text-[15px] text-muted-foreground">{ENTERPRISE_PLAN.description}</p>
+            <p className="mt-4 text-sm">
+              {ENTERPRISE_PLAN.cta}: <span className="font-medium">{ENTERPRISE_PLAN.contact}</span>
+            </p>
+          </div>
         </div>
-        <p className="mx-auto mt-6 max-w-3xl text-center text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-          {ENTERPRISE_PLAN.name} — {ENTERPRISE_PLAN.headline}: {ENTERPRISE_PLAN.price}{" "}
-          {ENTERPRISE_PLAN.vatNote}. {ENTERPRISE_PLAN.cta} a {ENTERPRISE_PLAN.contact}.
-        </p>
         <ul className="mx-auto mt-6 grid max-w-4xl gap-2 text-sm text-muted-foreground md:grid-cols-2">
           {TRIAL_TERMS.map((t) => (
             <li key={t}>· {t}</li>

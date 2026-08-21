@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Check, ShieldCheck, Users } from "lucide-react";
+import { Check, Users } from "lucide-react";
 import { BrandLogo } from "@/components/bandocore/BrandLogo";
 import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { TrialBanner, TrialStickyBar } from "@/components/bandocore/TrialBanner";
@@ -25,7 +25,6 @@ import {
   VERIFIED_DEFINITION,
   planCompareRows,
 } from "@/lib/pricing";
-import { LAUNCH_OFFER, launchOfferApplies } from "@/lib/launch-offer";
 
 export const Route = createFileRoute("/prezzi")({
   head: () => ({
@@ -86,9 +85,9 @@ function Pricing() {
             ))}
           </ul>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            I Piani si distinguono per capienza di
-            Utenti Operativi (titolare incluso) e Dossier inclusi. Il numero di opportunità
-            pertinenti mostrate non è mai limitato. Tutti i prezzi sono IVA esclusa e l'annuale include 2 mesi.
+            Un piano acquistabile online: Istruttoria, 449 €/mese + IVA (5 utenti, 10
+            dossier/bozze). Non invia nulla agli enti. Studio resta su preventivo da 990 €/mese
+            + IVA. Il numero di opportunità pertinenti mostrate non è mai limitato. L'annuale include 2 mesi.
           </p>
         </div>
 
@@ -132,7 +131,7 @@ function Pricing() {
           </div>
         </div>
 
-        <section aria-label="Piani disponibili" className="mt-8 grid gap-6 lg:grid-cols-3">
+        <section aria-label="Piani disponibili" className="mx-auto mt-8 grid max-w-xl gap-6">
           {PUBLIC_PLANS.map((plan) => (
             <div
               key={plan.id}
@@ -145,35 +144,19 @@ function Pricing() {
                   <h2 className="text-2xl font-semibold">{plan.name}</h2>
                   <p className="mt-1 text-[15px] text-muted-foreground">{plan.audience}</p>
                 </div>
-                {plan.highlighted ? (
-                  <span className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground">
-                    Più scelto
-                  </span>
-                ) : (
-                  <ShieldCheck aria-hidden="true" className="h-8 w-8 shrink-0 text-primary" />
-                )}
+                <span className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground">
+                  Piano pubblico
+                </span>
               </div>
               <div className="mt-6">
                 <span className="text-3xl font-bold sm:text-4xl">
-                  {launchOfferApplies(plan.id, interval)
-                    ? LAUNCH_OFFER.priceLabel
-                    : interval === "month"
-                      ? plan.monthly
-                      : plan.annual}
+                  {interval === "month" ? plan.monthly : plan.annual}
                 </span>
                 <span className="text-muted-foreground">
                   {" "}
                   {interval === "month" ? plan.vatNote : plan.annualNote}
                 </span>
               </div>
-              {launchOfferApplies(plan.id, interval) ? (
-                <>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Listino <s>{LAUNCH_OFFER.listLabel}</s> / mese + IVA
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-accent">{LAUNCH_OFFER.note}</p>
-                </>
-              ) : null}
               <ul className="mt-6 space-y-3 text-[15px] sm:text-base">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
@@ -203,24 +186,21 @@ function Pricing() {
           ))}
         </section>
 
-        <section aria-label="Confronto Radar, Istruttoria e Studio" className="mt-10 overflow-x-auto rounded-2xl border border-border bg-card">
-          <h2 className="px-6 pt-6 text-xl font-semibold sm:px-8">Radar, Istruttoria e Studio a confronto</h2>
+        <section aria-label="Confronto Istruttoria e Studio" className="mt-10 overflow-x-auto rounded-2xl border border-border bg-card">
+          <h2 className="px-6 pt-6 text-xl font-semibold sm:px-8">Istruttoria e Studio a confronto</h2>
           <p className="px-6 pt-2 text-sm text-muted-foreground sm:px-8">
-            Tutti i prezzi sono IVA esclusa. Radar in offerta lancio: 99 €/mese fino al 30 nov 2026,
-            poi 249 €/mese. Istruttoria 449 €/mese. Studio da 990 €/mese su richiesta.
-            Istruttoria è una bozza di dossier: non invia domande agli enti.
+            Tutti i prezzi sono IVA esclusa. Istruttoria 449 €/mese è l’unico piano a checkout.
+            Studio da 990 €/mese su richiesta, senza acquisto online. Istruttoria è una bozza di
+            dossier: non invia domande agli enti.
           </p>
-          <table className="mt-4 w-full min-w-[36rem] text-left text-sm">
+          <table className="mt-4 w-full min-w-[28rem] text-left text-sm">
             <caption className="sr-only">
-              Confronto dei piani Radar, Istruttoria e Studio: prezzi, utenti, imprese e dossier
+              Confronto Istruttoria e Studio: prezzi, utenti, imprese e dossier
             </caption>
             <thead>
               <tr className="border-y border-border bg-muted/40">
                 <th scope="col" className="px-6 py-3 font-semibold sm:px-8">
                   Voce
-                </th>
-                <th scope="col" className="px-4 py-3 font-semibold">
-                  Radar
                 </th>
                 <th scope="col" className="px-4 py-3 font-semibold">
                   Istruttoria
@@ -236,7 +216,6 @@ function Pricing() {
                   <th scope="row" className="px-6 py-3 font-medium sm:px-8">
                     {row.label}
                   </th>
-                  <td className="px-4 py-3 text-muted-foreground">{row.radar}</td>
                   <td className="px-4 py-3 text-muted-foreground">{row.istruttoria}</td>
                   <td className="px-4 py-3 text-muted-foreground sm:pr-8">{row.studio}</td>
                 </tr>
