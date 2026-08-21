@@ -80,56 +80,56 @@ export const CUSTOM_PLAN = ENTERPRISE_PLAN;
 export type PlanCompareRow = {
   label: string;
   radar: string;
-  pratica: string;
+  istruttoria: string;
   studio: string;
 };
 
 /**
- * Confronto Radar / Pratica / Studio: numeri dal catalogo, IVA esclusa.
+ * Confronto Radar / Istruttoria / Studio: numeri dal catalogo, IVA esclusa.
  * L'offerta lancio RADAR (99 € poi 249 €) è visibile solo finché è attiva.
  */
 export function planCompareRows(now: Date = new Date()): readonly PlanCompareRow[] {
   const radarMonth = CATALOG.professional.prices.month?.amountCents ?? 24900;
-  const praticaMonth = CATALOG.business.prices.month?.amountCents ?? 44900;
+  const istruttoriaMonth = CATALOG.business.prices.month?.amountCents ?? 44900;
   const radarAnnual = CATALOG.professional.prices.year?.amountCents ?? 249000;
-  const praticaAnnual = CATALOG.business.prices.year?.amountCents ?? 449000;
+  const istruttoriaAnnual = CATALOG.business.prices.year?.amountCents ?? 449000;
   return [
     {
       label: "Prezzo mensile (IVA esclusa)",
       radar: launchOfferActive(now)
         ? `${LAUNCH_OFFER.priceLabel} in offerta lancio, poi ${LAUNCH_OFFER.listLabel} / mese`
         : `${formatEuro(radarMonth)} / mese`,
-      pratica: `${formatEuro(praticaMonth)} / mese`,
+      istruttoria: `${formatEuro(istruttoriaMonth)} / mese`,
       studio: `da ${formatEuro(ENTERPRISE_FROM_CENTS)} / mese`,
     },
     {
       label: "Prezzo annuale (2 mesi inclusi, IVA esclusa)",
       radar: `${formatEuro(radarAnnual)} / anno`,
-      pratica: `${formatEuro(praticaAnnual)} / anno`,
+      istruttoria: `${formatEuro(istruttoriaAnnual)} / anno`,
       studio: "su preventivo",
     },
     {
       label: "Utenti operativi (capienza tecnica)",
       radar: String(CATALOG.professional.limits.seats),
-      pratica: String(CATALOG.business.limits.seats),
+      istruttoria: String(CATALOG.business.limits.seats),
       studio: "da contratto",
     },
     {
       label: "Imprese",
       radar: String(CATALOG.professional.limits.companies),
-      pratica: String(CATALOG.business.limits.companies),
+      istruttoria: String(CATALOG.business.limits.companies),
       studio: "anche multi-impresa",
     },
     {
       label: "Dossier / bozze al mese",
       radar: String(CATALOG.professional.limits.dossiersPerMonth),
-      pratica: String(CATALOG.business.limits.dossiersPerMonth),
+      istruttoria: String(CATALOG.business.limits.dossiersPerMonth),
       studio: "da contratto",
     },
     {
       label: "Acquisto online",
       radar: "self-service",
-      pratica: "self-service",
+      istruttoria: "self-service",
       studio: "nessun acquisto online",
     },
   ];
@@ -197,9 +197,9 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
     a: "Tutte quelle pertinenti al tuo profilo: il numero di opportunità mostrate non è mai limitato. I piani si distinguono per le Domande / Dossier inclusi ogni mese e per la capienza di utenti operativi.",
   },
   {
-    q: "Che differenza c'è tra Radar e Pratica?",
+    q: "Che differenza c'è tra Radar e Istruttoria?",
     a:
-      "Radar è lo strumento sempre acceso: matching sul profilo, push quando esce una novità e 3 bozze di richiesta / Dossier al mese, a 249 € al mese. Pratica aggiunge una ricerca più profonda su camere, fonti provinciali e nicchie, priorità per imprese femminili, giovanili e startup, aggiornamento più frequente con alert prioritari e 10 bozze di richiesta / Dossier al mese, a 449 € al mese." +
+      "Radar è lo strumento sempre acceso: matching sul profilo, push quando esce una novità e 3 bozze di richiesta / Dossier al mese, a 249 € al mese. Istruttoria aggiunge una ricerca più profonda su camere, fonti provinciali e nicchie, priorità per imprese femminili, giovanili e startup, aggiornamento più frequente con alert prioritari e 10 bozze di richiesta / Dossier al mese, a 449 € al mese. Istruttoria prepara la bozza: non invia domande agli enti." +
       (launchOfferActive() ? ` ${LAUNCH_OFFER.note}` : ""),
   },
   {
@@ -212,11 +212,11 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Il numero di utenti è il valore del piano?",
-    a: "No. Gli utenti sono soltanto capienza tecnica, titolare incluso: 2 con Radar e 5 con Pratica. Il valore sta nella qualità della selezione e nelle bozze di richiesta preparate.",
+    a: "No. Gli utenti sono soltanto capienza tecnica, titolare incluso: 2 con Radar e 5 con Istruttoria. Il valore sta nella qualità della selezione e nelle bozze di richiesta preparate.",
   },
   {
     q: "Quanto costa l'annuale?",
-    a: "L'annuale include 2 mesi: 2.490 € per Radar e 4.490 € per Pratica, sempre IVA esclusa.",
+    a: "L'annuale include 2 mesi: 2.490 € per Radar e 4.490 € per Istruttoria, sempre IVA esclusa.",
   },
   {
     q: "Posso gestire più imprese?",

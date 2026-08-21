@@ -31,9 +31,9 @@ export const ROUTE_SEO = {
   },
   "/prezzi": {
     path: "/prezzi",
-    title: "Prezzi UEradar.com — Piani Radar, Pratica e Studio",
+    title: "Prezzi UEradar.com — Piani Radar, Istruttoria e Studio",
     description:
-      "Piani Radar e Pratica per Partita IVA e PMI, Studio su richiesta: prezzi IVA esclusa, 7 giorni gratuiti, senza carta di credito e senza disdetta.",
+      "Piani Radar e Istruttoria per Partita IVA e PMI, Studio su richiesta: prezzi IVA esclusa, 7 giorni gratuiti, senza carta di credito e senza disdetta.",
     indexable: true,
     ogType: "website",
   },

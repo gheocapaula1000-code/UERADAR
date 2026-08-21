@@ -50,7 +50,7 @@ const UI_FILES = walk("src")
 describe("catalogo approvato", () => {
   it("espone due piani acquistabili online più Studio su richiesta", () => {
     expect(PUBLIC_PLANS.map((p) => p.id)).toEqual(["professional", "business"]);
-    expect(PUBLIC_PLANS.map((p) => p.name)).toEqual(["RADAR", "PRATICA"]);
+    expect(PUBLIC_PLANS.map((p) => p.name)).toEqual(["RADAR", "ISTRUTTORIA"]);
     expect(PUBLIC_PLANS.map((p) => p.monthly?.replace(/\D/g, ""))).toEqual(["249", "449"]);
     expect(PUBLIC_PLANS.map((p) => p.annual?.replace(/\D/g, ""))).toEqual(["2490", "4490"]);
     expect(CATALOG.executive.selfService).toBe(false);
@@ -226,9 +226,23 @@ describe("valore, limiti e affermazioni verificabili", () => {
     const faq = PRICING_FAQ.map((f) => `${f.q} ${f.a}`).join(" ");
     expect(faq).toContain("senza carta di credito");
     expect(faq).toContain("10 bozze di richiesta / Dossier al mese");
+    expect(faq).toContain("Istruttoria");
+    expect(faq).toContain("non invia domande agli enti");
+    expect(faq).not.toMatch(/\bPratica\b|\bPRATICA\b/);
     expect(faq).not.toMatch(/Professional|Executive/);
     expect(faq).not.toMatch(/verifiche approfondite/i);
     expect(PRICING_FAQ.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("non lascia il nome piano Pratica nel copy utente", () => {
+    for (const file of UI_FILES) {
+      const src = readFileSync(file, "utf8");
+      expect(src, file).not.toMatch(/\bPratica\b/);
+      expect(src, file).not.toMatch(/\bPRATICA\b/);
+    }
+    expect(PUBLIC_PLANS[1]?.name).toBe("ISTRUTTORIA");
+    expect(CATALOG.business.prices.month?.amountCents).toBe(44900);
+    expect(CATALOG.business.prices.year?.amountCents).toBe(449000);
   });
 
   it("non lascia in giro prezzi o piani legacy nel copy pubblico", () => {

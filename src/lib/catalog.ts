@@ -155,7 +155,8 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
   },
   business: {
     id: "business",
-    name: "PRATICA",
+    /** Display name. Catalog id and Stripe plan codes stay `business`. */
+    name: "ISTRUTTORIA",
     audience: "Ricerca più profonda e più bozze, senza aspettare il consulente",
     selfService: true,
     highlighted: true,

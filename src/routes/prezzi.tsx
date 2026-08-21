@@ -203,15 +203,16 @@ function Pricing() {
           ))}
         </section>
 
-        <section aria-label="Confronto Radar, Pratica e Studio" className="mt-10 overflow-x-auto rounded-2xl border border-border bg-card">
-          <h2 className="px-6 pt-6 text-xl font-semibold sm:px-8">Radar, Pratica e Studio a confronto</h2>
+        <section aria-label="Confronto Radar, Istruttoria e Studio" className="mt-10 overflow-x-auto rounded-2xl border border-border bg-card">
+          <h2 className="px-6 pt-6 text-xl font-semibold sm:px-8">Radar, Istruttoria e Studio a confronto</h2>
           <p className="px-6 pt-2 text-sm text-muted-foreground sm:px-8">
             Tutti i prezzi sono IVA esclusa. Radar in offerta lancio: 99 €/mese fino al 30 nov 2026,
-            poi 249 €/mese. Pratica 449 €/mese. Studio da 990 €/mese su richiesta.
+            poi 249 €/mese. Istruttoria 449 €/mese. Studio da 990 €/mese su richiesta.
+            Istruttoria è una bozza di dossier: non invia domande agli enti.
           </p>
           <table className="mt-4 w-full min-w-[36rem] text-left text-sm">
             <caption className="sr-only">
-              Confronto dei piani Radar, Pratica e Studio: prezzi, utenti, imprese e dossier
+              Confronto dei piani Radar, Istruttoria e Studio: prezzi, utenti, imprese e dossier
             </caption>
             <thead>
               <tr className="border-y border-border bg-muted/40">
@@ -222,7 +223,7 @@ function Pricing() {
                   Radar
                 </th>
                 <th scope="col" className="px-4 py-3 font-semibold">
-                  Pratica
+                  Istruttoria
                 </th>
                 <th scope="col" className="px-4 py-3 font-semibold sm:pr-8">
                   Studio
@@ -236,7 +237,7 @@ function Pricing() {
                     {row.label}
                   </th>
                   <td className="px-4 py-3 text-muted-foreground">{row.radar}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{row.pratica}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{row.istruttoria}</td>
                   <td className="px-4 py-3 text-muted-foreground sm:pr-8">{row.studio}</td>
                 </tr>
               ))}
