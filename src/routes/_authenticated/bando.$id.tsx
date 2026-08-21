@@ -12,6 +12,14 @@ import { consumeDossier, getUsageSummary } from "@/lib/usage.functions";
 import type { DossierField } from "@/lib/dossier";
 import { downloadDossierPdf } from "@/lib/dossier-pdf";
 import {
+  classifyModulisticaHint,
+  hasOfficialModulistica,
+  planOfficialPdfFill,
+  renderOfficialModuleText,
+} from "@/lib/official-module";
+import { fetchOfficialModulistica } from "@/lib/official-module.functions";
+import { fillOfficialPdf, inspectOfficialPdf, triggerPdfDownload } from "@/lib/official-module-pdf";
+import {
   ArrowLeft,
   Download,
   ExternalLink,
@@ -67,6 +75,8 @@ import {
   VERIFIED_HINT,
 } from "@/lib/bando-status";
 
+export { DRAFT_DISCLAIMER } from "@/lib/official-module";
+
 export const Route = createFileRoute("/_authenticated/bando/$id")({
   head: () => seoHead("/bando"),
   component: BandoDetail,
@@ -88,8 +98,13 @@ function BandoDetail() {
   const [dossierBusy, setDossierBusy] = useState(false);
   const [dossierError, setDossierError] = useState<string | null>(null);
   const [watermarked, setWatermarked] = useState(false);
+  const [moduleBusy, setModuleBusy] = useState(false);
+  const [moduleNote, setModuleNote] = useState<string | null>(null);
+  const [filledPdf, setFilledPdf] = useState<Uint8Array | null>(null);
+  const [fillSummary, setFillSummary] = useState<{ filled: number; empty: number } | null>(null);
   // Il dossier consuma una quota del piano: la decisione è sempre server-side.
   const claimDossier = useServerFn(consumeDossier);
+  const loadOfficialModulistica = useServerFn(fetchOfficialModulistica);
   const loadUsage = useServerFn(getUsageSummary);
   const usageQ = useQuery({
     queryKey: ["usage-summary"],
@@ -184,15 +199,12 @@ function BandoDetail() {
     }
   };
 
-  // Se il motore ha restituito la mappatura del PDF nativo della PA,
-  // usa quella per generare un testo copiabile allineato al modulo ufficiale.
-  // La bozza segue lo stesso consumo server-side del dossier: senza claim
-  // non esiste alcun testo da copiare, scaricare o esportare.
-  const instanceText = !dossierOpen
-    ? ""
-    : bando.pdf_field_mapping && bando.pdf_field_mapping.length > 0
-      ? buildInstanceFromPdfMapping(bando, profile)
-      : buildInstanceText(bando, profile);
+  // La bozza del modulo ufficiale segue lo stesso claim del dossier: senza
+  // quota non esiste testo da copiare, scaricare o un PDF precompilato.
+  const instanceText =
+    dossierOpen && hasOfficialModulistica(bando) ? renderOfficialModuleText(bando, profile) : "";
+  const modulisticaHref = safeOfficialHref(bando.modulistica_url);
+  const modulisticaHint = classifyModulisticaHint(bando.modulistica_url);
 
   const protocolloPec = bando.ufficio_protocollo_pec ?? bando.pec;
 
@@ -203,14 +215,89 @@ function BandoDetail() {
   };
 
   const downloadTxt = () => {
-    if (!dossierOpen) return;
+    if (!dossierOpen || !instanceText) return;
     const blob = new Blob([instanceText], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `bozza-${bando.id}.txt`;
+    a.download = `bozza-modulo-${bando.id}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const applyOfficialPdfBytes = async (bytes: Uint8Array) => {
+    const inspected = await inspectOfficialPdf(bytes);
+    if (!inspected.fillable) {
+      setFilledPdf(null);
+      setFillSummary(null);
+      setModuleNote(
+        "Il file non contiene campi compilabili. Usa l'elenco e inserisci i dati a mano sulla fonte ufficiale.",
+      );
+      return;
+    }
+    const plan = planOfficialPdfFill({
+      fields: inspected.fields,
+      profile,
+      mapping: bando.pdf_field_mapping,
+    });
+    const out = await fillOfficialPdf(bytes, plan, { watermarked });
+    setFilledPdf(out);
+    setFillSummary({ filled: plan.fills.length, empty: plan.leftEmpty.length });
+    setModuleNote(
+      plan.fills.length
+        ? `PDF compilabile: ${plan.fills.length} campi allineati al profilo, ${plan.leftEmpty.length} lasciati vuoti. Verifica prima di qualsiasi uso.`
+        : `PDF compilabile, ma nessun campo ha una corrispondenza chiara con il profilo. Tutti i campi restano vuoti.`,
+    );
+  };
+
+  const tryPrefillOfficialPdf = async () => {
+    if (!dossierOpen) return;
+    setModuleBusy(true);
+    setModuleNote(null);
+    setFilledPdf(null);
+    setFillSummary(null);
+    try {
+      const fetched = await loadOfficialModulistica({ data: { opportunity_id: bando.id } });
+      if (fetched.kind === "missing") {
+        setModuleNote("Questo bando non pubblica una modulistica ufficiale.");
+        return;
+      }
+      if (fetched.kind === "html") {
+        setModuleNote(
+          "La pagina ufficiale è un portale o una scheda HTML, non un PDF compilabile. Apri il link e inserisci i campi dell'elenco. UEradar.com non accede al portale e non invia nulla all'ente.",
+        );
+        return;
+      }
+      if (fetched.kind === "pdf") {
+        const { base64ToBytes } = await import("@/lib/official-module");
+        await applyOfficialPdfBytes(base64ToBytes(fetched.pdfBase64));
+        return;
+      }
+      setModuleNote(
+        fetched.kind === "unsupported"
+          ? "Il documento ufficiale non è un PDF compilabile. Usa l'elenco e la pagina ufficiale."
+          : "Download del documento ufficiale non riuscito. Apri il link oppure seleziona un PDF già scaricato.",
+      );
+    } catch {
+      setModuleNote(
+        "Download del documento ufficiale non riuscito. Apri il link oppure seleziona un PDF già scaricato.",
+      );
+    } finally {
+      setModuleBusy(false);
+    }
+  };
+
+  const onOfficialPdfFile = async (file: File | undefined) => {
+    if (!file || !dossierOpen) return;
+    setModuleBusy(true);
+    setModuleNote(null);
+    try {
+      await applyOfficialPdfBytes(new Uint8Array(await file.arrayBuffer()));
+    } catch {
+      setModuleNote("Lettura del PDF non riuscita. Il file resta invariato.");
+    } finally {
+      setModuleBusy(false);
+    }
   };
 
   const copyPec = async (value: string | undefined) => {
@@ -623,8 +710,7 @@ function BandoDetail() {
               )}
             </div>
 
-            {/* AUTOFILL CAMPI MODULO UFFICIALE (solo se il feed espone la mappatura) */}
-            {bando.pdf_field_mapping?.length ? (
+            {modulisticaHref ? (
             <div className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <FileText className="h-4 w-4 text-primary" />
@@ -632,28 +718,54 @@ function BandoDetail() {
               </div>
               {bando.pdf_field_mapping?.length ? (
                 <p className="mb-3 text-xs text-muted-foreground">
-                  Mappatura estratta dal modulo ufficiale della PA ({bando.pdf_field_mapping.length}{" "}
-                  campi). Copia e incolla riga per riga nel PDF cartaceo.
+                  Mappatura disponibile ({bando.pdf_field_mapping.length} campi). I campi senza
+                  corrispondenza chiara restano vuoti.
                 </p>
-              ) : null}
+              ) : (
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Nessuna mappatura preimpostata: elenco dai soli campi di profilo noti. I dati
+                  assenti restano visibili come mancanti.
+                </p>
+              )}
               <p
                 role="note"
                 className="mb-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning"
               >
-                <strong>Attenzione:</strong> questa è una bozza informativa precompilata dai tuoi
-                dati, da verificare. Non è una domanda inviata né una dichiarazione sostitutiva
+                <strong>Attenzione — BOZZA INFORMATIVA:</strong> questa è una bozza informativa
+                precompilata dai tuoi dati, da verificare. Non è una domanda inviata né una dichiarazione sostitutiva
                 pronta alla firma. Controlla dati, requisiti, modulistica e scadenze sulla fonte
                 ufficiale del bando prima di qualsiasi utilizzo.
               </p>
+              <a
+                href={modulisticaHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mb-3 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-surface-elevated"
+              >
+                <ExternalLink className="h-4 w-4" /> Apri la pagina ufficiale
+              </a>
+              <p className="mb-3 text-xs text-muted-foreground">
+                {modulisticaHint === "likely_pdf"
+                  ? "Il link sembra un PDF. Se è compilabile possiamo allineare solo i campi di profilo noti."
+                  : "Il link punta a un portale o a una pagina HTML. UEradar.com non compila e non invia nulla sul portale."}
+              </p>
               {!dossierOpen ? (
                 <p className="text-sm text-muted-foreground">
-                  Genera prima il dossier candidatura: la bozza precompilata fa parte dello stesso
-                  documento.
+                  Genera prima il dossier candidatura: i campi per il modulo ufficiale fanno parte
+                  dello stesso documento.
                 </p>
               ) : profile ? (
-                <pre className="whitespace-pre-wrap text-xs bg-background/50 rounded-lg p-4 max-h-80 overflow-y-auto font-mono">
-                  {instanceText}
-                </pre>
+                <>
+                  <p className="mb-2 text-xs font-medium">
+                    Campi da inserire nel modulo ufficiale
+                  </p>
+                  <pre className="whitespace-pre-wrap text-xs bg-background/50 rounded-lg p-4 max-h-80 overflow-y-auto font-mono">
+                    {instanceText}
+                  </pre>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Firma, date di impegno e dichiarazioni: da compilare esclusivamente sul modulo ufficiale dopo verifica.
+                  </p>
+                </>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   Completa prima il profilo aziendale per abilitare l'autofill.
@@ -662,6 +774,7 @@ function BandoDetail() {
 
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
+                  type="button"
                   onClick={copyInstance}
                   disabled={!profile || !dossierOpen}
                   className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
@@ -669,13 +782,57 @@ function BandoDetail() {
                   <Copy className="h-4 w-4" /> Copia testo
                 </button>
                 <button
+                  type="button"
                   onClick={downloadTxt}
                   disabled={!profile || !dossierOpen}
                   className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium disabled:opacity-50"
                 >
                   <Download className="h-4 w-4" /> Scarica .txt
                 </button>
+                <button
+                  type="button"
+                  onClick={tryPrefillOfficialPdf}
+                  disabled={!profile || !dossierOpen || moduleBusy}
+                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium disabled:opacity-50"
+                >
+                  <FileDown className="h-4 w-4" />{" "}
+                  {moduleBusy ? "Verifica…" : "Se è un PDF compilabile, prova a precompilarlo"}
+                </button>
               </div>
+              {dossierOpen && profile ? (
+                <label className="mt-3 block text-xs text-muted-foreground">
+                  Oppure seleziona un PDF ufficiale già scaricato
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    className="mt-1 block text-xs"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      void onOfficialPdfFile(file);
+                      event.target.value = "";
+                    }}
+                  />
+                </label>
+              ) : null}
+              {moduleNote ? (
+                <p role="status" className="mt-3 text-xs text-muted-foreground">
+                  {moduleNote}
+                </p>
+              ) : null}
+              {fillSummary ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Riepilogo: {fillSummary.filled} compilati, {fillSummary.empty} lasciati vuoti.
+                </p>
+              ) : null}
+              {filledPdf ? (
+                <button
+                  type="button"
+                  onClick={() => triggerPdfDownload(filledPdf, `modulo-ufficiale-${bando.id}.pdf`)}
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                >
+                  <FileDown className="h-4 w-4" /> Scarica PDF precompilato
+                </button>
+              ) : null}
             </div>
             ) : null}
           </div>
@@ -836,96 +993,4 @@ function ListSection({ label, items }: { label: string; items: string[] }) {
       </ul>
     </div>
   );
-}
-
-import type { Bando } from "@/lib/bandocore-types";
-
-/** Avviso obbligatorio incluso in ogni bozza copiata o scaricata. */
-export const DRAFT_DISCLAIMER = `AVVISO — BOZZA INFORMATIVA
-Questo testo è una bozza informativa precompilata, da verificare. Non è una domanda
-inviata, non è una dichiarazione sostitutiva e non è pronta alla firma.
-Prima di qualsiasi uso verifica dati, requisiti, modulistica e scadenze sulla fonte ufficiale.`;
-
-function buildInstanceText(bando: Bando, profile: CompanyProfile | null | undefined): string {
-  if (!profile) return "Completa prima il profilo aziendale.";
-  return `${DRAFT_DISCLAIMER}
-
-BOZZA DI ISTANZA DI PARTECIPAZIONE (da verificare)
-Bando: ${bando.titolo}
-Ente erogatore: ${bando.ente}
-Riferimento: ${bando.id}
-${bando.scadenza ? `Scadenza: ${new Date(bando.scadenza).toLocaleDateString("it-IT")}` : ""}
-
-DATI DEL RICHIEDENTE (autofill UEradar.com)
-Ragione Sociale: ${profile.ragione_sociale}
-Partita IVA: ${profile.partita_iva}
-Forma Giuridica: ${profile.forma_giuridica}
-Codice ATECO principale: ${profile.codice_ateco}
-Sede Legale: ${profile.comune} (${profile.provincia}) — ${profile.regione}
-Anno di costituzione: ${profile.anno_costituzione}
-Numero dipendenti: ${profile.numero_dipendenti}
-Fatturato annuo: € ${new Intl.NumberFormat("it-IT").format(profile.fatturato_annuo)}
-Imprenditoria femminile: ${profile.imprenditoria_femminile ? "Sì" : "No"}
-
-LEGALE RAPPRESENTANTE
-Nome: ${profile.legale_rappresentante ?? "—"}
-Email: ${profile.email_referente ?? "—"}
-Telefono: ${profile.telefono ?? "—"}
-PEC azienda: ${profile.pec ?? "—"}
-
-CANALE DI INVIO
-PEC ufficio protocollo: ${bando.ufficio_protocollo_pec ?? bando.pec ?? "—"}
-
-Nota: le formule dichiarative e le firme richieste vanno prese esclusivamente dalla
-modulistica ufficiale dell'ente erogatore.
-
-Data di generazione bozza: ${new Date().toLocaleDateString("it-IT")}
-`;
-}
-
-/**
- * Autofill dai campi del PDF nativo della PA: genera un blocco allineato
- * "Etichetta PDF: valore" pronto per essere copiato riga per riga.
- */
-function buildInstanceFromPdfMapping(
-  bando: Bando,
-  profile: CompanyProfile | null | undefined,
-): string {
-  if (!profile) return "Completa prima il profilo aziendale.";
-  const mapping = bando.pdf_field_mapping ?? [];
-  const today = new Date().toLocaleDateString("it-IT");
-
-  const lines = mapping.map((m) => {
-    let value: string | number | boolean | null | undefined;
-    if (m.static_value !== undefined) value = m.static_value;
-    else if (m.profile_field === "data_odierna") value = today;
-    else if (m.profile_field === "firma")
-      value = "[da compilare esclusivamente sul modulo ufficiale dopo verifica]";
-    else
-      value = profile[m.profile_field as keyof CompanyProfile] as
-        string | number | boolean | null | undefined;
-
-    const formatted =
-      typeof value === "boolean"
-        ? value
-          ? "Sì"
-          : "No"
-        : typeof value === "number"
-          ? new Intl.NumberFormat("it-IT").format(value)
-          : (value ?? "—");
-    return `${m.pdf_label}: ${formatted}`;
-  });
-
-  return `BOZZA DATI PER MODULO UFFICIALE — ${bando.titolo}
-${DRAFT_DISCLAIMER}
-
-Ente: ${bando.ente}
-${bando.ufficio_protocollo_pec ? `PEC ufficio protocollo: ${bando.ufficio_protocollo_pec}` : ""}
-${bando.fonte_extratestuale ? `Fonte: ${bando.fonte_extratestuale}` : ""}
-
-── Autofill campi PDF nativi (${mapping.length}) ──
-${lines.join("\n")}
-
-Data: ${today}
-`;
 }
