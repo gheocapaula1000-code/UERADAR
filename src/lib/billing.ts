@@ -5,8 +5,8 @@
  * limiti, capienza) vive in `catalog.ts` ed è l'unica fonte di verità.
  */
 import {
-  PRICE_ENV_NAMES,
   CATALOG,
+  SELF_SERVICE_PLANS,
   checkoutTarget,
   formatEuro,
   intervalFromCode,
@@ -598,8 +598,47 @@ export type SubscriptionUpdate = {
 };
 
 /**
- * Nessun fallback: se il Price non è nella configurazione TEST completa,
- * l'evento non viene mappato (mai piano prova o zero posti per ripiego).
+ * Price obbligatori per checkout e apply webhook: i piani self-service
+ * (Istruttoria, mese e anno). Radar ritirato e Studio/Executive restano
+ * opzionali: se presenti in mappa sono allowlistati, se assenti non
+ * bloccano l'apply di un checkout Istruttoria.
+ */
+export function selfServicePricesConfigured(priceMap: Record<string, string>): boolean {
+  for (const planId of SELF_SERVICE_PLANS) {
+    const plan = CATALOG[planId];
+    for (const interval of Object.keys(plan.prices) as Array<keyof typeof plan.prices>) {
+      if (!plan.prices[interval]) continue;
+      if (!priceMap[priceKey(planId, interval)]) return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Collegamento utente da metadata checkout o da customer già in anagrafica.
+ * Senza `supabase_user_id` e senza riga customer nello stesso billing_mode
+ * l'evento resta USER_NOT_FOUND: nessun utente viene inventato.
+ */
+export function webhookUserFromEvent(input: {
+  metadata: unknown;
+  linkedUserId: string | null;
+}): { ok: boolean; code: string; userId: string | null } {
+  const metadata =
+    input.metadata && typeof input.metadata === "object" && !Array.isArray(input.metadata)
+      ? (input.metadata as Record<string, unknown>)
+      : null;
+  const fromMeta = metadata?.["supabase_user_id"];
+  if (typeof fromMeta === "string" && fromMeta)
+    return { ok: true, code: "OK", userId: fromMeta };
+  if (typeof input.linkedUserId === "string" && input.linkedUserId)
+    return { ok: true, code: "OK", userId: input.linkedUserId };
+  return { ok: false, code: "USER_NOT_FOUND", userId: null };
+}
+
+/**
+ * Nessun fallback: senza i Price self-service (Istruttoria) l'evento non
+ * viene mappato. Radar/Studio in mappa restano opzionali. Mai piano prova
+ * o zero posti per ripiego.
  */
 export function subscriptionUpdateFromEvent(input: {
   status: unknown;
@@ -611,7 +650,7 @@ export function subscriptionUpdateFromEvent(input: {
   priceMap: Record<string, string>;
   billingMode?: BillingMode;
 }): SubscriptionUpdate {
-  if (Object.keys(input.priceMap).length < PRICE_ENV_NAMES.length)
+  if (!selfServicePricesConfigured(input.priceMap))
     return { ok: false, code: "PRICES_NOT_CONFIGURED", patch: null };
   const match = planFromPriceId(input.priceId, input.priceMap);
   if (!match) return { ok: false, code: "PRICE_NOT_ALLOWLISTED", patch: null };
@@ -699,6 +738,44 @@ export function canonicalSubscriptionGuard(input: {
   if (typeof periodEnd !== "number" || !Number.isFinite(periodEnd) || periodEnd <= 0)
     return { ok: false, code: "CURRENT_PERIOD_END_INVALID" };
   return { ok: true, code: "OK" };
+}
+
+/**
+ * Apply webhook: guard sulla Subscription canonica e mappatura sulla
+ * stessa price map usata da `billingConfigured`. Un checkout.session.completed
+ * Istruttoria LIVE passa se mese e anno self-service sono in mappa.
+ */
+export function canonicalSubscriptionApply(input: {
+  subscription: Record<string, unknown> | null;
+  expectedSubscriptionId: unknown;
+  expectedCustomerId: unknown;
+  linkedCustomerId: unknown;
+  priceMap: Record<string, string>;
+  expectedLivemode?: boolean;
+  billingMode?: BillingMode;
+}): SubscriptionUpdate {
+  if (!selfServicePricesConfigured(input.priceMap))
+    return { ok: false, code: "PRICES_NOT_CONFIGURED", patch: null };
+  const guard = canonicalSubscriptionGuard({
+    subscription: input.subscription,
+    expectedSubscriptionId: input.expectedSubscriptionId,
+    expectedCustomerId: input.expectedCustomerId,
+    linkedCustomerId: input.linkedCustomerId,
+    priceMap: input.priceMap,
+    expectedLivemode: input.expectedLivemode,
+  });
+  if (!guard.ok) return { ok: false, code: guard.code, patch: null };
+  const sub = input.subscription as Record<string, unknown>;
+  return subscriptionUpdateFromEvent({
+    status: sub["status"],
+    currentPeriodEnd: sub["current_period_end"],
+    cancelAtPeriodEnd: sub["cancel_at_period_end"],
+    priceId: canonicalPriceId(sub),
+    subscriptionId: typeof sub["id"] === "string" ? sub["id"] : input.expectedSubscriptionId,
+    customerId: typeof sub["customer"] === "string" ? sub["customer"] : null,
+    priceMap: input.priceMap,
+    billingMode: input.billingMode,
+  });
 }
 
 /** Righe della Subscription canonica, senza tolleranze di forma. */

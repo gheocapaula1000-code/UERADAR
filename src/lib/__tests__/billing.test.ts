@@ -48,7 +48,7 @@ async function sign(payload: string, secret: string, timestamp: number) {
     .join("");
 }
 
-/** Configurazione Price TEST completa: il webhook non mappa nulla senza. */
+/** Price Istruttoria (self-service) + eventuali override. Radar/Studio opzionali. */
 function fullPriceMap(overrides: Record<string, string> = {}): Record<string, string> {
   const base: Record<string, string> = {};
   for (const plan of ["professional", "business", "executive"] as const)

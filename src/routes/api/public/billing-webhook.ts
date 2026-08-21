@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   billingEventMetadata,
   canonicalPriceId,
-  canonicalSubscriptionGuard,
+  canonicalSubscriptionApply,
   eventIsApplicable,
   orderingDecision,
-  subscriptionUpdateFromEvent,
   verifyWebhookSignature,
+  webhookUserFromEvent,
 } from "@/lib/billing";
 
 type Obj = Record<string, unknown>;
@@ -39,8 +39,8 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         if (!mode.ok) return Response.json({ ok: false, code: mode.code }, { status: 503 });
         if (!env.webhookSecret.startsWith("whsec_"))
           return Response.json({ ok: false, code: "WEBHOOK_NOT_CONFIGURED" }, { status: 503 });
-        // Nessuna mappatura senza configurazione Price TEST completa:
-        // meglio ritentare l'evento che scrivere un piano di ripiego.
+        // Nessuna mappatura senza i Price self-service (Istruttoria).
+        // Radar/Studio restano opzionali, come in billingConfigured.
         if (env.missingPriceEnvs.length > 0)
           return Response.json({ ok: false, code: "PRICES_NOT_CONFIGURED" }, { status: 503 });
 
@@ -159,8 +159,8 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         type UserLookup = { ok: boolean; userId: string | null };
 
         async function resolveUserId(metadata: Obj | null): Promise<UserLookup> {
-          const fromMeta = metadata?.["supabase_user_id"];
-          if (typeof fromMeta === "string" && fromMeta) return { ok: true, userId: fromMeta };
+          const fromMeta = webhookUserFromEvent({ metadata, linkedUserId: null });
+          if (fromMeta.userId) return { ok: true, userId: fromMeta.userId };
           if (!customerId) return { ok: true, userId: null };
           const { data, error } = await admin
             .from("ueradar_subscriptions")
@@ -170,7 +170,11 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             .maybeSingle();
           // Errore di lettura: mai dedurre "utente non collegato".
           if (error) return { ok: false, userId: null };
-          return { ok: true, userId: (data as { user_id: string } | null)?.user_id ?? null };
+          const linked = webhookUserFromEvent({
+            metadata: null,
+            linkedUserId: (data as { user_id: string } | null)?.user_id ?? null,
+          });
+          return { ok: true, userId: linked.userId };
         }
 
         type SyncOutcome = { ok: boolean; code: string; skippable: boolean };
@@ -201,28 +205,17 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           if (fetched.status !== 200 || !fetched.payload)
             return { ok: false, code: "SUBSCRIPTION_FETCH_FAILED", skippable: false };
           const sub = fetched.payload;
-          const guard = canonicalSubscriptionGuard({
+          // Il primo collegamento e' arbitrato dal DB: verifica prenotazione,
+          // binding, apply e consumo avvengono nella stessa transazione RPC.
+          // Nessun consumo anticipato: un apply fallito resta ritentabile.
+
+          const mapped = canonicalSubscriptionApply({
             subscription: sub,
             expectedSubscriptionId: subscriptionId,
             expectedCustomerId: customerId,
             linkedCustomerId: record?.provider_customer_id ?? null,
             priceMap: env.priceMap,
             expectedLivemode: env.expectedLivemode ?? undefined,
-          });
-          if (!guard.ok) return { ok: false, code: guard.code, skippable: false };
-
-          // Il primo collegamento e' arbitrato dal DB: verifica prenotazione,
-          // binding, apply e consumo avvengono nella stessa transazione RPC.
-          // Nessun consumo anticipato: un apply fallito resta ritentabile.
-
-          const mapped = subscriptionUpdateFromEvent({
-            status: sub["status"],
-            currentPeriodEnd: sub["current_period_end"],
-            cancelAtPeriodEnd: sub["cancel_at_period_end"],
-            priceId: canonicalPriceId(sub),
-            subscriptionId,
-            customerId: str(sub["customer"]),
-            priceMap: env.priceMap,
             billingMode: env.mode ?? undefined,
           });
           if (!mapped.ok || !mapped.patch)

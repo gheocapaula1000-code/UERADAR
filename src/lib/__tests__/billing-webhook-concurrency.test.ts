@@ -127,7 +127,7 @@ const SQL = readdirSync("supabase/migrations")
 describe("webhook: percorso canonico, lease e RPC atomica", () => {
   it("ogni evento di subscription rilegge la subscription canonica dal provider", () => {
     expect(ROUTE).toContain("syncFromCanonical");
-    expect(ROUTE).toContain("canonicalSubscriptionGuard");
+    expect(ROUTE).toContain("canonicalSubscriptionApply");
     // checkout e i tre eventi subscription passano tutti dallo stesso percorso.
     expect((ROUTE.match(/syncFromCanonical\(/g) ?? []).length).toBeGreaterThanOrEqual(3);
   });
