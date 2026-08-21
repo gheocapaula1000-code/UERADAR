@@ -121,9 +121,13 @@ describe("integrazione nell'area riservata", () => {
     expect(PTR).toContain("Loader2");
   });
 
-  it("non compete con l'overscroll nativo", () => {
+  it("non compete con l'overscroll nativo e non apre l'asse X", () => {
     expect(CSS).toContain("overscroll-behavior-y: contain");
+    expect(CSS).toContain("overscroll-behavior-x: none");
     expect(PTR).toContain("overscroll-y-contain");
+    expect(PTR).toContain("overscroll-x-none");
+    expect(PTR).toContain("overflow-x-clip");
+    expect(PTR).toContain('classList.add("ptr-page-lock")');
   });
 
   it("rispetta prefers-reduced-motion e la barra inferiore", () => {

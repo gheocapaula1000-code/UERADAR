@@ -33,7 +33,7 @@ export function AppShell({
   ] as const;
 
   return (
-    <div className="h-dvh bg-background text-foreground flex overflow-hidden">
+    <div className="h-dvh max-w-full bg-background text-foreground flex overflow-hidden overflow-x-clip">
       {/* Sidebar desktop */}
       <aside aria-label="Navigazione area riservata" className="safe-top safe-bottom hidden lg:flex w-64 flex-col border-r border-border bg-sidebar shrink-0">
         <Link
@@ -83,7 +83,7 @@ export function AppShell({
         </header>
 
         <PullToRefresh>
-          <main id="contenuto-principale" className="safe-x pb-24 lg:pb-10">
+          <main id="contenuto-principale" className="safe-x min-w-0 max-w-full overflow-x-clip pb-24 lg:pb-10">
             {requireEntitlement ? <EntitlementGate>{children}</EntitlementGate> : children}
           </main>
           <div className="bottom-nav-gap">
