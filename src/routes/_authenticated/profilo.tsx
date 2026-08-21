@@ -25,6 +25,12 @@ import {
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Plus, Save, Sparkles, X } from "lucide-react";
 import { BrandMark } from "@/components/bandocore/BrandLogo";
 import { seoHead } from "@/lib/seo";
+import {
+  ALERTS_DIGEST_NOTE,
+  ALERTS_EMAIL_NOTE,
+  ALERTS_IN_APP_NOTE,
+  ALERTS_URGENT_NOTE,
+} from "@/lib/alerts";
 
 export const Route = createFileRoute("/_authenticated/profilo")({
   head: () => seoHead("/profilo"),
@@ -720,42 +726,43 @@ function Profilo() {
                       </Field>
                     </Section>
 
-                    <Section
-                      title="Preferenze di avviso"
-                      desc="Le preferenze vengono registrate ora; nessun invio automatico è attivo finché il servizio non lo dichiara"
-                    >
-                      <ToggleField
-                        label="Notifiche nell'app"
-                        description="Mostra nel centro notifiche gli elementi rilevati dall'ultimo aggiornamento del catalogo."
-                        checked={inAppAlerts}
-                        onChange={setInAppAlerts}
-                      />
-                      <ToggleField
-                        label="Nuove opportunità compatibili"
-                        description="Preferenza registrata: evidenzia le opportunità compatibili con il profilo."
-                        checked={morningDigest}
-                        onChange={setMorningDigest}
-                      />
-                      <ToggleField
-                        label="Scadenze urgenti e click day"
-                        description="Segnala separatamente le opportunità con scadenza ravvicinata."
-                        checked={urgentAlerts}
-                        onChange={setUrgentAlerts}
-                      />
-                      <ToggleField
-                        label="Invio anche via email"
-                        description="Preferenza registrata per l'email referente. L'invio via email non è ancora attivo."
-                        checked={emailAlerts}
-                        onChange={setEmailAlerts}
-                      />
-                      {!profile.email_referente && emailAlerts && (
-                        <p className="col-span-full text-xs text-warning">
-                          Inserisci l'email referente per registrare questa preferenza.
-                        </p>
-                      )}
-                    </Section>
                   </div>
                 </details>
+
+                <Section
+                  title="Preferenze di avviso"
+                  desc="Le preferenze vengono registrate ora. Gli avvisi in-app e l'email partono solo quando i servizi di invio sono attivi."
+                >
+                  <ToggleField
+                    label="Avvisi nell'app"
+                    description={ALERTS_IN_APP_NOTE}
+                    checked={inAppAlerts}
+                    onChange={setInAppAlerts}
+                  />
+                  <ToggleField
+                    label="Nuove opportunità compatibili"
+                    description={ALERTS_DIGEST_NOTE}
+                    checked={morningDigest}
+                    onChange={setMorningDigest}
+                  />
+                  <ToggleField
+                    label="Scadenze urgenti e click day"
+                    description={ALERTS_URGENT_NOTE}
+                    checked={urgentAlerts}
+                    onChange={setUrgentAlerts}
+                  />
+                  <ToggleField
+                    label="Invio anche via email"
+                    description={ALERTS_EMAIL_NOTE}
+                    checked={emailAlerts}
+                    onChange={setEmailAlerts}
+                  />
+                  {!profile.email_referente && emailAlerts && (
+                    <p className="col-span-full text-xs text-warning">
+                      Inserisci l'email referente per registrare questa preferenza.
+                    </p>
+                  )}
+                </Section>
               </>
             )}
 

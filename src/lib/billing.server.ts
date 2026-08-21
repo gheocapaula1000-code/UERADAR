@@ -137,8 +137,8 @@ export function readBillingEnv(): BillingEnv {
         if (isValidPriceId(value)) {
           priceMap[priceKey(plan.id, price.interval)] = value;
         } else if (plan.selfService) {
-          // Solo Radar/Pratica bloccano il checkout se manca il Price.
-          // Studio/Executive non sono self-service: price env opzionali.
+          // Solo i piani self-service (Istruttoria) bloccano il checkout se manca il Price.
+          // Radar ritirato dal listino, Studio/Executive: price env opzionali.
           missingPriceEnvs.push(envName);
         }
       }
@@ -171,7 +171,7 @@ export function readBillingEnv(): BillingEnv {
 
 /**
  * `configured` è vero con modalità valida, secret coerente col modo e i Price
- * self-service (Radar + Pratica) validi. Webhook e Portal NON sono richiesti
+ * self-service (Istruttoria) validi. Webhook e Portal NON sono richiesti
  * qui: servono solo dove vengono davvero usati.
  */
 export function billingConfigured(env: BillingEnv): { ok: boolean; code: string } {

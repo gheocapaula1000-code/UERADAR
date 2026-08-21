@@ -48,11 +48,12 @@ const UI_FILES = walk("src")
   .filter((p) => !p.includes("/routes/api/"));
 
 describe("catalogo approvato", () => {
-  it("espone due piani acquistabili online più Studio su richiesta", () => {
-    expect(PUBLIC_PLANS.map((p) => p.id)).toEqual(["professional", "business"]);
-    expect(PUBLIC_PLANS.map((p) => p.name)).toEqual(["RADAR", "PRATICA"]);
-    expect(PUBLIC_PLANS.map((p) => p.monthly?.replace(/\D/g, ""))).toEqual(["249", "449"]);
-    expect(PUBLIC_PLANS.map((p) => p.annual?.replace(/\D/g, ""))).toEqual(["2490", "4490"]);
+  it("espone un solo piano acquistabile online: Istruttoria, più Studio su richiesta", () => {
+    expect(PUBLIC_PLANS.map((p) => p.id)).toEqual(["business"]);
+    expect(PUBLIC_PLANS.map((p) => p.name)).toEqual(["ISTRUTTORIA"]);
+    expect(PUBLIC_PLANS.map((p) => p.monthly?.replace(/\D/g, ""))).toEqual(["449"]);
+    expect(PUBLIC_PLANS.map((p) => p.annual?.replace(/\D/g, ""))).toEqual(["4490"]);
+    expect(CATALOG.professional.selfService).toBe(false);
     expect(CATALOG.executive.selfService).toBe(false);
     expect(ENTERPRISE_FROM_CENTS).toBe(99000);
     expect(ENTERPRISE_PLAN.price.replace(/\D/g, "")).toBe("990");
@@ -66,10 +67,11 @@ describe("catalogo approvato", () => {
     }
   });
 
-  it("gli utenti sono capienza tecnica: 2 e 5", () => {
-    expect(PUBLIC_PLANS.map((p) => p.seats)).toEqual([2, 5]);
+  it("gli utenti pubblici sono capienza tecnica: 5", () => {
+    expect(PUBLIC_PLANS.map((p) => p.seats)).toEqual([5]);
     for (const p of PUBLIC_PLANS) expect(p.seatsLabel).toContain("capienza tecnica");
     expect(CATALOG.trial.limits.seats).toBe(1);
+    expect(CATALOG.professional.limits.seats).toBe(2);
   });
 
   it("cadenze interne e dossier rispettano il catalogo", () => {
@@ -88,8 +90,8 @@ describe("catalogo approvato", () => {
     expect(CATALOG.enterprise.limits.companies).toBe(-1);
   });
 
-  it("le card dichiarano 1 impresa e le bozze di richiesta / Dossier al mese", () => {
-    for (const id of ["professional", "business"] as const) {
+  it("le card pubbliche dichiarano 1 impresa e le bozze di richiesta / Dossier al mese", () => {
+    for (const id of ["business"] as const) {
       const plan = CATALOG[id];
       expect(plan.limits.companies).toBe(1);
       expect(plan.highlights).toContain("1 impresa");
@@ -125,8 +127,11 @@ describe("catalogo approvato", () => {
     expect(planFromCode("ueradar_business_annual").id).toBe("business");
   });
 
-  it("l'allowlist del checkout esclude prova ed Enterprise", () => {
+  it("l'allowlist del checkout ammette solo Istruttoria", () => {
     expect(checkoutTarget("business", "month")?.amountCents).toBe(44900);
+    expect(checkoutTarget("business", "year")?.amountCents).toBe(449000);
+    expect(checkoutTarget("professional", "month")).toBeNull();
+    expect(checkoutTarget("professional", "year")).toBeNull();
     expect(checkoutTarget("executive", "month")).toBeNull();
     expect(checkoutTarget("enterprise", "month")).toBeNull();
     expect(checkoutTarget("trial", "month")).toBeNull();
@@ -226,9 +231,23 @@ describe("valore, limiti e affermazioni verificabili", () => {
     const faq = PRICING_FAQ.map((f) => `${f.q} ${f.a}`).join(" ");
     expect(faq).toContain("senza carta di credito");
     expect(faq).toContain("10 bozze di richiesta / Dossier al mese");
+    expect(faq).toContain("Istruttoria");
+    expect(faq).toContain("non invia domande agli enti");
+    expect(faq).not.toMatch(/\bPratica\b|\bPRATICA\b/);
     expect(faq).not.toMatch(/Professional|Executive/);
     expect(faq).not.toMatch(/verifiche approfondite/i);
     expect(PRICING_FAQ.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("non lascia il nome piano Pratica nel copy utente", () => {
+    for (const file of UI_FILES) {
+      const src = readFileSync(file, "utf8");
+      expect(src, file).not.toMatch(/\bPratica\b/);
+      expect(src, file).not.toMatch(/\bPRATICA\b/);
+    }
+    expect(PUBLIC_PLANS[0]?.name).toBe("ISTRUTTORIA");
+    expect(CATALOG.business.prices.month?.amountCents).toBe(44900);
+    expect(CATALOG.business.prices.year?.amountCents).toBe(449000);
   });
 
   it("non lascia in giro prezzi o piani legacy nel copy pubblico", () => {
@@ -238,6 +257,10 @@ describe("valore, limiti e affermazioni verificabili", () => {
       expect(src, file).not.toContain("€599,00");
       expect(src, file).not.toMatch(/piano TEAM|utenti nominativi/i);
       expect(src, file).not.toMatch(/tutto illimitato/i);
+      expect(src, file).not.toMatch(/offerta lancio/i);
+      expect(src, file).not.toContain("€249");
+      expect(src, file).not.toMatch(/99\s*€/);
+      expect(src, file).not.toMatch(/Tre Piani self-service/);
     }
   });
 });

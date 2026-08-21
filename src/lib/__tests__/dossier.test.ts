@@ -4,6 +4,7 @@ import type { Bando, CompanyProfile } from "@/lib/bandocore-types";
 import {
   ALLOWED_PROFILE_FIELDS,
   DOSSIER_DISCLAIMER,
+  TRIAL_WATERMARK,
   buildDossier,
   missingOfficialData,
   officialUrl,
@@ -190,5 +191,20 @@ describe("dossier candidatura", () => {
     const card = readFileSync("src/components/bandocore/BandoCard.tsx", "utf8");
     expect(card).toContain("Genera dossier candidatura");
     expect(card).toContain("Genera dossier parziale");
+    expect(card).toContain("matchPreview");
+    expect(card).toContain('to="/bando/$id"');
+  });
+
+  it("filigrana la prova nel TXT e nel PDF, e la UI la dichiara prima dell'apertura", () => {
+    const d = buildDossier(bando, profile, NOW);
+    const text = renderDossierText(d, { watermarked: true });
+    expect(text).toContain(TRIAL_WATERMARK);
+    const pdf = dossierPdfModel(d, true)
+      .map((block) => block.text)
+      .join("\n");
+    expect(pdf).toContain(TRIAL_WATERMARK);
+    const page = readFileSync("src/routes/_authenticated/bando.$id.tsx", "utf8");
+    expect(page).toContain("watermarked");
+    expect(page).toContain("filigranat");
   });
 });

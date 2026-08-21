@@ -102,14 +102,14 @@ describe("stati e rilascio", () => {
   });
 });
 
-describe("integrazione nell'area riservata (pattern Civiko)", () => {
+describe("integrazione nell'area riservata", () => {
   it("avvolge il contenuto principale una sola volta", () => {
     expect(SHELL).toContain("<PullToRefresh>");
     expect(SHELL.match(/<PullToRefresh>/g)).toHaveLength(1);
     expect(SHELL).toContain('id="contenuto-principale"');
   });
 
-  it("usa lo stesso schema di Civiko: touch document + reload", () => {
+  it("usa touch document + reload, senza librerie esterne", () => {
     expect(PTR).toContain('addEventListener("touchstart"');
     expect(PTR).toContain('addEventListener("touchmove"');
     expect(PTR).toContain("window.location.reload");

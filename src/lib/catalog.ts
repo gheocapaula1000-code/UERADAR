@@ -112,7 +112,8 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
     id: "professional",
     name: "RADAR",
     audience: "Uno strumento tuo, sempre acceso, anche nel weekend",
-    selfService: true,
+    /** Non è più in listino: resta solo per abbonamenti già attivi. */
+    selfService: false,
     highlighted: false,
     prices: {
       month: {
@@ -155,7 +156,8 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
   },
   business: {
     id: "business",
-    name: "PRATICA",
+    /** Display name. Catalog id and Stripe plan codes stay `business`. */
+    name: "ISTRUTTORIA",
     audience: "Ricerca più profonda e più bozze, senza aspettare il consulente",
     selfService: true,
     highlighted: true,
@@ -189,7 +191,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       watermarkedDossier: false,
     },
     highlights: [
-      "Tutto Radar",
+      "Matching sul profilo (più ATECO)",
       "Ricerca più profonda (camere, provinciali, nicchie)",
       "Priorità imprese femminili, giovanili, startup",
       "1 impresa",

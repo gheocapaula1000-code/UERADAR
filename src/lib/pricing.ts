@@ -17,7 +17,6 @@ import {
   type PlanId,
 } from "./catalog";
 import { TRIAL_COPY, TRIAL_DAYS, TRIAL_SCOPE } from "./trial";
-import { LAUNCH_OFFER, launchOfferActive } from "./launch-offer";
 
 export const BILLING_ENABLED = true;
 
@@ -76,6 +75,53 @@ export const ENTERPRISE_PLAN = {
 
 /** Compatibilità con la pagina abbonamento: stessa fonte, stesso testo. */
 export const CUSTOM_PLAN = ENTERPRISE_PLAN;
+
+export type PlanCompareRow = {
+  label: string;
+  istruttoria: string;
+  studio: string;
+};
+
+/**
+ * Confronto Istruttoria (unico piano self-service) e Studio (preventivo).
+ * Radar non è in listino: resta solo come piano interno già attivo.
+ */
+export function planCompareRows(): readonly PlanCompareRow[] {
+  const istruttoriaMonth = CATALOG.business.prices.month?.amountCents ?? 44900;
+  const istruttoriaAnnual = CATALOG.business.prices.year?.amountCents ?? 449000;
+  return [
+    {
+      label: "Prezzo mensile (IVA esclusa)",
+      istruttoria: `${formatEuro(istruttoriaMonth)} / mese`,
+      studio: `da ${formatEuro(ENTERPRISE_FROM_CENTS)} / mese`,
+    },
+    {
+      label: "Prezzo annuale (2 mesi inclusi, IVA esclusa)",
+      istruttoria: `${formatEuro(istruttoriaAnnual)} / anno`,
+      studio: "su preventivo",
+    },
+    {
+      label: "Utenti operativi (capienza tecnica)",
+      istruttoria: String(CATALOG.business.limits.seats),
+      studio: "da contratto",
+    },
+    {
+      label: "Imprese",
+      istruttoria: String(CATALOG.business.limits.companies),
+      studio: "anche multi-impresa",
+    },
+    {
+      label: "Dossier / bozze al mese",
+      istruttoria: String(CATALOG.business.limits.dossiersPerMonth),
+      studio: "da contratto",
+    },
+    {
+      label: "Acquisto online",
+      istruttoria: "self-service",
+      studio: "nessun acquisto online",
+    },
+  ];
+}
 
 /**
  * Campi obbligatori dell'etichetta "Verificato": se anche uno manca, la
@@ -136,13 +182,11 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Quante opportunità posso vedere?",
-    a: "Tutte quelle pertinenti al tuo profilo: il numero di opportunità mostrate non è mai limitato. I piani si distinguono per le Domande / Dossier inclusi ogni mese e per la capienza di utenti operativi.",
+    a: "Tutte quelle pertinenti al tuo profilo: il numero di opportunità mostrate non è mai limitato. Istruttoria include 10 bozze di richiesta / Dossier al mese e 5 utenti operativi.",
   },
   {
-    q: "Che differenza c'è tra Radar e Pratica?",
-    a:
-      "Radar è lo strumento sempre acceso: matching sul profilo, push quando esce una novità e 3 bozze di richiesta / Dossier al mese, a 249 € al mese. Pratica aggiunge una ricerca più profonda su camere, fonti provinciali e nicchie, priorità per imprese femminili, giovanili e startup, aggiornamento più frequente con alert prioritari e 10 bozze di richiesta / Dossier al mese, a 449 € al mese." +
-      (launchOfferActive() ? ` ${LAUNCH_OFFER.note}` : ""),
+    q: "Cosa include Istruttoria?",
+    a: "Istruttoria è l'unico piano acquistabile online: matching sul profilo, ricerca su fonti ufficiali, 10 bozze di richiesta / Dossier al mese e 5 utenti operativi, a 449 € al mese + IVA. Istruttoria prepara la bozza: non invia domande agli enti.",
   },
   {
     q: "Cosa significa l'etichetta Verificato?",
@@ -154,11 +198,11 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Il numero di utenti è il valore del piano?",
-    a: "No. Gli utenti sono soltanto capienza tecnica, titolare incluso: 2 con Radar e 5 con Pratica. Il valore sta nella qualità della selezione e nelle bozze di richiesta preparate.",
+    a: "No. Gli utenti sono soltanto capienza tecnica, titolare incluso: 5 con Istruttoria. Il valore sta nella qualità della selezione e nelle bozze di richiesta preparate.",
   },
   {
     q: "Quanto costa l'annuale?",
-    a: "L'annuale include 2 mesi: 2.490 € per Radar e 4.490 € per Pratica, sempre IVA esclusa.",
+    a: "L'annuale Istruttoria include 2 mesi: 4.490 €, sempre IVA esclusa.",
   },
   {
     q: "Posso gestire più imprese?",

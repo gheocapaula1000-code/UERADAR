@@ -203,7 +203,7 @@ describe("UI banner e footer — requisiti normativi statici", () => {
 
   it("i termini riportano prezzi, prova e billing disattivato", () => {
     const terms = readFileSync("src/routes/termini.tsx", "utf8");
-    expect(terms).toContain("€249");
+    expect(terms).not.toContain("€249");
     expect(terms).toContain("€449");
     expect(terms).toContain("€990");
     expect(terms).toMatch(/non richiede carta di credito/);

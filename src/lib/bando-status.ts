@@ -52,6 +52,41 @@ export function matchStatusMeta(value: unknown): MatchStatusMeta {
   return META[normalizeMatchStatus(value)];
 }
 
+export type MatchPreview = MatchStatusMeta & {
+  score: number | null;
+  confirmed: string[];
+  missing: string[];
+  blockers: string[];
+};
+
+const PREVIEW_LIMIT = 2;
+
+function previewLines(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    .slice(0, PREVIEW_LIMIT);
+}
+
+/**
+ * Anteprima del match per le card: usa solo stato, punteggio e motivi
+ * restituiti dal feed. Nessun punteggio inventato.
+ */
+export function matchPreview(match: Bando["match"] | null | undefined): MatchPreview | null {
+  if (!match) return null;
+  const meta = matchStatusMeta(match.status);
+  const raw = match.score;
+  const score =
+    typeof raw === "number" && Number.isFinite(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : null;
+  return {
+    ...meta,
+    score,
+    confirmed: previewLines(match.confirmed),
+    missing: previewLines(match.missing),
+    blockers: previewLines(match.blockers),
+  };
+}
+
 export function deadlineTime(bando: Pick<Bando, "scadenza">): number | null {
   if (!bando.scadenza) return null;
   const time = new Date(bando.scadenza).getTime();

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { isActive, isExpired, isFlash, matchStatusMeta, normalizeMatchStatus } from "../bando-status";
+import {
+  isActive,
+  isExpired,
+  isFlash,
+  matchPreview,
+  matchStatusMeta,
+  normalizeMatchStatus,
+} from "../bando-status";
 
 const NOW = Date.parse("2026-08-06T10:00:00.000Z");
 const day = 86_400_000;
@@ -21,6 +28,23 @@ describe("stato di compatibilità", () => {
     expect(normalizeMatchStatus("boh")).toBe("DA_VERIFICARE");
     expect(normalizeMatchStatus(undefined)).toBe("DA_VERIFICARE");
     expect(normalizeMatchStatus("non_compatibile")).toBe("NON_COMPATIBILE");
+  });
+
+  it("anteprima card: mostra DA_VERIFICARE con motivi, senza inventare il punteggio", () => {
+    const preview = matchPreview({
+      status: "DA_VERIFICARE",
+      score: 62.4,
+      confirmed: ["ATECO ammesso"],
+      missing: ["Sede da confermare", "DURC", "extra ignorato"],
+      blockers: [],
+    });
+    expect(preview?.label).toBe("Da verificare");
+    expect(preview?.tone).toBe("warning");
+    expect(preview?.score).toBe(62);
+    expect(preview?.confirmed).toEqual(["ATECO ammesso"]);
+    expect(preview?.missing).toEqual(["Sede da confermare", "DURC"]);
+    expect(matchPreview(null)).toBeNull();
+    expect(matchPreview({ status: "COMPATIBILE", score: Number.NaN, confirmed: [], missing: [], blockers: [] })?.score).toBeNull();
   });
 });
 

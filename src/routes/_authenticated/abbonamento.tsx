@@ -37,18 +37,7 @@ const STATE_LABEL: Record<string, string> = {
   NONE: "Abbonamento non attivo",
 };
 
-import { LAUNCH_OFFER, launchOfferApplies } from "@/lib/launch-offer";
-
 /** Spiegazioni leggibili dei codici di blocco checkout (nessun segreto in UI). */
-const PAYMENT_LINK_RADAR = "https://buy.stripe.com/7sYeVd3Ph7c41Ad3TGcZa00";
-const PAYMENT_LINK_PRATICA = "https://buy.stripe.com/7sYeVd3Ph7c41Ad3TGcZa00";
-
-/** Fallback Payment Link per piano quando il checkout server non è disponibile. */
-const PAYMENT_LINKS: Record<string, string | undefined> = {
-  professional: PAYMENT_LINK_RADAR,
-  business: PAYMENT_LINK_PRATICA,
-};
-
 const CHECKOUT_BLOCK_LABEL: Record<string, string> = {
   BILLING_NOT_CONFIGURED: "L'attivazione online non è ancora configurata su questo ambiente.",
   BILLING_KEY_MODE_MISMATCH:
@@ -298,7 +287,8 @@ function Abbonamento() {
           {data && !data.checkout_available ? (
             <p className="mt-4 flex items-start gap-2 rounded-lg border border-border bg-muted p-3 text-sm">
               <ShieldCheck aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-              Attivazione sicura tramite Stripe. Verrai reindirizzato al pagamento.
+              Gli addebiti sono disabilitati su questo ambiente. La prova non richiede pagamento.
+              L'attivazione a pagamento resta riservata ai test.
             </p>
           ) : null}
 
@@ -355,7 +345,7 @@ function Abbonamento() {
           <p className="text-xs uppercase tracking-wide text-accent">{TRIAL_COPY.headline}</p>
         </div>
 
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="mx-auto grid max-w-xl gap-4">
           {PUBLIC_PLANS.map((plan) => (
             <div
               key={plan.id}
@@ -365,25 +355,13 @@ function Abbonamento() {
               <p className="mt-1 text-sm text-muted-foreground">{plan.audience}</p>
               <p className="mt-4">
                 <span className="text-3xl font-bold">
-                  {launchOfferApplies(plan.id, interval)
-                    ? LAUNCH_OFFER.priceLabel
-                    : interval === "month"
-                      ? plan.monthly
-                      : plan.annual}
+                  {interval === "month" ? plan.monthly : plan.annual}
                 </span>
                 <span className="text-muted-foreground">
                   {" "}
                   {interval === "month" ? plan.vatNote : plan.annualNote}
                 </span>
               </p>
-              {launchOfferApplies(plan.id, interval) ? (
-                <>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Listino <s>{LAUNCH_OFFER.listLabel}</s> / mese + IVA
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-accent">{LAUNCH_OFFER.note}</p>
-                </>
-              ) : null}
               <ul className="mt-4 space-y-2 text-sm">
                 {plan.features.slice(0, 4).map((f) => (
                   <li key={f} className="flex items-start gap-2">
@@ -401,24 +379,14 @@ function Abbonamento() {
                     payMutation.mutate(plan.id as "professional" | "business" | "executive");
                     return;
                   }
-                  // Il Payment Link statico di Radar è il vecchio 249: durante
-                  // l'offerta lancio non deve mai essere usato per il mensile.
-                  const link = launchOfferApplies(plan.id, interval)
-                    ? undefined
-                    : PAYMENT_LINKS[plan.id];
-                  if (link) {
-                    window.location.assign(link);
-                    return;
-                  }
-                  if (disabledReason) {
-                    toast.error("Attivazione non disponibile", { description: disabledReason });
-                  }
+                  toast.error("Attivazione non disponibile", {
+                    description:
+                      disabledReason ??
+                      "Gli addebiti sono disabilitati: nessun pagamento live da questa pagina.",
+                  });
                 }}
-                disabled={payMutation.isPending}
-                aria-disabled={
-                  Boolean(disabledReason) &&
-                  (launchOfferApplies(plan.id, interval) || !PAYMENT_LINKS[plan.id])
-                }
+                disabled={payMutation.isPending || Boolean(disabledReason) || !data?.checkout_available}
+                aria-disabled={Boolean(disabledReason) || !data?.checkout_available}
                 className="tap mt-6 w-full rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground disabled:opacity-50"
               >
                 Attiva {plan.name}

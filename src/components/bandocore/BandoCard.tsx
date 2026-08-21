@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import {
   Calendar,
   MapPin,
@@ -9,12 +10,15 @@ import {
   CheckCircle2,
   CalendarX,
   FileSearch,
+  AlertTriangle,
+  XCircle,
 } from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
 import {
   daysLeft as daysLeftOf,
   isExpired,
   isVerified,
+  matchPreview,
   VERIFIED_HINT,
 } from "@/lib/bando-status";
 import { formatItalianInteger } from "@/lib/catalog";
@@ -87,7 +91,7 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
   const daysLeft = daysLeftOf(bando);
   const expired = isExpired(bando);
   const urgent = !expired && daysLeft !== null && daysLeft <= 10 && daysLeft >= 0;
-  const match = bando.match;
+  const preview = matchPreview(bando.match);
   const missingOfficial = missingOfficialData(bando);
   const partial = missingOfficial.length > 0;
   const verified = isVerified(bando);
@@ -178,20 +182,44 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
 
       <p className="mt-3 text-sm text-muted-foreground line-clamp-3 flex-1">{bando.descrizione}</p>
 
-      {match && match.status === "COMPATIBILE" && (
-        <div className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5">
+      {preview && (
+        <div className={`mt-4 rounded-lg border p-2.5 ${preview.boxClass}`}>
           <div className="flex items-center justify-between gap-2 text-xs">
-            <span className="flex items-center gap-1.5 font-medium text-emerald-400">
-              <CheckCircle2 className="h-4 w-4" /> Compatibile
+            <span className={`flex items-center gap-1.5 font-medium ${preview.textClass}`}>
+              {preview.tone === "positive" ? (
+                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              ) : preview.tone === "negative" ? (
+                <XCircle className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+              )}
+              {preview.label}
             </span>
-            <MatchScore score={match.score} />
+            <MatchScore score={preview.score} />
           </div>
+          {preview.confirmed.length > 0 ? (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Confermato: {preview.confirmed.join(" · ")}
+            </p>
+          ) : null}
+          {preview.missing.length > 0 ? (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Da controllare: {preview.missing.join(" · ")}
+            </p>
+          ) : null}
+          {preview.blockers.length > 0 ? (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Blocco: {preview.blockers.join(" · ")}
+            </p>
+          ) : null}
+          {preview.confirmed.length === 0 &&
+          preview.missing.length === 0 &&
+          preview.blockers.length === 0 ? (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Controlla i requisiti sul bando ufficiale
+            </p>
+          ) : null}
         </div>
-      )}
-      {match && match.status !== "COMPATIBILE" && (
-        <p className="mt-3 text-[11px] text-muted-foreground">
-          Controlla i requisiti sul bando ufficiale
-        </p>
       )}
 
       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
@@ -246,20 +274,16 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         </p>
       )}
 
-      <a
-        href={`/bando/${encodeURIComponent(bando.id)}`}
+      <Link
+        to="/bando/$id"
+        params={{ id: bando.id }}
         aria-label={`Genera dossier candidatura per ${bando.titolo} — bozza informativa da verificare`}
         title="Genera un dossier di candidatura in bozza: contenuto informativo da verificare, nessuna domanda viene inviata"
         className="cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
-        onClick={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          window.location.assign(`/bando/${encodeURIComponent(bando.id)}`);
-        }}
       >
         {partial ? "Genera dossier parziale" : "Genera dossier candidatura"}{" "}
-        <ArrowRight className="h-4 w-4" />
-      </a>
+        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+      </Link>
     </div>
   );
 }
