@@ -1,26 +1,191 @@
 import type { Bando, BandoScope } from "./bandocore-types";
 
 /**
- * Registro delle fonti core v1 (ordine di priorità).
- * Un bando entra nel feed solo se la sua URL ufficiale appartiene a una di
- * queste fonti: meglio pochi bandi solidi che molti incompleti.
+ * Registro delle fonti core (ordine di priorità).
+ * Allineato alle `trovabandi_sources` abilitate su Core: un bando entra nel
+ * feed solo se l'host dell'URL ufficiale coincide con uno di questi domini
+ * ufficiali o ne è un sottodominio. Nessun comune o sito extra viene inventato.
+ * Il matching ATECO/sede resta a valle e non viene allargato qui.
  */
+export type CoreSourceId =
+  | "veneto"
+  | "invitalia"
+  | "mimit"
+  | "eu"
+  | "padova"
+  | "cciaa"
+  | "gal"
+  | "unioncamere"
+  | "provincia"
+  | "bur"
+  | "regionale"
+  | "nazionale";
+
 export interface CoreSource {
-  id:
-    | "veneto"
-    | "invitalia"
-    | "mimit"
-    | "eu"
-    | "padova"
-    | "cciaa"
-    | "gal"
-    | "unioncamere"
-    | "provincia";
+  id: CoreSourceId;
   label: string;
   homepage: string;
   hosts: string[];
   level: BandoScope;
 }
+
+/** Bollettini ufficiali regionali presenti nel catalogo Core. */
+export const CORE_BUR_HOSTS = [
+  "bur.regione.emilia-romagna.it",
+  "bur.regione.fvg.it",
+  "bur.regione.veneto.it",
+  "burl.it",
+] as const;
+
+/**
+ * Regioni italiane già in Core (`regione.abruzzo.it` … `regione.veneto.it`).
+ * `regione.veneto.it` resta sulla fonte veneto per l'etichetta di priorità.
+ */
+export const CORE_REGION_HOSTS = [
+  "regione.abruzzo.it",
+  "regione.basilicata.it",
+  "regione.calabria.it",
+  "regione.campania.it",
+  "regione.emilia-romagna.it",
+  "regione.fvg.it",
+  "regione.lazio.it",
+  "regione.liguria.it",
+  "regione.lombardia.it",
+  "regione.marche.it",
+  "regione.molise.it",
+  "regione.piemonte.it",
+  "regione.puglia.it",
+  "regione.sardegna.it",
+  "regione.sicilia.it",
+  "regione.toscana.it",
+  "regione.umbria.it",
+  "regione.vda.it",
+  "regione.veneto.it",
+] as const;
+
+/**
+ * Host camerali del catalogo Core. `camcom.it` ammette `*.camcom.it` via endsWith
+ * (aa, ao, as, bg, bs, cn, cmp, dl, emilia, fera, lg, milomb, mo, pno, pnud,
+ * ptpo, romagna, so, tn, tno, to, va, vg, vi, vr, comolecco, pd).
+ * `*.camcom.gov.it`, `camcom.bz.it` e Unioncamere Veneto non cadono su quel suffisso.
+ */
+export const CORE_CAMCOM_HOSTS = [
+  "camcom.it",
+  "pd.camcom.it",
+  "aa.camcom.it",
+  "ao.camcom.it",
+  "as.camcom.it",
+  "bg.camcom.it",
+  "bs.camcom.it",
+  "cn.camcom.it",
+  "cmp.camcom.it",
+  "dl.camcom.it",
+  "emilia.camcom.it",
+  "fera.camcom.it",
+  "lg.camcom.it",
+  "milomb.camcom.it",
+  "mo.camcom.it",
+  "pno.camcom.it",
+  "pnud.camcom.it",
+  "ptpo.camcom.it",
+  "romagna.camcom.it",
+  "so.camcom.it",
+  "tn.camcom.it",
+  "tno.camcom.it",
+  "to.camcom.it",
+  "va.camcom.it",
+  "vg.camcom.it",
+  "vi.camcom.it",
+  "vr.camcom.it",
+  "comolecco.camcom.it",
+  "bo.camcom.gov.it",
+  "fi.camcom.gov.it",
+  "ge.camcom.gov.it",
+  "rivlig.camcom.gov.it",
+  "tb.camcom.gov.it",
+  "camcom.bz.it",
+] as const;
+
+export const CORE_NATIONAL_HOSTS = [
+  "agenziaentrate.gov.it",
+  "incentivi.gov.it",
+  "invitalia.it",
+  "italiadomani.gov.it",
+  "mimit.gov.it",
+  "padigitale2026.gov.it",
+  "gazzettaufficiale.it",
+  "mase.gov.it",
+  "ministeroturismo.gov.it",
+  "mur.gov.it",
+  "pariopportunita.gov.it",
+  "politichecoesione.governo.it",
+  "politichegiovanili.gov.it",
+] as const;
+
+export const CORE_EU_HOSTS = [
+  "ec.europa.eu",
+  "agriculture.ec.europa.eu",
+  "cinea.ec.europa.eu",
+  "commission.europa.eu",
+  "culture.ec.europa.eu",
+  "digital-strategy.ec.europa.eu",
+  "eic.ec.europa.eu",
+  "eismea.ec.europa.eu",
+  "european-social-fund-plus.ec.europa.eu",
+  "funding-tenders.ec.europa.eu",
+  "interregeurope.eu",
+  "research-and-innovation.ec.europa.eu",
+  "europa.eu",
+  "eurekanetwork.org",
+] as const;
+
+export const CORE_PROVINCE_CM_HOSTS = [
+  "amministrazionetrasparente.provincia.pc.it",
+  "amministrazionetrasparente.provincia.treviso.it",
+  "ammtrasp.provincia.livorno.it",
+  "at.provincia.brescia.it",
+  "cittametropolitana.fi.it",
+  "cittametropolitana.mi.it",
+  "cittametropolitana.ve.it",
+  "dati.cittametropolitana.genova.it",
+  "provincia.arezzo.it",
+  "provincia.bz.it",
+  "provincia.como.it",
+  "provincia.cremona.it",
+  "provincia.cuneo.it",
+  "provincia.imperia.it",
+  "provincia.lecco.it",
+  "provincia.mantova.it",
+  "provincia.padova.it",
+  "provincia.pd.it",
+  "provincia.ra.it",
+  "provincia.savona.it",
+  "provincia.tn.it",
+  "provinciams.etrasparenza.it",
+  "provinciasondrio.it",
+  "trasparenza.cittametropolitana.torino.it",
+  "trasparenza.provincia.pistoia.it",
+  "web.provincia.vr.it",
+] as const;
+
+export const CORE_GAL_HOSTS = [
+  "baldolessinia.it",
+  "farmaremma.it",
+  "gal-start.it",
+  "galadige.it",
+  "galaltamarca.tv.it",
+  "galaltobellunese.com",
+  "galaretino.it",
+  "galdeltapo.it",
+  "galpatavino.it",
+  "galprealpidolomiti.it",
+  "galterretrusche.com",
+  "leadersiena.it",
+  "montagnappennino.it",
+  "montagnavicentina.com",
+  "sviluppolunigiana.it",
+  "vegal.net",
+] as const;
 
 export const CORE_SOURCES: CoreSource[] = [
   {
@@ -48,7 +213,7 @@ export const CORE_SOURCES: CoreSource[] = [
     id: "eu",
     label: "EU Funding & Tenders Portal",
     homepage: "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home",
-    hosts: ["ec.europa.eu", "europa.eu", "eismea.ec.europa.eu", "eurekanetwork.org"],
+    hosts: [...CORE_EU_HOSTS],
     level: "EUROPEO",
   },
   {
@@ -60,33 +225,64 @@ export const CORE_SOURCES: CoreSource[] = [
   },
   {
     id: "cciaa",
-    label: "Camera di Commercio di Padova",
+    label: "Camere di Commercio",
     homepage: "https://www.pd.camcom.it",
-    hosts: ["pd.camcom.it", "camcom.it"],
+    hosts: [...CORE_CAMCOM_HOSTS],
     level: "CAMERALE",
   },
   {
     id: "gal",
-    label: "GAL Patavino",
+    label: "GAL",
     homepage: "https://www.galpatavino.it",
-    hosts: ["galpatavino.it"],
+    hosts: [...CORE_GAL_HOSTS],
     level: "COMUNALE",
   },
   {
     id: "unioncamere",
     label: "Unioncamere",
     homepage: "https://www.unioncamere.gov.it",
-    hosts: ["unioncamere.gov.it"],
+    hosts: ["unioncamere.gov.it", "unioncamereveneto.it"],
     level: "CAMERALE",
   },
   {
     id: "provincia",
-    label: "Provincia di Padova",
+    label: "Province e Città metropolitane",
     homepage: "https://www.provincia.pd.it",
-    hosts: ["provincia.pd.it", "provincia.padova.it"],
+    hosts: [...CORE_PROVINCE_CM_HOSTS],
     level: "REGIONALE",
   },
+  {
+    id: "bur",
+    label: "Bollettini ufficiali regionali",
+    homepage: "https://bur.regione.veneto.it",
+    hosts: [...CORE_BUR_HOSTS],
+    level: "REGIONALE",
+  },
+  {
+    id: "regionale",
+    label: "Regioni",
+    homepage: "https://www.regione.toscana.it",
+    hosts: CORE_REGION_HOSTS.filter((host) => host !== "regione.veneto.it"),
+    level: "REGIONALE",
+  },
+  {
+    id: "nazionale",
+    label: "Amministrazioni nazionali",
+    homepage: "https://www.gazzettaufficiale.it",
+    hosts: CORE_NATIONAL_HOSTS.filter(
+      (host) => host !== "invitalia.it" && host !== "incentivi.gov.it" && host !== "mimit.gov.it",
+    ),
+    level: "NAZIONALE",
+  },
 ];
+
+/**
+ * Domini ufficiali live Core: ammissione solo per uguaglianza o sottodominio.
+ * Non è un elenco di comuni inventati: è il catalogo `official_domain` abilitato.
+ */
+export const CORE_OFFICIAL_DOMAINS: readonly string[] = Array.from(
+  new Set(CORE_SOURCES.flatMap((source) => source.hosts)),
+);
 
 export const ADMITTED_LEVELS: BandoScope[] = [
   "COMUNALE",
