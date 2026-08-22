@@ -3,6 +3,7 @@ import {
   isActive,
   isExpired,
   isFlash,
+  isRareOrHidden,
   matchPreview,
   matchStatusMeta,
   normalizeMatchStatus,
@@ -65,5 +66,15 @@ describe("scadenze", () => {
   it("un bando scaduto non è mai flash, nemmeno con click_day", () => {
     expect(isFlash({ scadenza: "2026-07-01", flash: true, click_day: true }, NOW)).toBe(false);
     expect(isFlash({ scadenza: new Date(NOW + 3 * day).toISOString() }, NOW)).toBe(true);
+  });
+});
+
+describe("fonti rare o locali", () => {
+  it("is_hidden o rarity_score >= 4, senza inventare schede", () => {
+    expect(isRareOrHidden({ is_hidden: true })).toBe(true);
+    expect(isRareOrHidden({ rarity_score: 4 })).toBe(true);
+    expect(isRareOrHidden({ rarity_score: 5 })).toBe(true);
+    expect(isRareOrHidden({ rarity_score: 3 })).toBe(false);
+    expect(isRareOrHidden({})).toBe(false);
   });
 });

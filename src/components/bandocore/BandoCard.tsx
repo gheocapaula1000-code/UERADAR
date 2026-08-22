@@ -17,6 +17,8 @@ import type { Bando } from "@/lib/bandocore-types";
 import {
   daysLeft as daysLeftOf,
   isExpired,
+  isFlash,
+  isRareOrHidden,
   isVerified,
   matchPreview,
   VERIFIED_HINT,
@@ -90,6 +92,8 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
   const cat = categoryStyles[bando.categoria] ?? categoryStyles.ALTRO;
   const daysLeft = daysLeftOf(bando);
   const expired = isExpired(bando);
+  const flash = isFlash(bando);
+  const rareOrHidden = isRareOrHidden(bando);
   const urgent = !expired && daysLeft !== null && daysLeft <= 10 && daysLeft >= 0;
   const preview = matchPreview(bando.match);
   const missingOfficial = missingOfficialData(bando);
@@ -102,7 +106,7 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
     <div
       style={{ animationDelay: `${cardEnterDelayMs(index)}ms` }}
       className={`group card-enter min-w-0 max-w-full overflow-x-clip rounded-2xl border bg-card p-5 shadow-elevated transition flex flex-col ${
-        bando.is_hidden ? "border-accent/50 ring-1 ring-accent/25" : "border-border"
+        rareOrHidden ? "border-accent/50 ring-1 ring-accent/25" : "border-border"
       }`}
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
@@ -128,7 +132,7 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
               <CheckCircle2 className="h-3 w-3" /> Verificato
             </span>
           )}
-          {(bando.rarity_score ?? 0) >= 4 && (
+          {rareOrHidden && !bando.is_hidden && (
             <span
               className="inline-flex items-center gap-1 rounded-full border border-accent/50 bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent"
               title={`Fonte: ${bando.source_kind ?? "documento ufficiale"}`}
@@ -142,7 +146,7 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
             <CalendarX className="h-3 w-3" /> Scaduto
           </span>
         )}
-        {!expired && bando.flash && (
+        {flash && (
           <span className="urgent-pulse inline-flex items-center gap-1 rounded-full bg-warning/20 text-warning px-2 py-0.5 text-xs font-semibold">
             <Zap className="h-3 w-3" /> Flash
           </span>

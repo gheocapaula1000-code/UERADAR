@@ -103,4 +103,22 @@ describe("qualita e ordinamento feed", () => {
     const ordered = [vuoto, conScadenza, verificato].sort((a, b) => compareByQuality(a, b, NOW));
     expect(ordered.map((b) => b.id)).toEqual(["v", "s", "x"]);
   });
+
+  it("a parita di qualita i rari/nascosti salgono prima, poi la scadenza piu vicina", () => {
+    const noto = bando({ id: "n", verification_status: "PARZIALE", scadenza: "2026-10-01" });
+    const raro = bando({
+      id: "r",
+      verification_status: "PARZIALE",
+      scadenza: "2026-11-01",
+      is_hidden: true,
+    });
+    const vicino = bando({
+      id: "c",
+      verification_status: "PARZIALE",
+      scadenza: "2026-09-01",
+      rarity_score: 4,
+    });
+    const ordered = [noto, raro, vicino].sort((a, b) => compareByQuality(a, b, NOW));
+    expect(ordered.map((b) => b.id)).toEqual(["c", "r", "n"]);
+  });
 });
