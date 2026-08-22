@@ -2,10 +2,13 @@ import type { Bando, BandoScope } from "./bandocore-types";
 
 /**
  * Registro delle fonti core (ordine di priorità).
- * Allineato alle `trovabandi_sources` abilitate su Core: un bando entra nel
- * feed solo se l'host dell'URL ufficiale coincide con uno di questi domini
- * ufficiali o ne è un sottodominio. Nessun comune o sito extra viene inventato.
- * Il matching ATECO/sede resta a valle e non viene allargato qui.
+ * Core è la fonte di verità: un bando con `official_source` e URL ufficiale
+ * valido entra anche se l'host non è ancora in questo elenco, così un nuovo
+ * `official_domain` su Core non richiede un PR della PWA.
+ * L'elenco resta un catalogo fail-closed per schede senza attestazione Core
+ * (cache, flag assente): solo host `trovabandi_sources` o loro sottodomini.
+ * Nessun comune o sito extra viene inventato. Il matching ATECO/sede resta
+ * a valle e non viene allargato qui.
  */
 export type CoreSourceId =
   | "veneto"
@@ -19,7 +22,8 @@ export type CoreSourceId =
   | "provincia"
   | "bur"
   | "regionale"
-  | "nazionale";
+  | "nazionale"
+  | "core";
 
 export interface CoreSource {
   id: CoreSourceId;
@@ -33,8 +37,14 @@ export interface CoreSource {
 export const CORE_BUR_HOSTS = [
   "bur.regione.emilia-romagna.it",
   "bur.regione.fvg.it",
+  "bur.regione.marche.it",
+  "bur.regione.umbria.it",
   "bur.regione.veneto.it",
+  "bura.regione.abruzzo.it",
+  "buras.regione.sardegna.it",
+  "burc.regione.campania.it",
   "burl.it",
+  "burp.regione.puglia.it",
 ] as const;
 
 /**
@@ -64,43 +74,71 @@ export const CORE_REGION_HOSTS = [
 ] as const;
 
 /**
- * Host camerali del catalogo Core. `camcom.it` ammette `*.camcom.it` via endsWith
- * (aa, ao, as, bg, bs, cn, cmp, dl, emilia, fera, lg, milomb, mo, pno, pnud,
- * ptpo, romagna, so, tn, tno, to, va, vg, vi, vr, comolecco, pd).
- * `*.camcom.gov.it`, `camcom.bz.it` e Unioncamere Veneto non cadono su quel suffisso.
+ * Host camerali del catalogo Core. `camcom.it` ammette `*.camcom.it` via endsWith.
+ * `*.camcom.gov.it`, `camcom.bz.it`, `cameracommercio.cl.it` e Unioncamere non
+ * cadono su quel suffisso: restano elencati esplicitamente.
  */
 export const CORE_CAMCOM_HOSTS = [
   "camcom.it",
   "pd.camcom.it",
   "aa.camcom.it",
+  "ag.camcom.it",
   "ao.camcom.it",
   "as.camcom.it",
+  "ba.camcom.it",
+  "basilicata.camcom.it",
   "bg.camcom.it",
+  "brta.camcom.it",
   "bs.camcom.it",
+  "caor.camcom.it",
+  "cameracommercio.cl.it",
+  "cameragransasso.camcom.it",
+  "ce.camcom.it",
+  "chpe.camcom.it",
   "cn.camcom.it",
   "cmp.camcom.it",
+  "comolecco.camcom.it",
+  "czkrvv.camcom.it",
   "dl.camcom.it",
   "emilia.camcom.it",
   "fera.camcom.it",
+  "fg.camcom.it",
+  "frlt.camcom.it",
+  "irpiniasannio.camcom.it",
+  "le.camcom.it",
   "lg.camcom.it",
+  "marche.camcom.it",
+  "me.camcom.it",
   "milomb.camcom.it",
   "mo.camcom.it",
+  "nu.camcom.it",
   "pno.camcom.it",
   "pnud.camcom.it",
   "ptpo.camcom.it",
+  "rivt.camcom.it",
+  "rm.camcom.it",
   "romagna.camcom.it",
+  "sa.camcom.it",
   "so.camcom.it",
+  "ss.camcom.it",
   "tn.camcom.it",
   "tno.camcom.it",
   "to.camcom.it",
+  "tp.camcom.it",
+  "umbria.camcom.it",
   "va.camcom.it",
   "vg.camcom.it",
   "vi.camcom.it",
   "vr.camcom.it",
-  "comolecco.camcom.it",
   "bo.camcom.gov.it",
+  "cs.camcom.gov.it",
+  "ctrgsr.camcom.gov.it",
   "fi.camcom.gov.it",
   "ge.camcom.gov.it",
+  "molise.camcom.gov.it",
+  "na.camcom.gov.it",
+  "paen.camcom.gov.it",
+  "rc.camcom.gov.it",
   "rivlig.camcom.gov.it",
   "tb.camcom.gov.it",
   "camcom.bz.it",
@@ -120,6 +158,11 @@ export const CORE_NATIONAL_HOSTS = [
   "pariopportunita.gov.it",
   "politichecoesione.governo.it",
   "politichegiovanili.gov.it",
+  "fondimpresa.it",
+  "gse.it",
+  "ice.it",
+  "inail.it",
+  "simest.it",
 ] as const;
 
 export const CORE_EU_HOSTS = [
@@ -144,23 +187,29 @@ export const CORE_PROVINCE_CM_HOSTS = [
   "amministrazionetrasparente.provincia.treviso.it",
   "ammtrasp.provincia.livorno.it",
   "at.provincia.brescia.it",
+  "casadivetro.provincia.pu.it",
   "cittametropolitana.fi.it",
   "cittametropolitana.mi.it",
   "cittametropolitana.ve.it",
+  "cittametropolitanacagliari.it",
   "dati.cittametropolitana.genova.it",
   "provincia.arezzo.it",
+  "provincia.benevento.it",
   "provincia.bz.it",
   "provincia.como.it",
   "provincia.cremona.it",
   "provincia.cuneo.it",
+  "provincia.fermo.it",
   "provincia.imperia.it",
   "provincia.lecco.it",
   "provincia.mantova.it",
   "provincia.padova.it",
   "provincia.pd.it",
+  "provincia.perugia.it",
   "provincia.ra.it",
   "provincia.savona.it",
   "provincia.tn.it",
+  "provincia.vicenza.it",
   "provinciams.etrasparenza.it",
   "provinciasondrio.it",
   "trasparenza.cittametropolitana.torino.it",
@@ -176,13 +225,19 @@ export const CORE_GAL_HOSTS = [
   "galaltamarca.tv.it",
   "galaltobellunese.com",
   "galaretino.it",
+  "galcasacastra.it",
+  "galcilento.it",
   "galdeltapo.it",
+  "galpartenio.it",
   "galpatavino.it",
   "galprealpidolomiti.it",
+  "galterraevita.eu",
   "galterretrusche.com",
+  "galvesuvioverde.it",
   "leadersiena.it",
   "montagnappennino.it",
   "montagnavicentina.com",
+  "sentieridelbuonvivere.it",
   "sviluppolunigiana.it",
   "vegal.net",
 ] as const;
@@ -277,8 +332,22 @@ export const CORE_SOURCES: CoreSource[] = [
 ];
 
 /**
- * Domini ufficiali live Core: ammissione solo per uguaglianza o sottodominio.
- * Non è un elenco di comuni inventati: è il catalogo `official_domain` abilitato.
+ * Etichetta di rendiconto per schede che Core attesta `official_source` su un
+ * host non ancora presente nel catalogo locale. Non è una fonte inventata:
+ * l'ammissione resta vincolata al flag Core e a un URL ufficiale valido.
+ */
+export const CORE_ATTESTED_SOURCE: CoreSource = {
+  id: "core",
+  label: "Catalogo ufficiale Core",
+  homepage: "",
+  hosts: [],
+  level: "NAZIONALE",
+};
+
+/**
+ * Domini ufficiali noti in PWA: ammissione per uguaglianza o sottodominio
+ * quando Core non ha ancora attestato `official_source`. Non è un elenco di
+ * comuni inventati: è il catalogo `official_domain` verificato.
  */
 export const CORE_OFFICIAL_DOMAINS: readonly string[] = Array.from(
   new Set(CORE_SOURCES.flatMap((source) => source.hosts)),
@@ -331,6 +400,20 @@ export function sourceForUrl(url: string | undefined | null): CoreSource | null 
   );
 }
 
+/**
+ * Fonte per l'ammissione: prima il catalogo locale, poi l'attestazione Core.
+ * `official_source` da Core su un URL http(s) valido evita SOURCE_NOT_CORE
+ * per host già abilitati su `trovabandi_sources` ma non ancora in PWA.
+ */
+export function sourceForBando(bando: Pick<Bando, "official_url" | "notice_url" | "official_source">): CoreSource | null {
+  const officialUrl = bando.official_url ?? bando.notice_url;
+  const listed = sourceForUrl(officialUrl);
+  if (listed) return listed;
+  if (bando.official_source !== true) return null;
+  if (!officialUrl || !hostOf(officialUrl)) return null;
+  return CORE_ATTESTED_SOURCE;
+}
+
 function hasEconomicData(bando: Bando): boolean {
   const amount = bando.importo_max;
   const intensity = bando.aid_intensity_percent;
@@ -352,9 +435,10 @@ export type Admission =
 
 /**
  * Ammissione: nessun dato viene dedotto o inventato.
- * Obbligatori titolo, ente, URL ufficiale su fonte core, livello ammesso e
- * scadenza non passata. Scadenza/apertura o dato economico assenti non
- * scartano la scheda: vengono segnalati come buchi dichiarati.
+ * Obbligatori titolo, ente, URL ufficiale su fonte core (catalogo locale o
+ * `official_source` attestato da Core), livello ammesso e scadenza non passata.
+ * Scadenza/apertura o dato economico assenti non scartano la scheda: vengono
+ * segnalati come buchi dichiarati.
  */
 export function admitBando(bando: Bando, now: number = Date.now()): Admission {
   if (!bando.titolo?.trim()) return { ok: false, reason: "NO_TITLE" };
@@ -362,7 +446,7 @@ export function admitBando(bando: Bando, now: number = Date.now()): Admission {
 
   const officialUrl = bando.official_url ?? bando.notice_url;
   if (!officialUrl) return { ok: false, reason: "NO_OFFICIAL_URL" };
-  const source = sourceForUrl(officialUrl);
+  const source = sourceForBando(bando);
   if (!source) return { ok: false, reason: "SOURCE_NOT_CORE" };
 
   if (!ADMITTED_LEVELS.includes(bando.scope)) return { ok: false, reason: "LEVEL_NOT_ADMITTED" };
@@ -450,8 +534,12 @@ export function admitFeed(bandi: Bando[], now: number = Date.now()): AdmissionRe
     missing_deadline_count,
     missing_economics_count,
     rejected_by_reason,
-    active_sources: CORE_SOURCES.filter((source) => (counts.get(source.id) ?? 0) > 0).map(
-      (source) => ({ id: source.id, label: source.label, count: counts.get(source.id) ?? 0 }),
-    ),
+    active_sources: [...CORE_SOURCES, CORE_ATTESTED_SOURCE]
+      .filter((source) => (counts.get(source.id) ?? 0) > 0)
+      .map((source) => ({
+        id: source.id,
+        label: source.label,
+        count: counts.get(source.id) ?? 0,
+      })),
   };
 }

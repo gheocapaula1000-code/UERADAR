@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  CORE_ATTESTED_SOURCE,
   CORE_OFFICIAL_DOMAINS,
   CORE_SOURCES,
   admitBando,
   admitFeed,
   feedTier,
+  sourceForBando,
   sourceForUrl,
   splitFeedTiers,
 } from "../feed-admission";
@@ -92,6 +94,58 @@ const LIVE_CORE_OFFICIAL_DOMAINS = [
   "rivlig.camcom.gov.it",
   "tb.camcom.gov.it",
   "camcom.bz.it",
+  "ag.camcom.it",
+  "ba.camcom.it",
+  "basilicata.camcom.it",
+  "brta.camcom.it",
+  "caor.camcom.it",
+  "cameracommercio.cl.it",
+  "ce.camcom.it",
+  "czkrvv.camcom.it",
+  "chpe.camcom.it",
+  "cs.camcom.gov.it",
+  "fg.camcom.it",
+  "frlt.camcom.it",
+  "cameragransasso.camcom.it",
+  "irpiniasannio.camcom.it",
+  "le.camcom.it",
+  "marche.camcom.it",
+  "me.camcom.it",
+  "molise.camcom.gov.it",
+  "na.camcom.gov.it",
+  "nu.camcom.it",
+  "paen.camcom.gov.it",
+  "rc.camcom.gov.it",
+  "rivt.camcom.it",
+  "rm.camcom.it",
+  "sa.camcom.it",
+  "ss.camcom.it",
+  "ctrgsr.camcom.gov.it",
+  "tp.camcom.it",
+  "umbria.camcom.it",
+  "bur.regione.marche.it",
+  "bur.regione.umbria.it",
+  "bura.regione.abruzzo.it",
+  "burc.regione.campania.it",
+  "burp.regione.puglia.it",
+  "buras.regione.sardegna.it",
+  "provincia.perugia.it",
+  "provincia.benevento.it",
+  "provincia.fermo.it",
+  "casadivetro.provincia.pu.it",
+  "cittametropolitanacagliari.it",
+  "provincia.vicenza.it",
+  "galcasacastra.it",
+  "galcilento.it",
+  "sentieridelbuonvivere.it",
+  "galpartenio.it",
+  "galterraevita.eu",
+  "galvesuvioverde.it",
+  "inail.it",
+  "ice.it",
+  "fondimpresa.it",
+  "simest.it",
+  "gse.it",
   "unioncamere.gov.it",
   "unioncamereveneto.it",
   "agenziaentrate.gov.it",
@@ -211,6 +265,30 @@ describe("registro fonti core", () => {
     expect(sourceForUrl("https://comune.milano.it/albo")).toBeNull();
     expect(sourceForUrl("https://comune.firenze.it/albo")).toBeNull();
     expect(sourceForUrl("https://random-bandi.example.com/x")).toBeNull();
+  });
+
+  it("ammette i nuovi official_domain Core (camere, BUR, province, GAL, nazionali)", () => {
+    expect(sourceForUrl("https://www.cs.camcom.gov.it/bando")?.id).toBe("cciaa");
+    expect(sourceForUrl("https://www.cameracommercio.cl.it/bando")?.id).toBe("cciaa");
+    expect(sourceForUrl("https://www.na.camcom.gov.it/bando")?.id).toBe("cciaa");
+    expect(sourceForUrl("https://bur.regione.marche.it/bando")?.id).toBe("bur");
+    expect(sourceForUrl("https://bura.regione.abruzzo.it/bando")?.id).toBe("bur");
+    expect(sourceForUrl("https://www.provincia.perugia.it/bando")?.id).toBe("provincia");
+    expect(sourceForUrl("https://www.cittametropolitanacagliari.it/bando")?.id).toBe("provincia");
+    expect(sourceForUrl("https://www.galcilento.it/bando")?.id).toBe("gal");
+    expect(sourceForUrl("https://www.inail.it/bando")?.id).toBe("nazionale");
+    expect(sourceForUrl("https://www.gse.it/bando")?.id).toBe("nazionale");
+  });
+
+  it("Core official_source attesta un host non ancora nel catalogo locale", () => {
+    const futureOfficial = {
+      official_url: "https://nuova-fonte.core-catalog.test/bando",
+      official_source: true,
+    };
+    expect(sourceForUrl(futureOfficial.official_url)).toBeNull();
+    expect(sourceForBando(futureOfficial)?.id).toBe("core");
+    expect(sourceForBando({ official_url: futureOfficial.official_url })).toBeNull();
+    expect(CORE_ATTESTED_SOURCE.hosts).toEqual([]);
   });
 });
 
@@ -340,6 +418,81 @@ describe("ammissione fail-closed", () => {
     ).toMatchObject({ ok: false, reason: "SOURCE_NOT_CORE" });
   });
 
+  it("ammette Camera, BUR, provincia, GAL e nazionali del catalogo 186", () => {
+    expect(
+      admitBando(
+        bando({
+          scope: "CAMERALE",
+          ente: "Camera di Commercio di Cosenza",
+          official_url: "https://www.cs.camcom.gov.it/bandi/1",
+        }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true, source: { id: "cciaa" } });
+    expect(
+      admitBando(
+        bando({
+          scope: "REGIONALE",
+          ente: "Regione Marche",
+          official_url: "https://bur.regione.marche.it/bur/dettaglio/1",
+        }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true, source: { id: "bur" } });
+    expect(
+      admitBando(
+        bando({
+          scope: "REGIONALE",
+          ente: "Provincia di Perugia",
+          official_url: "https://www.provincia.perugia.it/bando",
+        }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true, source: { id: "provincia" } });
+    expect(
+      admitBando(
+        bando({
+          scope: "COMUNALE",
+          ente: "GAL Cilento",
+          official_url: "https://www.galcilento.it/bando",
+        }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true, source: { id: "gal" } });
+    expect(
+      admitBando(
+        bando({
+          scope: "NAZIONALE",
+          ente: "INAIL",
+          official_url: "https://www.inail.it/bandi/1",
+        }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true, source: { id: "nazionale" } });
+  });
+
+  it("ammette official_source Core anche se l'host non è nel catalogo locale", () => {
+    expect(
+      admitBando(
+        bando({
+          official_url: "https://nuova-fonte.core-catalog.test/bando",
+          notice_url: undefined,
+          official_source: true,
+        }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: true, source: { id: "core" } });
+    expect(
+      admitBando(
+        bando({
+          official_url: "https://nuova-fonte.core-catalog.test/bando",
+          notice_url: undefined,
+        }),
+        NOW,
+      ),
+    ).toMatchObject({ ok: false, reason: "SOURCE_NOT_CORE" });
+  });
+
   it("scarta fonti fuori registro", () => {
     expect(admitBando(bando({ official_url: "https://example.com/x", notice_url: undefined }), NOW)).toMatchObject({
       ok: false,
@@ -384,6 +537,23 @@ describe("rendiconto feed", () => {
     expect(report.rejected_count).toBe(2);
     expect(report.rejected_by_reason).toMatchObject({ DEADLINE_PAST: 1, SOURCE_NOT_CORE: 1 });
     expect(report.active_sources.map((s) => s.id)).toEqual(["veneto", "mimit"]);
+  });
+
+  it("conteggia le schede attestate da Core tra le fonti attive", () => {
+    const report = admitFeed(
+      [
+        bando({ id: "1" }),
+        bando({
+          id: "2",
+          official_url: "https://nuova-fonte.core-catalog.test/bando",
+          notice_url: undefined,
+          official_source: true,
+        }),
+      ],
+      NOW,
+    );
+    expect(report.admitted_count).toBe(2);
+    expect(report.active_sources.map((s) => s.id)).toEqual(["veneto", "core"]);
   });
 });
 
