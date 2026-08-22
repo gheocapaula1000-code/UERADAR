@@ -89,6 +89,18 @@ describe("dashboard e card: chip e titoli non allargano la pagina", () => {
     expect(CSS).toContain("@utility wrap-anywhere");
   });
 
+  it("le 4 card hero restano clip/wrap a 390px (2 col su sm, 4 su lg)", () => {
+    expect(DASHBOARD).toContain("grid gap-3 sm:grid-cols-2 lg:grid-cols-4");
+    expect(DASHBOARD).toMatch(
+      /lg:grid-cols-4[\s\S]*min-w-0 overflow-x-clip rounded-xl border border-border bg-card p-4[\s\S]*wrap-anywhere text-sm[\s\S]*wrap-anywhere text-3xl/,
+    );
+    expect(DASHBOARD).toContain("Bandi attivi per te");
+    expect(DASHBOARD).toContain("In scadenza a breve");
+    expect(DASHBOARD).toContain("Fonti locali / poco diffuse");
+    expect(DASHBOARD).toContain("Con modulistica / presentazione");
+    expect(DASHBOARD).not.toContain("sm:grid-cols-3");
+  });
+
   it("card-enter non traduce in orizzontale e l'hover non alza la card al tocco", () => {
     expect(CSS).toMatch(/@keyframes card-enter[\s\S]*translate3d\(0, 8px, 0\)/);
     expect(CSS).toContain("@media (hover: hover) and (pointer: fine)");

@@ -852,7 +852,20 @@ function BandoDetail() {
                 </button>
               ) : null}
             </div>
-            ) : null}
+            ) : (
+              <div className="mt-8 rounded-xl border border-dashed border-border bg-card p-4">
+                <div className="flex items-start gap-3">
+                  <FileText className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">Modulistica ufficiale</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Questo bando non ha un URL di modulistica o presentazione distinto dalla scheda ente.
+                      Non inventiamo il modulo. Apri la fonte ufficiale e scarica i documenti lì.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* SIDEBAR — Canale di invio */}

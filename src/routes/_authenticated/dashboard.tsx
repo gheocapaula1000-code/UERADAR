@@ -542,28 +542,32 @@ function Dashboard() {
           )}
         </section>
 
-        {/* STATS: tre numeri chiari, il dettaglio è a richiesta */}
-        <div className="grid gap-3 sm:grid-cols-3">
+        {/* STATS: quattro numeri in-feed; importo e sotto-conteggi restano a richiesta */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
-              l: "Bandi Attivi per te",
+              l: "Bandi attivi per te",
               v: query.isLoading ? "—" : stats.totale,
               c: "text-primary",
-              d: "Opportunità aperte compatibili con il profilo della tua impresa.",
+              d: "Bandi in feed per questo profilo (sede e settore). Non è un conteggio di match COMPATIBILE.",
             },
             {
-              l: "In Scadenza a Breve",
+              l: "In scadenza a breve",
               v: query.isLoading ? "—" : stats.flash,
               c: "text-warning",
-              d: "Bandi con scadenza vicina o a sportello: conviene guardarli per primi.",
+              d: "Scadenza vicina o a sportello, da guardare per primi.",
             },
             {
-              l: "Importo Massimo Ottenibile",
-              v: query.isLoading
-                ? "—"
-                : `${new Intl.NumberFormat("it-IT", { notation: "compact" }).format(stats.importo)} €`,
+              l: "Fonti locali / poco diffuse",
+              v: query.isLoading ? "—" : stats.hidden,
               c: "text-accent",
-              d: "Somma dei tetti massimi dei bandi attivi. Non è un importo garantito.",
+              d: "Fonti minori o poco diffuse. Non è un metrico di vendita.",
+            },
+            {
+              l: "Con modulistica / presentazione",
+              v: query.isLoading ? "—" : stats.withModulistica,
+              c: "text-primary",
+              d: "Solo URL di modulistica o presentazione etichettati dal Core. Mai official_url.",
             },
           ].map((s) => (
             <div key={s.l} className="min-w-0 overflow-x-clip rounded-xl border border-border bg-card p-4">
@@ -578,17 +582,18 @@ function Dashboard() {
           <summary className="cursor-pointer text-sm font-medium">Altri dettagli</summary>
           <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3">
             {[
-              { l: "Fonti locali o poco diffuse", v: query.isLoading ? "—" : stats.hidden, c: "text-accent" },
+              {
+                l: "Importo Massimo",
+                v: query.isLoading
+                  ? "—"
+                  : `${new Intl.NumberFormat("it-IT", { notation: "compact" }).format(stats.importo)} €`,
+                c: "text-accent",
+              },
               { l: "UE + PNRR", v: query.isLoading ? "—" : stats.euPnrr, c: "text-info" },
               {
                 l: "Imprenditoria Femminile",
                 v: query.isLoading ? "—" : stats.femm,
                 c: "text-femminile",
-              },
-              {
-                l: "Modulistica disponibile",
-                v: query.isLoading ? "—" : stats.withModulistica,
-                c: "text-primary",
               },
             ].map((s) => (
               <div key={s.l} className="rounded-lg border border-border p-3">
