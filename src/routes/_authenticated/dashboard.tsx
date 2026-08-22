@@ -567,7 +567,7 @@ function Dashboard() {
               l: "Con modulistica / presentazione",
               v: query.isLoading ? "—" : stats.withModulistica,
               c: "text-primary",
-              d: "Solo URL di modulistica o presentazione etichettati dal Core. Mai official_url.",
+              d: "Solo URL di modulistica o presentazione etichettati. Mai official_url.",
             },
           ].map((s) => (
             <div key={s.l} className="min-w-0 overflow-x-clip rounded-xl border border-border bg-card p-4">
