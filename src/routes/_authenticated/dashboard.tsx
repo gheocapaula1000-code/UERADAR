@@ -215,7 +215,6 @@ function Dashboard() {
   }, [query.error, navigate]);
 
   const bandi = useMemo(() => query.data?.bandi ?? [], [query.data?.bandi]);
-  const bandiAttivi = useMemo(() => bandi.filter((b) => isActive(b)), [bandi]);
   const isOffline = query.data?.source === "cache";
 
   // Filtro sede: nasconde solo i bandi di territori diversi da quello del profilo.
@@ -330,13 +329,21 @@ function Dashboard() {
     return order.map((k) => best.get(k)!);
   };
 
-  // Conteggi e flash solo sui bandi pertinenti al profilo già in feed.
-  const bandiPerProfilo = useMemo(
+  // Lista già in feed e pertinente al profilo. Nessun is_hidden inventato.
+  const matchedFeed = useMemo(
     () =>
-      bandiAttivi.filter(
-        (b) => b.match?.status !== "NON_COMPATIBILE" && sedeOk(b) && settoreOk(b),
-      ),
-    [bandiAttivi, sedeOk, settoreOk],
+      bandi.filter((b) => {
+        if (b.match?.status === "NON_COMPATIBILE") return false;
+        if (!sedeOk(b)) return false;
+        if (!settoreOk(b)) return false;
+        return true;
+      }),
+    [bandi, sedeOk, settoreOk],
+  );
+
+  const bandiPerProfilo = useMemo(
+    () => matchedFeed.filter((b) => isActive(b)),
+    [matchedFeed],
   );
 
   const stats = useMemo(() => computeRadarStats(bandiPerProfilo), [bandiPerProfilo]);
@@ -350,10 +357,7 @@ function Dashboard() {
   );
 
   const filtered = useMemo(() => {
-    const base = bandi.filter((b) => {
-      if (b.match?.status === "NON_COMPATIBILE") return false;
-      if (!sedeOk(b)) return false;
-      if (!settoreOk(b)) return false;
+    const base = matchedFeed.filter((b) => {
       if (cat !== "TUTTI" && b.categoria !== cat) return false;
       if (scope !== "ALL" && b.scope !== scope) return false;
       if (hiddenOnly && !isRareOrHidden(b)) return false;
@@ -366,7 +370,7 @@ function Dashboard() {
       return true;
     });
     return unaSchedaPerMisura(base).sort((a, b) => compareByQuality(a, b));
-  }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile, sedeOk, settoreOk]);
+  }, [matchedFeed, cat, scope, hyperlocalOnly, hiddenOnly, profile]);
 
   const activeFilters =
     (cat !== "TUTTI" ? 1 : 0) +
@@ -708,7 +712,8 @@ function Dashboard() {
               </div>
               <p className="text-xs text-muted-foreground">
                 «Solo la mia zona» mostra i bandi del tuo Comune o della tua Provincia. «Solo fonti
-                poco conosciute» mostra i bandi pubblicati da enti minori, spesso con meno domande.
+                poco conosciute» restringe l'elenco alle schede già marcate come locali o poco
+                diffuse. A interruttore spento restano visibili tutti i bandi del profilo.
               </p>
 
               <div className="flex min-w-0 max-w-full flex-wrap gap-2">

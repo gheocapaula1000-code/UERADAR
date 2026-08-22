@@ -64,7 +64,8 @@ describe("Radar Bandi usa i helper come unica fonte", () => {
     expect(dashboard).toContain("isActive");
     expect(dashboard).toContain("isFlash");
     expect(dashboard).toContain('from "@/lib/radar-stats"');
-    expect(dashboard).toContain("computeRadarStats(bandiPerProfilo)");
+    expect(dashboard).toContain("const stats = useMemo(() => computeRadarStats(bandiPerProfilo), [bandiPerProfilo]);");
+    expect(dashboard).toContain("if (hiddenOnly && !isRareOrHidden(b)) return false;");
   });
 
   it("non ricalcola i contatori in linea e non usa il catalogo Core come totale", () => {
