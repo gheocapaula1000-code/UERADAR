@@ -852,7 +852,18 @@ function BandoDetail() {
                 </button>
               ) : null}
             </div>
-            ) : null}
+            ) : (
+              <div className="mt-8 rounded-xl border border-border bg-muted/30 p-5">
+                <div className="mb-2 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="font-semibold">Modulistica ufficiale</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Questo bando non pubblica ancora un link di modulistica o presentazione ufficiale distinto dalla scheda.
+                  Resta disponibile il dossier candidatura. Verifica sempre sulla fonte ufficiale.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* SIDEBAR — Canale di invio */}
