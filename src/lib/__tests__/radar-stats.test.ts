@@ -74,6 +74,9 @@ describe("Radar Bandi usa i helper come unica fonte", () => {
     expect(dashboard).not.toMatch(/\b477\b/);
     expect(dashboard).not.toMatch(/bandi nascosti/i);
     expect(dashboard).not.toMatch(/più potente/i);
+    expect(dashboard).toContain('l: "Bandi attivi per te"');
+    expect(dashboard).toContain("Opportunità in feed per questo profilo.");
+    expect(dashboard).not.toMatch(/stats\.totale[\s\S]{0,200}compatibil/i);
   });
 
   it("le card scadute e flash usano i helper, non i flag grezzi", () => {

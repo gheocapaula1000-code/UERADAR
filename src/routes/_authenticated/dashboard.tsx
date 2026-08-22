@@ -546,29 +546,12 @@ function Dashboard() {
           )}
         </section>
 
-        {/* STATS: tre numeri chiari, il dettaglio è a richiesta */}
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            {
-              l: "Bandi Attivi per te",
-              v: query.isLoading ? "—" : stats.totale,
-              c: "text-primary",
-              d: "Opportunità aperte compatibili con il profilo della tua impresa.",
-            },
-            {
-              l: "In Scadenza a Breve",
-              v: query.isLoading ? "—" : stats.flash,
-              c: "text-warning",
-              d: "Bandi con scadenza vicina o a sportello: conviene guardarli per primi.",
-            },
-            {
-              l: "Importo Massimo Ottenibile",
-              v: query.isLoading
-                ? "—"
-                : `${new Intl.NumberFormat("it-IT", { notation: "compact" }).format(stats.importo)} €`,
-              c: "text-accent",
-              d: "Somma dei tetti massimi dei bandi attivi. Non è un importo garantito.",
-            },
+            { l: "Bandi attivi per te", v: query.isLoading ? "—" : stats.totale, c: "text-primary", d: "Opportunità in feed per questo profilo." },
+            { l: "In scadenza a breve", v: query.isLoading ? "—" : stats.flash, c: "text-warning", d: "Scadenze vicine o a sportello." },
+            { l: "Fonti locali / poco diffuse", v: query.isLoading ? "—" : stats.hidden, c: "text-accent", d: "Comuni, camere, GAL o rarity ≥ 4." },
+            { l: "Con modulistica / presentazione", v: query.isLoading ? "—" : stats.withModulistica, c: "text-info", d: "Hanno link reale di moduli o domanda. Il resto è solo dossier." },
           ].map((s) => (
             <div key={s.l} className="min-w-0 overflow-x-clip rounded-xl border border-border bg-card p-4">
               <div className="wrap-anywhere text-sm text-muted-foreground">{s.l}</div>
@@ -577,31 +560,6 @@ function Dashboard() {
             </div>
           ))}
         </div>
-
-        <details className="rounded-xl border border-border bg-card px-4 py-3">
-          <summary className="cursor-pointer text-sm font-medium">Altri dettagli</summary>
-          <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3">
-            {[
-              { l: "Fonti locali o poco diffuse", v: query.isLoading ? "—" : stats.hidden, c: "text-accent" },
-              { l: "UE + PNRR", v: query.isLoading ? "—" : stats.euPnrr, c: "text-info" },
-              {
-                l: "Imprenditoria Femminile",
-                v: query.isLoading ? "—" : stats.femm,
-                c: "text-femminile",
-              },
-              {
-                l: "Modulistica disponibile",
-                v: query.isLoading ? "—" : stats.withModulistica,
-                c: "text-primary",
-              },
-            ].map((s) => (
-              <div key={s.l} className="rounded-lg border border-border p-3">
-                <div className="text-xs text-muted-foreground">{s.l}</div>
-                <div className={`mt-1 text-xl font-bold ${s.c}`}>{s.v}</div>
-              </div>
-            ))}
-          </div>
-        </details>
 
         {/* FLASH */}
         <section>

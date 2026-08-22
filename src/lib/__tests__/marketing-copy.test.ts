@@ -102,7 +102,7 @@ describe("copy pubblico e autenticato", () => {
     const flat = src.replace(/\s+/g, " ");
     const guarded = flat.match(/v: query\.isLoading \? "—"/g) ?? [];
     const allStats = flat.match(/v: query\.isLoading/g) ?? [];
-    expect(allStats.length).toBeGreaterThanOrEqual(6);
+    expect(allStats.length).toBeGreaterThanOrEqual(4);
     expect(guarded.length).toBe(allStats.length);
     // nessun valore numerico d'esempio hard-coded nelle card statistiche
     expect(src).not.toMatch(/v:\s*\d+\s*,/);
