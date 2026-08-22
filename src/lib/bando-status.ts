@@ -168,6 +168,16 @@ export function hasIncompleteCoreData(bando: Bando): boolean {
 }
 
 /**
+ * Fonte sommersa o poco diffusa: is_hidden da Core oppure rarity_score >= 4.
+ * Usato solo per ordinamento e contatori UI, non inventa schede.
+ */
+export function isRareOrHidden(bando: Pick<Bando, "is_hidden" | "rarity_score">): boolean {
+  if (bando.is_hidden === true) return true;
+  const rarity = bando.rarity_score;
+  return typeof rarity === "number" && Number.isFinite(rarity) && rarity >= 4;
+}
+
+/**
  * Ordinamento UI: verificati in alto, poi scadenza futura, poi dato economico.
  * Nessun bando viene nascosto: al massimo deprioritizzato.
  */
@@ -180,10 +190,14 @@ export function qualityRank(bando: Bando, now: number = Date.now()): number {
   return 4;
 }
 
-/** Comparatore stabile per il feed (rank, poi scadenza più vicina). */
+/** Comparatore stabile per il feed (rank, poi nascosti/rari, poi scadenza più vicina). */
 export function compareByQuality(a: Bando, b: Bando, now: number = Date.now()): number {
   const rank = qualityRank(a, now) - qualityRank(b, now);
   if (rank !== 0) return rank;
+  // A parità di qualità dati: fonti locali / poco diffuse prima
+  const rareA = isRareOrHidden(a) ? 0 : 1;
+  const rareB = isRareOrHidden(b) ? 0 : 1;
+  if (rareA !== rareB) return rareA - rareB;
   const ta = deadlineTime(a) ?? Number.POSITIVE_INFINITY;
   const tb = deadlineTime(b) ?? Number.POSITIVE_INFINITY;
   return ta - tb;
