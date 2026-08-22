@@ -14,7 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Bando, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
 import { CATEGORY_FILTERS, type CategoryFilterKey } from "@/lib/bando-categories";
 import { feedMarker, runBoundedRefresh } from "@/lib/feed-refresh";
-import { isActive, isExpired, isFlash, compareByQuality } from "@/lib/bando-status";
+import { isActive, isFlash, compareByQuality, isRareOrHidden } from "@/lib/bando-status";
+import { computeRadarStats } from "@/lib/radar-stats";
 import { splitFeedTiers } from "@/lib/feed-admission";
 import { loadOfflineFeed, saveOfflineFeed } from "@/lib/offline-feed";
 import {
@@ -329,49 +330,7 @@ function Dashboard() {
     return order.map((k) => best.get(k)!);
   };
 
-  const flashBandi = useMemo(() => {
-    const isLocalMicro = (b: Bando) =>
-      (b.scope === "COMUNALE" || b.scope === "CAMERALE") &&
-      (b.comune === profile?.comune ||
-        b.provincia === profile?.provincia ||
-        (profile?.codice_istat != null && b.codice_istat === profile.codice_istat));
-    const soonestFirst = (a: Bando, bb: Bando) =>
-      (a.scadenza ? new Date(a.scadenza).getTime() : Infinity) -
-      (bb.scadenza ? new Date(bb.scadenza).getTime() : Infinity);
-    const usable = unaSchedaPerMisura(
-      bandiAttivi.filter(
-        (b) => b.match?.status !== "NON_COMPATIBILE" && sedeOk(b) && settoreOk(b),
-      ),
-    );
-    const local = usable.filter(isLocalMicro).sort(soonestFirst);
-    const rest = usable
-      .filter((b) => !isLocalMicro(b))
-      .filter((b) => isFlash(b))
-      .sort(soonestFirst);
-    return [...local, ...rest].slice(0, 6);
-  }, [bandiAttivi, profile, sedeOk, settoreOk]);
-
-  const filtered = useMemo(() => {
-    const base = bandi
-      .filter((b) => {
-        if (b.match?.status === "NON_COMPATIBILE") return false;
-        if (!sedeOk(b)) return false;
-        if (!settoreOk(b)) return false;
-        if (cat !== "TUTTI" && b.categoria !== cat) return false;
-      if (scope !== "ALL" && b.scope !== scope) return false;
-      if (hiddenOnly && !b.is_hidden) return false;
-      if (hyperlocalOnly) {
-        const matchIstat = profile?.codice_istat != null && b.codice_istat === profile.codice_istat;
-        const matchComune = profile?.comune && b.comune === profile.comune;
-        const matchProvincia = profile?.provincia && b.provincia === profile.provincia;
-        if (!matchIstat && !matchComune && !matchProvincia) return false;
-      }
-        return true;
-      });
-    return unaSchedaPerMisura(base).sort((a, b) => compareByQuality(a, b));
-  }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile, sedeOk, settoreOk]);
-
-  // Conteggi solo sui bandi pertinenti al profilo in sessione.
+  // Conteggi e flash solo sui bandi pertinenti al profilo già in feed.
   const bandiPerProfilo = useMemo(
     () =>
       bandiAttivi.filter(
@@ -380,17 +339,34 @@ function Dashboard() {
     [bandiAttivi, sedeOk, settoreOk],
   );
 
-  const stats = useMemo(() => {
-    const s = { totale: bandiPerProfilo.length, femm: 0, flash: 0, hidden: 0, euPnrr: 0, importo: 0 };
-    for (const b of bandiPerProfilo) {
-      if (b.categoria === "IMPRENDITORIA_FEMMINILE") s.femm++;
-      if (isFlash(b)) s.flash++;
-      if (b.is_hidden) s.hidden++;
-      if (b.scope === "EUROPEO" || b.pnrr_mission) s.euPnrr++;
-      if (b.importo_max) s.importo += b.importo_max;
-    }
-    return s;
-  }, [bandiPerProfilo]);
+  const stats = useMemo(() => computeRadarStats(bandiPerProfilo), [bandiPerProfilo]);
+
+  const flashBandi = useMemo(
+    () =>
+      unaSchedaPerMisura(bandiPerProfilo.filter((b) => isFlash(b)))
+        .sort((a, b) => compareByQuality(a, b))
+        .slice(0, 6),
+    [bandiPerProfilo],
+  );
+
+  const filtered = useMemo(() => {
+    const base = bandi.filter((b) => {
+      if (b.match?.status === "NON_COMPATIBILE") return false;
+      if (!sedeOk(b)) return false;
+      if (!settoreOk(b)) return false;
+      if (cat !== "TUTTI" && b.categoria !== cat) return false;
+      if (scope !== "ALL" && b.scope !== scope) return false;
+      if (hiddenOnly && !isRareOrHidden(b)) return false;
+      if (hyperlocalOnly) {
+        const matchIstat = profile?.codice_istat != null && b.codice_istat === profile.codice_istat;
+        const matchComune = profile?.comune && b.comune === profile.comune;
+        const matchProvincia = profile?.provincia && b.provincia === profile.provincia;
+        if (!matchIstat && !matchComune && !matchProvincia) return false;
+      }
+      return true;
+    });
+    return unaSchedaPerMisura(base).sort((a, b) => compareByQuality(a, b));
+  }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile, sedeOk, settoreOk]);
 
   const activeFilters =
     (cat !== "TUTTI" ? 1 : 0) +
@@ -602,12 +578,17 @@ function Dashboard() {
           <summary className="cursor-pointer text-sm font-medium">Altri dettagli</summary>
           <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3">
             {[
-              { l: "Fonti locali", v: query.isLoading ? "—" : stats.hidden, c: "text-accent" },
+              { l: "Fonti locali o poco diffuse", v: query.isLoading ? "—" : stats.hidden, c: "text-accent" },
               { l: "UE + PNRR", v: query.isLoading ? "—" : stats.euPnrr, c: "text-info" },
               {
                 l: "Imprenditoria Femminile",
                 v: query.isLoading ? "—" : stats.femm,
                 c: "text-femminile",
+              },
+              {
+                l: "Modulistica disponibile",
+                v: query.isLoading ? "—" : stats.withModulistica,
+                c: "text-primary",
               },
             ].map((s) => (
               <div key={s.l} className="rounded-lg border border-border p-3">
