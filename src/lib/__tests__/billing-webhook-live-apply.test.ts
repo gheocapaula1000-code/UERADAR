@@ -66,9 +66,14 @@ describe("USER_NOT_FOUND fail-closed", () => {
       ok: false,
       code: "USER_NOT_FOUND",
     });
-    expect(webhookUserLookup({ metadataUserId: "", linkedUserId: null }).code).toBe("USER_NOT_FOUND");
-    expect(webhookUserLookup({ metadataUserId: 12, linkedUserId: null }).code).toBe("USER_NOT_FOUND");
-    expect(webhookUserLookup({ metadataUserId: null, linkedUserId: "" }).code).toBe("USER_NOT_FOUND");
+    for (const args of [
+      { metadataUserId: "", linkedUserId: null },
+      { metadataUserId: 12, linkedUserId: null },
+      { metadataUserId: null, linkedUserId: "" },
+    ]) {
+      expect(webhookUserLookup(args)).toEqual({ ok: false, code: "USER_NOT_FOUND" });
+    }
+
   });
 
   it("usa metadata supabase_user_id oppure il customer già legato", () => {
