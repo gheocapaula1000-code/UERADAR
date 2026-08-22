@@ -75,6 +75,21 @@ describe("Radar Bandi usa i helper come unica fonte", () => {
     expect(dashboard).not.toMatch(/più potente/i);
   });
 
+  it("Home mostra 4 numeri in-feed, non match COMPATIBILE", () => {
+    expect(dashboard).toContain("lg:grid-cols-4");
+    expect(dashboard).toContain("Bandi attivi per te");
+    expect(dashboard).toContain("In scadenza a breve");
+    expect(dashboard).toContain("Fonti locali / poco diffuse");
+    expect(dashboard).toContain("Con modulistica / presentazione");
+    expect(dashboard).toContain("Bandi in feed per questo profilo (sede e settore)");
+    expect(dashboard).not.toMatch(/compatibili con il profilo/);
+    expect(dashboard).not.toContain("Bandi Attivi per te");
+    expect(dashboard).not.toContain("Modulistica disponibile");
+    expect(dashboard).toContain("Importo Massimo");
+    expect(dashboard).toContain("UE + PNRR");
+    expect(dashboard).toContain("Imprenditoria Femminile");
+  });
+
   it("le card scadute e flash usano i helper, non i flag grezzi", () => {
     expect(card).toContain("isExpired");
     expect(card).toContain("isFlash");

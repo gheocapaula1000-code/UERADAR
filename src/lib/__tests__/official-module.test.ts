@@ -83,6 +83,11 @@ describe("modulistica ufficiale: assenza URL", () => {
     expect(classifyModulisticaHint(undefined)).toBe("missing");
     expect(resolveModulisticaFetchTarget(bando)).toEqual({ ok: false, kind: "missing" });
     expect(PAGE).toContain("officialModuleHref ?");
+    expect(PAGE).toContain("Questo bando non ha un URL di modulistica o presentazione distinto dalla scheda ente");
+    expect(PAGE).toContain("Non inventiamo il modulo");
+    expect(PAGE).toContain("realFormsUrl(bando)");
+    expect(PAGE).toContain("realApplicationUrl(bando)");
+    expect(PAGE).not.toMatch(/safeOfficialHref\(bando\.official_url/);
     expect(PAGE).not.toMatch(/safeOfficialHref\(bando\.official_url, "platform"\)/);
     expect(PAGE).not.toMatch(/pdf_field_mapping\?\.length \?\s*\n\s*<div className="mt-8 rounded-xl border border-primary/);
   });
