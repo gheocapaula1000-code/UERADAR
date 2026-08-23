@@ -19,6 +19,14 @@ import { computeRadarStats } from "@/lib/radar-stats";
 import { splitFeedTiers } from "@/lib/feed-admission";
 import { loadOfflineFeed, saveOfflineFeed } from "@/lib/offline-feed";
 import {
+  DEFAULT_HOME_VIEW,
+  browserHomeViewStorage,
+  readHomeView,
+  writeHomeView,
+  type HomeView,
+} from "@/lib/home-view";
+import { Switch } from "@/components/ui/switch";
+import {
   RefreshCw,
   Zap,
   WifiOff,
@@ -81,6 +89,14 @@ function Dashboard() {
   const [hiddenOnly, setHiddenOnly] = useState(false);
   const [profile, setProfile] = useState<CompanyProfile | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [homeView, setHomeView] = useState<HomeView>(
+    () => readHomeView(browserHomeViewStorage()) || DEFAULT_HOME_VIEW,
+  );
+
+  const persistHomeView = useCallback((next: HomeView) => {
+    setHomeView(next);
+    writeHomeView(next, browserHomeViewStorage());
+  }, []);
   // Esito dell'ultimo aggiornamento: resta visibile finché non viene chiuso.
   const [refreshNotice, setRefreshNotice] = useState<{
     tone: "ok" | "info" | "error";
@@ -131,16 +147,16 @@ function Dashboard() {
   }, [navigate]);
 
   const query = useQuery({
-    queryKey: ["bandi-feed"],
-    // Caricamento normale: rete prima, snapshot locale in fallback.
-    // Nessun refresh viene accodato e il payload del feed non viene modificato.
+    queryKey: ["bandi-feed", homeView],
+    // Catalogo: lettura immediata dal pass-through Core, senza attendere
+    // «Cerca nuovi Bandi». Il profilo resta sul feed abbinato.
     queryFn: async () => {
       try {
-        const feed = await fetchFeed({ data: { deep_search: true } });
-        saveOfflineFeed(feed);
+        const feed = await fetchFeed({ data: { deep_search: true, mode: homeView } });
+        saveOfflineFeed(feed, undefined, homeView);
         return feed;
       } catch (error) {
-        const cached = loadOfflineFeed();
+        const cached = loadOfflineFeed(undefined, Date.now(), homeView);
         if (cached) return cached;
         throw error;
       }
@@ -162,14 +178,14 @@ function Dashboard() {
     try {
       const result = await runBoundedRefresh({
         enqueue: () => enqueueRefresh(),
-        fetchFeed: () => fetchFeed({ data: { deep_search: true } }),
-        baselineMarker: feedMarker(queryClient.getQueryData(["bandi-feed"])),
+        fetchFeed: () => fetchFeed({ data: { deep_search: true, mode: homeView } }),
+        baselineMarker: feedMarker(queryClient.getQueryData(["bandi-feed", homeView])),
         signal: controller.signal,
       });
       if (controller.signal.aborted) return;
       if (result.status === "updated" && result.feed) {
-        queryClient.setQueryData(["bandi-feed"], result.feed);
-        saveOfflineFeed(result.feed);
+        queryClient.setQueryData(["bandi-feed", homeView], result.feed);
+        saveOfflineFeed(result.feed, undefined, homeView);
         toast.success("Risultati aggiornati");
         setRefreshNotice({
           tone: "ok",
@@ -190,7 +206,7 @@ function Dashboard() {
       refreshInFlight.current = false;
       if (!controller.signal.aborted) setIsRefreshing(false);
     }
-  }, [enqueueRefresh, fetchFeed, queryClient]);
+  }, [enqueueRefresh, fetchFeed, homeView, queryClient]);
 
   const notificationsQ = useQuery({
     queryKey: ["daily-notifications"],
@@ -330,7 +346,7 @@ function Dashboard() {
     return order.map((k) => best.get(k)!);
   };
 
-  // Conteggi e flash solo sui bandi pertinenti al profilo già in feed.
+  // Catalogo: tutti i Bandi ufficiali aperti. Profilo: sede/settore come oggi.
   const bandiPerProfilo = useMemo(
     () =>
       bandiAttivi.filter(
@@ -338,22 +354,25 @@ function Dashboard() {
       ),
     [bandiAttivi, sedeOk, settoreOk],
   );
+  const statsSource = homeView === "catalog" ? bandiAttivi : bandiPerProfilo;
 
-  const stats = useMemo(() => computeRadarStats(bandiPerProfilo), [bandiPerProfilo]);
+  const stats = useMemo(() => computeRadarStats(statsSource), [statsSource]);
 
   const flashBandi = useMemo(
     () =>
-      unaSchedaPerMisura(bandiPerProfilo.filter((b) => isFlash(b)))
+      unaSchedaPerMisura(statsSource.filter((b) => isFlash(b)))
         .sort((a, b) => compareByQuality(a, b))
         .slice(0, 6),
-    [bandiPerProfilo],
+    [statsSource],
   );
 
   const filtered = useMemo(() => {
     const base = bandi.filter((b) => {
-      if (b.match?.status === "NON_COMPATIBILE") return false;
-      if (!sedeOk(b)) return false;
-      if (!settoreOk(b)) return false;
+      if (homeView === "profile") {
+        if (b.match?.status === "NON_COMPATIBILE") return false;
+        if (!sedeOk(b)) return false;
+        if (!settoreOk(b)) return false;
+      }
       if (cat !== "TUTTI" && b.categoria !== cat) return false;
       if (scope !== "ALL" && b.scope !== scope) return false;
       if (hiddenOnly && !isRareOrHidden(b)) return false;
@@ -366,7 +385,7 @@ function Dashboard() {
       return true;
     });
     return unaSchedaPerMisura(base).sort((a, b) => compareByQuality(a, b));
-  }, [bandi, cat, scope, hyperlocalOnly, hiddenOnly, profile, sedeOk, settoreOk]);
+  }, [bandi, cat, homeView, scope, hyperlocalOnly, hiddenOnly, profile, sedeOk, settoreOk]);
 
   const activeFilters =
     (cat !== "TUTTI" ? 1 : 0) +
@@ -395,7 +414,9 @@ function Dashboard() {
               <Radar className="h-7 w-7 shrink-0 text-accent" /> Radar Bandi
             </h1>
             <p className="mt-1 min-w-0 wrap-anywhere text-sm text-muted-foreground">
-              I Bandi selezionati per la tua impresa.
+              {homeView === "catalog"
+                ? "Tutti i Bandi ufficiali aperti."
+                : "I Bandi selezionati per la tua impresa."}
               {query.data?.fetched_at
                 ? ` · Aggiornato il ${new Date(query.data.fetched_at).toLocaleString("it-IT")}`
                 : ""}
@@ -407,6 +428,23 @@ function Dashboard() {
                 <WifiOff className="h-3.5 w-3.5 shrink-0" /> Dati salvati
               </span>
             )}
+            <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+              <span
+                className={`text-sm ${homeView === "catalog" ? "font-semibold text-foreground" : "text-muted-foreground"}`}
+              >
+                Catalogo
+              </span>
+              <Switch
+                checked={homeView === "profile"}
+                onCheckedChange={(on) => persistHomeView(on ? "profile" : "catalog")}
+                aria-label="Per la mia impresa: mostra solo i Bandi abbinati al profilo"
+              />
+              <span
+                className={`text-sm ${homeView === "profile" ? "font-semibold text-foreground" : "text-muted-foreground"}`}
+              >
+                Per la mia impresa
+              </span>
+            </div>
             <button
               onClick={handleManualRefresh}
               disabled={query.isFetching || isRefreshing}
@@ -546,10 +584,13 @@ function Dashboard() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
-              l: "Bandi attivi per te",
+              l: homeView === "catalog" ? "Bandi ufficiali aperti" : "Bandi attivi per te",
               v: query.isLoading ? "—" : stats.totale,
               c: "text-primary",
-              d: "Bandi in feed per questo profilo (sede e settore). Non è un conteggio di match COMPATIBILE.",
+              d:
+                homeView === "catalog"
+                  ? "Bandi del catalogo ufficiale attualmente mostrati. Non è un conteggio di match."
+                  : "Bandi in feed per questo profilo (sede e settore). Non è un conteggio di match COMPATIBILE.",
             },
             {
               l: "In scadenza a breve",
@@ -829,8 +870,10 @@ function Dashboard() {
         </section>
 
         <p className="rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground">
-          {COVERAGE_HEADLINE} {MONITORING_COPY} I risultati arrivano da fonti ufficiali e
-          specialistiche e sono ordinati sul profilo della tua impresa.
+          {COVERAGE_HEADLINE} {MONITORING_COPY}{" "}
+          {homeView === "catalog"
+            ? "Qui vedi il catalogo ufficiale aperto. Passa a «Per la mia impresa» per l'elenco abbinato al profilo."
+            : "I risultati arrivano da fonti ufficiali e specialistiche e sono ordinati sul profilo della tua impresa."}
         </p>
       </div>
     </AppShell>

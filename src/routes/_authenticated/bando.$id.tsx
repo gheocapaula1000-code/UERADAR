@@ -115,11 +115,17 @@ function BandoDetail() {
   });
 
   const feedQ = useQuery({
-    queryKey: ["bandi-feed"],
+    queryKey: ["bandi-feed", "detail", id],
     queryFn: async () => {
       const cached = await loadFeed();
       if (cached?.bandi?.some((b) => b.id === id)) return cached;
-      return fetchLive({ data: {} });
+      try {
+        const catalog = await fetchLive({ data: { mode: "catalog" } });
+        if (catalog?.bandi?.some((b) => b.id === id)) return catalog;
+      } catch {
+        // Il dettaglio prova il catalogo, poi il feed profilo.
+      }
+      return fetchLive({ data: { mode: "profile" } });
     },
   });
 

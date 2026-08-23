@@ -64,7 +64,7 @@ describe("Radar Bandi usa i helper come unica fonte", () => {
     expect(dashboard).toContain("isActive");
     expect(dashboard).toContain("isFlash");
     expect(dashboard).toContain('from "@/lib/radar-stats"');
-    expect(dashboard).toContain("computeRadarStats(bandiPerProfilo)");
+    expect(dashboard).toContain("computeRadarStats(statsSource)");
   });
 
   it("non ricalcola i contatori in linea e non usa il catalogo Core come totale", () => {
@@ -78,12 +78,18 @@ describe("Radar Bandi usa i helper come unica fonte", () => {
   it("Home mostra 4 numeri in-feed, non match COMPATIBILE", () => {
     expect(dashboard).toContain("lg:grid-cols-4");
     expect(dashboard).toContain("Bandi attivi per te");
+    expect(dashboard).toContain("Bandi ufficiali aperti");
     expect(dashboard).toContain("In scadenza a breve");
     expect(dashboard).toContain("Fonti locali / poco diffuse");
     expect(dashboard).toContain("Con modulistica / presentazione");
     expect(dashboard).toContain("Bandi in feed per questo profilo (sede e settore)");
+    expect(dashboard).toContain("Bandi del catalogo ufficiale attualmente mostrati");
     expect(dashboard).not.toMatch(/compatibili con il profilo/);
     expect(dashboard).not.toContain("Bandi Attivi per te");
+    expect(dashboard).toContain("Catalogo");
+    expect(dashboard).toContain("Per la mia impresa");
+    expect(dashboard).toContain('homeView === "catalog"');
+    expect(dashboard).not.toMatch(/l:\s*["']COMPATIBILE["']/);
     expect(dashboard).not.toContain("Modulistica disponibile");
     expect(dashboard).toContain("Importo Massimo");
     expect(dashboard).toContain("UE + PNRR");

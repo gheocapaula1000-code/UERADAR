@@ -2,7 +2,7 @@ import type { Bando } from "./bandocore-types";
 import { isFlash, isRareOrHidden } from "./bando-status";
 import { countRealApplyLinks } from "./official-module";
 
-/** Conteggi UI sul sottoinsieme di bandi pertinenti al profilo. */
+/** Conteggi UI sulla lista attualmente mostrata (catalogo o profilo). */
 export function computeRadarStats(bandiPerProfilo: Bando[]) {
   const s = {
     totale: bandiPerProfilo.length,

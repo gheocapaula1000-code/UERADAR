@@ -74,8 +74,12 @@ describe("profilo minimizzato trovabandi-feed", () => {
     const src = readFileSync("supabase/functions/trovabandi-feed/index.ts", "utf8");
     expect(src).toContain('from "../_shared/trovabandi-contract.ts"');
     expect(src).toContain("const minimizedProfile = matchingProfile");
-    expect(src).toContain('{ profile: minimizedProfile, limit: 250 }');
-    expect(src).not.toContain('{ profile, limit: 250 }');
+    expect(src).toContain("{ profile: minimizedProfile, limit: PROFILE_FEED_LIMIT }");
+    expect(src).not.toContain("{ profile, limit: 250 }");
+    expect(src).toContain('callCore("catalog"');
+    expect(src).toContain('mode: "catalog"');
+    expect(src).toContain("{ limit: CATALOG_LIMIT }");
+    expect(src).not.toContain("mode: \"catalog\", profile");
   });
 });
 
@@ -177,11 +181,20 @@ describe("gateway isolato", () => {
     expect(sources).not.toMatch(/process\.env/);
   });
 
-  it("l'endpoint accetta dal browser solo feed e request_refresh senza campi extra", () => {
+  it("l'endpoint accetta feed, catalog e request_refresh, con mode solo sul feed", () => {
     const src = readFileSync("supabase/functions/trovabandi-feed/index.ts", "utf8");
-    expect(src).toContain('const ALLOWED_ACTIONS = ["feed", "request_refresh"]');
-    expect(src).toContain('key !== "action"');
+    expect(src).toContain('from "../_shared/trovabandi-feed-request.ts"');
+    expect(src).toContain("isCatalogRequest");
+    expect(src).toContain("fetchOfficialCatalog");
     expect(src).toContain("UPSTREAM_UNAVAILABLE");
+  });
+
+  it("il client chiede catalogo con action catalog, feed profilo invariato", () => {
+    const src = readFileSync("src/lib/proxy-core.functions.ts", "utf8");
+    expect(src).toContain('{ action: "catalog" }');
+    expect(src).toContain('{ action: "feed" }');
+    expect(src).toContain('data.mode === "profile" ? "profile" : "catalog"');
+    expect(src).toContain("pickCachedView");
   });
 
   it("controlla gli errori cache e applica la stessa TTL a feed e dettagli", () => {
