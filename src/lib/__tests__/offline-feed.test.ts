@@ -24,6 +24,22 @@ describe("snapshot offline UEradar.com", () => {
     expect(loadOfflineFeed(storage)?.source).toBe("cache");
   });
 
+  it("isola catalogo e profilo su chiavi diverse", () => {
+    const storage = memory();
+    saveOfflineFeed(
+      { bandi: [{ id: "c" }] as FeedResponse["bandi"], fetched_at: "2026-08-01T00:00:00Z", source: "central-core" },
+      storage,
+      "catalog",
+    );
+    saveOfflineFeed(
+      { bandi: [{ id: "p" }] as FeedResponse["bandi"], fetched_at: "2026-08-01T00:00:00Z", source: "central-core" },
+      storage,
+      "profile",
+    );
+    expect(loadOfflineFeed(storage, Date.now(), "catalog")?.bandi.map((b) => b.id)).toEqual(["c"]);
+    expect(loadOfflineFeed(storage, Date.now(), "profile")?.bandi.map((b) => b.id)).toEqual(["p"]);
+  });
+
   it("scarta snapshot più vecchi di 30 giorni", () => {
     const storage = memory();
     saveOfflineFeed({ bandi: [], fetched_at: "2026-01-01T00:00:00Z", source: "cache" }, storage);

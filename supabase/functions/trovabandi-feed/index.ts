@@ -6,37 +6,30 @@ import {
   type ContractRow,
 } from "../_shared/trovabandi-contract.ts";
 import {
+  CATALOG_LIMIT,
+  PROFILE_FEED_LIMIT,
+  isCatalogRequest,
+  parseRequestBody,
+  type FeedGatewayAction,
+} from "../_shared/trovabandi-feed-request.ts";
+import {
   edgeEntitlement,
   laneFor,
   type EdgeEntitlement,
 } from "../_shared/ueradar-entitlement.ts";
 
+export { parseRequestBody };
+
 type Row = Record<string, unknown>;
+type Action = FeedGatewayAction;
 
 const headers = { "Content-Type": "application/json", "Cache-Control": "no-store" };
-const ALLOWED_ACTIONS = ["feed", "request_refresh"] as const;
-type Action = (typeof ALLOWED_ACTIONS)[number];
 
 function env(name: string) {
   return Deno.env.get(name)?.trim() ?? "";
 }
 function out(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers });
-}
-
-/** Allowlist stretta: solo { action }, nessun profilo o URL dal browser. */
-export function parseRequestBody(
-  payload: unknown,
-): { ok: true; action: Action } | { ok: false; code: string } {
-  if (payload === null || typeof payload !== "object" || Array.isArray(payload))
-    return { ok: false, code: "INVALID_BODY" };
-  const body = payload as Row;
-  if (Object.keys(body).some((key) => key !== "action"))
-    return { ok: false, code: "UNEXPECTED_FIELDS" };
-  const action = body.action;
-  if (typeof action !== "string" || !ALLOWED_ACTIONS.includes(action as Action))
-    return { ok: false, code: "INVALID_ACTION" };
-  return { ok: true, action: action as Action };
 }
 
 /** request_refresh accetta solo 202 + ok=true + queued=true. */
@@ -67,7 +60,7 @@ export function profileIsComplete(profile: Row | null): boolean {
   );
 }
 
-async function callCore(action: Action, payload: Row) {
+async function callCore(action: Action | "catalog" | "feed", payload: Row, timeoutMs = 15_000) {
   const base = env("CENTRAL_CORE_API_URL");
   const secret = env("CENTRAL_CORE_API_KEY");
   if (!base || !secret) return { status: 0, body: null };
@@ -82,7 +75,7 @@ async function callCore(action: Action, payload: Row) {
         "x-source-app": "trovabandi-feed",
       },
       body: JSON.stringify({ action, ...payload }),
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     let body: unknown = null;
     try {
@@ -208,7 +201,13 @@ serve(async (req) => {
     return out(202, { ok: true, queued: true });
   }
 
-  const res = await callCore("feed", { profile: minimizedProfile, limit: 250 });
+  // Catalogo ufficiale: pass-through minimo. Prima action=catalog, poi
+  // feed mode=catalog se Core non ha ancora il ramo dedicato. Nessun matching
+  // inventato qui: le schede restano come le invia Core.
+  const catalog = isCatalogRequest(parsed);
+  const res = catalog
+    ? await fetchOfficialCatalog()
+    : await callCore("feed", { profile: minimizedProfile, limit: PROFILE_FEED_LIMIT });
   const sanitized = sanitizeFeedResponse(res.body, res.status);
   if (!sanitized.ok)
     return out(502, { ok: false, code: "UPSTREAM_UNAVAILABLE", reason: sanitized.code });
@@ -219,5 +218,16 @@ serve(async (req) => {
     bandi: sanitized.bandi,
     fetched_at,
     generated_at: sanitized.generated_at ?? fetched_at,
+    view: catalog ? "catalog" : "profile",
   });
 });
+
+async function fetchOfficialCatalog() {
+  const primary = await callCore("catalog", { limit: CATALOG_LIMIT }, 30_000);
+  if (sanitizeFeedResponse(primary.body, primary.status).ok) return primary;
+
+  const secondary = await callCore("feed", { mode: "catalog", limit: CATALOG_LIMIT }, 30_000);
+  if (sanitizeFeedResponse(secondary.body, secondary.status).ok) return secondary;
+
+  return primary.status !== 0 ? primary : secondary;
+}

@@ -138,6 +138,8 @@ export interface Bando {
   };
 }
 
+export type FeedView = "catalog" | "profile";
+
 export interface FeedResponse {
   bandi: Bando[];
   fetched_at: string;
@@ -145,6 +147,8 @@ export interface FeedResponse {
   deep_search?: boolean;
   /** Marker di freschezza restituito dal Core quando disponibile. */
   generated_at?: string;
+  /** catalog = elenco ufficiale; profile = feed abbinato. Legacy senza campo = profile. */
+  view?: FeedView;
   /** Rendiconto ammissione fonti core: bandi validi vs scartati. */
   admission?: {
     admitted_count: number;

@@ -1,7 +1,12 @@
-import type { FeedResponse } from "./bandocore-types";
+import type { FeedResponse, FeedView } from "./bandocore-types";
 
-const KEY = "ueradar:last-feed:v1";
+const PROFILE_KEY = "ueradar:last-feed:v1";
+const CATALOG_KEY = "ueradar:last-catalog:v1";
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+export function offlineFeedKey(view: FeedView = "profile"): string {
+  return view === "catalog" ? CATALOG_KEY : PROFILE_KEY;
+}
 
 export type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
@@ -29,15 +34,16 @@ function validFeed(value: unknown): value is FeedResponse {
 export function saveOfflineFeed(
   feed: FeedResponse,
   storage: StorageLike | null = browserStorage(),
+  view: FeedView = feed.view === "catalog" ? "catalog" : "profile",
 ): void {
   if (!storage || !validFeed(feed)) return;
   const snapshot: StoredFeed = {
     version: 1,
     savedAt: new Date().toISOString(),
-    feed: { ...feed, source: "cache" },
+    feed: { ...feed, source: "cache", view },
   };
   try {
-    storage.setItem(KEY, JSON.stringify(snapshot));
+    storage.setItem(offlineFeedKey(view), JSON.stringify(snapshot));
   } catch {
     // Quota o storage privato: il feed online continua a funzionare.
   }
@@ -46,10 +52,12 @@ export function saveOfflineFeed(
 export function loadOfflineFeed(
   storage: StorageLike | null = browserStorage(),
   now = Date.now(),
+  view: FeedView = "profile",
 ): FeedResponse | null {
   if (!storage) return null;
+  const key = offlineFeedKey(view);
   try {
-    const raw = storage.getItem(KEY);
+    const raw = storage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<StoredFeed>;
     const savedAt = Date.parse(parsed.savedAt ?? "");
@@ -59,12 +67,12 @@ export function loadOfflineFeed(
       now - savedAt > MAX_AGE_MS ||
       !validFeed(parsed.feed)
     ) {
-      storage.removeItem(KEY);
+      storage.removeItem(key);
       return null;
     }
-    return { ...parsed.feed, source: "cache" };
+    return { ...parsed.feed, source: "cache", view };
   } catch {
-    storage.removeItem(KEY);
+    storage.removeItem(key);
     return null;
   }
 }

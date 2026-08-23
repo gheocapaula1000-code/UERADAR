@@ -19,6 +19,7 @@ export type GatewayEnvelope = {
   bandi: CoreOpportunity[];
   fetched_at: string;
   generated_at: string;
+  view?: "catalog" | "profile";
 };
 
 function validDate(value: unknown): value is string {
@@ -33,11 +34,17 @@ export function parseGatewayEnvelope(payload: unknown): GatewayEnvelope | null {
   const now = new Date().toISOString();
   const fetchedAt = validDate(body.fetched_at) ? body.fetched_at : now;
   const generatedAt = sanitized.generated_at ?? fetchedAt;
+  const view = body.view === "catalog" || body.view === "profile" ? body.view : undefined;
   return {
     bandi: sanitized.bandi as CoreOpportunity[],
     fetched_at: fetchedAt,
     generated_at: generatedAt,
+    view,
   };
+}
+
+export function feedViewOf(feed: { view?: unknown } | null | undefined): "catalog" | "profile" {
+  return feed?.view === "catalog" ? "catalog" : "profile";
 }
 
 export function gatewayRowIsValid(item: unknown): item is CoreOpportunity {

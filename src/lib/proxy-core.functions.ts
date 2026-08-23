@@ -1,15 +1,41 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import type { FeedResponse, Bando } from "./bandocore-types";
-import { mapCoreOpportunity, parseGatewayEnvelope } from "./proxy-core.server";
+import type { FeedResponse, FeedView, Bando } from "./bandocore-types";
+import { feedViewOf, mapCoreOpportunity, parseGatewayEnvelope } from "./proxy-core.server";
 import { decideFeedCache } from "./feed-cache-policy";
 import type { Json } from "@/integrations/supabase/types";
 
 const InputSchema = z.object({
   force_refresh: z.boolean().optional(),
   deep_search: z.boolean().optional(),
+  mode: z.enum(["catalog", "profile"]).optional(),
 });
+
+function asCachedFeed(row: { payload: unknown; fetched_at: string } | null): FeedResponse | null {
+  if (!row?.payload || typeof row.payload !== "object") return null;
+  const payload = row.payload as FeedResponse;
+  if (!Array.isArray(payload.bandi)) return null;
+  return {
+    ...payload,
+    fetched_at: row.fetched_at,
+    source: "cache",
+    view: feedViewOf(payload),
+    generated_at:
+      typeof payload.generated_at === "string" ? payload.generated_at : row.fetched_at,
+  };
+}
+
+function pickCachedView(
+  rows: Array<{ payload: unknown; fetched_at: string }> | null,
+  view: FeedView,
+): FeedResponse | null {
+  for (const row of rows ?? []) {
+    const cached = asCachedFeed(row);
+    if (cached && feedViewOf(cached) === view) return cached;
+  }
+  return null;
+}
 
 // fetchFeedFromProxyCore
 // - Nessun secret del Central Core viene letto qui: la server function invoca
@@ -44,6 +70,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
     const { AVAILABLE_SOURCE_TIER } = await import("./catalog");
     const deepSearch =
       (data.deep_search ?? false) && entitlement.limits.sourceTier !== AVAILABLE_SOURCE_TIER;
+    const view: FeedView = data.mode === "profile" ? "profile" : "catalog";
 
     let bandi: Bando[] | null = null;
     let fetchedAt = new Date().toISOString();
@@ -66,7 +93,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       }
 
       const { data: payload, error } = await supabase.functions.invoke("trovabandi-feed", {
-        body: { action: "feed" },
+        body: view === "catalog" ? { action: "catalog" } : { action: "feed" },
       });
       if (error) throw new Error("GATEWAY_ERROR");
 
@@ -86,22 +113,15 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       fetchedAt = envelope.fetched_at;
       generatedAt = envelope.generated_at;
 
-      const { data: previousRow, error: previousError } = await cache
+      const { data: previousRows, error: previousError } = await cache
         .from("feed_cache")
         .select("payload, fetched_at")
         .eq("user_id", tenantId)
         .order("fetched_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(8);
       if (previousError) throw new Error("CACHE_READ_FAILED");
 
-      const previous = previousRow?.payload
-        ? ({
-            ...(previousRow.payload as unknown as FeedResponse),
-            fetched_at: previousRow.fetched_at,
-            source: "cache",
-          } as FeedResponse)
-        : null;
+      const previous = pickCachedView(previousRows, view);
       const next: FeedResponse = {
         bandi,
         fetched_at: fetchedAt,
@@ -109,11 +129,12 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
         source,
         deep_search: deepSearch,
         admission,
+        view,
       };
       const cacheDecision = decideFeedCache(previous, next);
       if (cacheDecision === "reuse-previous" && previous) return previous;
       if (cacheDecision === "persist") {
-        persistHiddenCache = true;
+        persistHiddenCache = view === "profile";
         const { error: cacheWriteError } = await cache.from("feed_cache").insert({
           user_id: tenantId,
           payload: next as unknown as Json,
@@ -124,27 +145,20 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
     } catch (err) {
       console.warn("[trovabandi-feed] feed failed, falling back to cache:", err);
       const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: cached, error: cacheFallbackError } = await cache
+      const { data: cachedRows, error: cacheFallbackError } = await cache
         .from("feed_cache")
         .select("payload, fetched_at")
         .eq("user_id", tenantId)
         .gte("fetched_at", cutoff)
         .order("fetched_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(8);
       if (cacheFallbackError) throw new Error("CACHE_FALLBACK_READ_FAILED");
 
-      if (cached?.payload) {
-        const cachedBandi = (cached.payload as { bandi?: Bando[] }).bandi ?? [];
+      const cached = pickCachedView(cachedRows, view);
+      if (cached) {
         return {
-          bandi: cachedBandi,
-          fetched_at: cached.fetched_at,
-          source: "cache",
+          ...cached,
           deep_search: deepSearch,
-          generated_at:
-            typeof (cached.payload as { generated_at?: unknown }).generated_at === "string"
-              ? (cached.payload as { generated_at: string }).generated_at
-              : cached.fetched_at,
         };
       }
       throw new Error("Motore bandi non raggiungibile e nessuna cache disponibile.");
@@ -176,6 +190,7 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       source,
       deep_search: deepSearch,
       admission,
+      view,
     };
   });
 
@@ -217,15 +232,19 @@ export const loadCachedFeed = createServerFn({ method: "GET" })
     const entitlement = await entitlementForTenant(context.supabase, tenant.tenant_owner_id);
     if (!entitlement.entitled) throw new Error(`FEED_NOT_ENTITLED:${entitlement.reason}`);
     const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data, error: feedCacheError } = await cache
+    const { data: rows, error: feedCacheError } = await cache
       .from("feed_cache")
       .select("payload, fetched_at")
       .eq("user_id", tenant.tenant_owner_id)
       .gte("fetched_at", cutoff)
       .order("fetched_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(8);
     if (feedCacheError) throw new Error("CACHE_READ_FAILED");
+
+    const catalog = pickCachedView(rows, "catalog");
+    const profile = pickCachedView(rows, "profile");
+    const primary = catalog ?? profile;
+    if (!primary) return null;
 
     const { data: hiddenRows, error: hiddenCacheError } = await cache
       .from("cached_hidden_bandi")
@@ -235,8 +254,11 @@ export const loadCachedFeed = createServerFn({ method: "GET" })
       .order("discovered_at", { ascending: false });
     if (hiddenCacheError) throw new Error("HIDDEN_CACHE_READ_FAILED");
 
-    const feedBandi = data ? ((data.payload as { bandi?: Bando[] }).bandi ?? []) : [];
-    const hiddenBandi = (hiddenRows ?? []).map((r) => r.payload as unknown as Bando);
+    const feedBandi = primary.bandi;
+    const hiddenBandi =
+      feedViewOf(primary) === "profile"
+        ? (hiddenRows ?? []).map((r) => r.payload as unknown as Bando)
+        : [];
 
     // Dedup: il feed vince (più fresco), la cache sommersa riempie i buchi.
     const seen = new Set(feedBandi.map((b) => b.id));
@@ -245,12 +267,8 @@ export const loadCachedFeed = createServerFn({ method: "GET" })
 
     if (merged.length === 0) return null;
     return {
+      ...primary,
       bandi: merged,
-      fetched_at: data?.fetched_at ?? new Date(0).toISOString(),
       source: "cache",
-      generated_at:
-        typeof (data?.payload as { generated_at?: unknown } | null)?.generated_at === "string"
-          ? (data?.payload as { generated_at: string }).generated_at
-          : data?.fetched_at ?? new Date(0).toISOString(),
     };
   });
