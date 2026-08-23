@@ -208,7 +208,9 @@ serve(async (req) => {
   const res = catalog
     ? await fetchOfficialCatalog()
     : await callCore("feed", { profile: minimizedProfile, limit: PROFILE_FEED_LIMIT });
-  const sanitized = sanitizeFeedResponse(res.body, res.status);
+  // Catalogo: le righe sporche vengono scartate, il resto passa.
+  // Feed profilo: resta fail-closed sull'intero payload.
+  const sanitized = sanitizeFeedResponse(res.body, res.status, { dropInvalidRows: catalog });
   if (!sanitized.ok)
     return out(502, { ok: false, code: "UPSTREAM_UNAVAILABLE", reason: sanitized.code });
 
@@ -222,12 +224,20 @@ serve(async (req) => {
   });
 });
 
-async function fetchOfficialCatalog() {
-  const primary = await callCore("catalog", { limit: CATALOG_LIMIT }, 30_000);
-  if (sanitizeFeedResponse(primary.body, primary.status).ok) return primary;
+const CATALOG_TIMEOUT_MS = 60_000;
 
-  const secondary = await callCore("feed", { mode: "catalog", limit: CATALOG_LIMIT }, 30_000);
-  if (sanitizeFeedResponse(secondary.body, secondary.status).ok) return secondary;
+async function fetchOfficialCatalog() {
+  const lenient = { dropInvalidRows: true };
+  const primary = await callCore("catalog", { limit: CATALOG_LIMIT }, CATALOG_TIMEOUT_MS);
+  if (sanitizeFeedResponse(primary.body, primary.status, lenient).ok) return primary;
+
+  const secondary = await callCore(
+    "feed",
+    { mode: "catalog", limit: CATALOG_LIMIT },
+    CATALOG_TIMEOUT_MS,
+  );
+  if (sanitizeFeedResponse(secondary.body, secondary.status, lenient).ok) return secondary;
 
   return primary.status !== 0 ? primary : secondary;
 }
+

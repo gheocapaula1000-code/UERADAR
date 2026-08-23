@@ -233,22 +233,40 @@ export type SanitizedFeed =
   | { ok: true; bandi: ContractRow[]; generated_at: string | null }
   | { ok: false; code: string };
 
-export function sanitizeFeedResponse(payload: unknown, status: number): SanitizedFeed {
+export type SanitizeOptions = {
+  /** Catalogo: tiene le righe valide e scarta quelle sporche invece di fallire tutto. */
+  dropInvalidRows?: boolean;
+};
+
+export function sanitizeFeedResponse(
+  payload: unknown,
+  status: number,
+  options: SanitizeOptions = {},
+): SanitizedFeed {
   if (status !== 200) return { ok: false, code: "UPSTREAM_STATUS" };
   if (!payload || typeof payload !== "object" || Array.isArray(payload))
     return { ok: false, code: "UPSTREAM_SHAPE" };
   const body = payload as ContractRow;
   if (body.ok !== true) return { ok: false, code: "UPSTREAM_NOT_OK" };
   if (!Array.isArray(body.bandi)) return { ok: false, code: "UPSTREAM_NO_BANDI" };
-  if (!body.bandi.every(opportunityIsValid))
-    return { ok: false, code: "UPSTREAM_INVALID_ROW" };
+  const rows = body.bandi as unknown[];
+  let valid: ContractRow[];
+  if (options.dropInvalidRows) {
+    valid = rows.filter(opportunityIsValid);
+    if (rows.length > 0 && valid.length === 0)
+      return { ok: false, code: "UPSTREAM_INVALID_ROW" };
+  } else {
+    if (!rows.every(opportunityIsValid)) return { ok: false, code: "UPSTREAM_INVALID_ROW" };
+    valid = rows as ContractRow[];
+  }
   const generatedAt =
     optionalIsoDate(body.generated_at) && typeof body.generated_at === "string"
       ? body.generated_at
       : null;
   return {
     ok: true,
-    bandi: (body.bandi as ContractRow[]).map(sanitizeOpportunity),
+    bandi: valid.map(sanitizeOpportunity),
     generated_at: generatedAt,
   };
 }
+
