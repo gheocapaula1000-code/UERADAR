@@ -132,9 +132,33 @@ export const VERIFIED_HINT =
 export const SPORTELLO_NOTICE =
   "Puoi chiedere adesso. Non c'è una data di chiusura: si può chiedere fino a esaurimento fondi.";
 
-
 function nonEmpty(value: unknown): boolean {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+const FUNDS_OR_SPORTELLO_RE = /fino ad? esaurimento fondi|\ba sportello\b/i;
+
+function officialSportelloHaystack(
+  bando: Partial<Pick<Bando, "descrizione" | "requisiti" | "evidence" | "fonte_extratestuale">>,
+): string {
+  return [
+    bando.descrizione,
+    bando.fonte_extratestuale,
+    ...(bando.requisiti ?? []),
+    ...(bando.evidence ?? []).flatMap((e) => [e.excerpt, e.source_title]),
+  ]
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .join("\n");
+}
+
+/**
+ * Prova ufficiale già scritta nel testo: "a sportello" o "fino a/ad esaurimento fondi".
+ * Non inventa lo sportello se manca solo la data.
+ */
+export function hasOfficialSportelloSentence(
+  bando: Partial<Pick<Bando, "descrizione" | "requisiti" | "evidence" | "fonte_extratestuale">>,
+): boolean {
+  return FUNDS_OR_SPORTELLO_RE.test(officialSportelloHaystack(bando));
 }
 
 /**
@@ -142,14 +166,18 @@ function nonEmpty(value: unknown): boolean {
  * dato completo, non un buco. Nessuna data viene inventata.
  */
 export function isSportello(
-  bando: Pick<Bando, "verification_status" | "sportello">,
+  bando: Pick<Bando, "verification_status" | "sportello"> &
+    Partial<Pick<Bando, "scadenza" | "descrizione" | "requisiti" | "evidence" | "fonte_extratestuale">>,
 ): boolean {
-  return bando.sportello === true || bando.verification_status === "SPORTELLO";
+  if (bando.sportello === true || bando.verification_status === "SPORTELLO") return true;
+  if (nonEmpty(bando.scadenza)) return false;
+  return hasOfficialSportelloSentence(bando);
 }
 
 /** Lo stato "data" è completo con una scadenza ufficiale oppure con lo sportello. */
 export function hasDateState(
-  bando: Pick<Bando, "scadenza" | "verification_status" | "sportello">,
+  bando: Pick<Bando, "scadenza" | "verification_status" | "sportello"> &
+    Partial<Pick<Bando, "descrizione" | "requisiti" | "evidence" | "fonte_extratestuale">>,
 ): boolean {
   return nonEmpty(bando.scadenza) || isSportello(bando);
 }
@@ -212,6 +240,17 @@ export function qualityRank(bando: Bando, now: number = Date.now()): number {
   if (hasEconomics(bando)) return 2;
   if (hasDateState(bando)) return 3;
   return 4;
+}
+
+/** Alta priorità vetrina: sportello ufficiale anche senza importo. Nessuna data inventata. */
+export function isHighPriorityFeed(bando: Bando, now: number = Date.now()): boolean {
+  const deadline = deadlineTime(bando);
+  const notExpired = deadline === null || deadline >= now;
+  if (isSportello(bando) && notExpired) return true;
+  const hasDate =
+    deadline !== null ||
+    (typeof bando.apertura === "string" && Number.isFinite(Date.parse(bando.apertura)));
+  return hasDate && notExpired && hasEconomics(bando);
 }
 
 /** Comparatore stabile per il feed (rank, poi nascosti/rari, poi scadenza più vicina). */

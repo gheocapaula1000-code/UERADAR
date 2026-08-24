@@ -1,37 +1,147 @@
 import type { Bando, CompanyProfile } from "./bandocore-types";
 import { isSportello, officialLink } from "./bando-status";
+import { formatItalianInteger } from "./catalog";
 import { realApplicationUrl, realFormsUrl } from "./official-module";
 
-/** Etichetta unica delle schede a sportello: mai "Da verificare". */
-export const SPORTELLO_BADGE = "A sportello · fino a esaurimento fondi";
+/** Frase ufficiale da tenere visibile. Non è una data. */
+export const FUNDS_PHRASE = "fino a esaurimento fondi";
+export const FUNDS_PHRASE_AD = "fino ad esaurimento fondi";
 
-/** Frase unica per i bandi a sportello: nessuna scadenza, si chiede finché ci sono fondi. */
-export const SPORTELLO_LEAD =
-  "Puoi chiedere adesso. Non c'è una data di chiusura: si può chiedere fino a esaurimento fondi.";
+export const SPORTELLO_BADGE = `A sportello · ${FUNDS_PHRASE}`;
 
-/** Urgenza onesta: nessuna data inventata, solo il rischio reale. */
 export const SPORTELLO_URGENCY = "Meglio fare subito: i soldi possono finire.";
 
-/** I tre passi sempre visibili: l'utente deve sapere qual è il prossimo click. */
+export const SPORTELLO_LEAD =
+  "Puoi chiedere adesso. Non c'è una data di chiusura: finché ci sono soldi.";
+
+export const MISSING_OFFICIAL_LINE =
+  "Non c'è sul bando. Aprendo il sito ufficiale lo vedi.";
+
+/** Alias tenuto per le schede già montate: stesso testo, mai un vicolo cieco. */
+export const SPORTELLO_MISSING_LINE = MISSING_OFFICIAL_LINE;
+
+export const SPORTELLO_CTA = "Partecipa adesso";
+
 export const SPORTELLO_STEPS = [
   "Apri il bando ufficiale",
-  "Prepara i documenti (solo dati reali della fonte)",
+  "Prepara i documenti",
   "Controlla se la tua impresa c'entra",
   "Invia la domanda sul sito dell'ente",
 ] as const;
 
+const FUNDS_RE = /fino ad? esaurimento fondi/i;
+
+function nonEmpty(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function officialHaystack(
+  bando: Pick<Bando, "descrizione" | "requisiti" | "evidence" | "fonte_extratestuale">,
+): string {
+  return [
+    bando.descrizione,
+    bando.fonte_extratestuale,
+    ...(bando.requisiti ?? []),
+    ...(bando.evidence ?? []).flatMap((e) => [e.excerpt, e.source_title]),
+  ]
+    .filter(nonEmpty)
+    .join("\n");
+}
+
+/** Legge la frase ufficiale dal testo, senza inventarla. */
+export function officialFundsPhrase(
+  bando: Pick<Bando, "descrizione" | "requisiti" | "evidence" | "fonte_extratestuale">,
+): string {
+  const hay = officialHaystack(bando);
+  if (/fino ad esaurimento fondi/i.test(hay)) return FUNDS_PHRASE_AD;
+  if (FUNDS_RE.test(hay)) return FUNDS_PHRASE;
+  return FUNDS_PHRASE;
+}
+
+export function sportelloBadgeLabel(bando: Bando): string {
+  return `A sportello · ${officialFundsPhrase(bando)}`;
+}
+
 /**
- * Dove mandare chi vuole partecipare: prima il canale di domanda dichiarato
- * dalla fonte, poi la modulistica, infine la scheda ufficiale. Nessun URL inventato.
+ * Dove mandare chi vuole partecipare: prima domanda, poi modulo, poi scheda.
+ * Nessun URL inventato.
  */
 export function partecipaHref(bando: Bando): string | null {
   return realApplicationUrl(bando) ?? realFormsUrl(bando) ?? officialLink(bando);
 }
 
-export { isSportello };
+export function officialPageHref(bando: Bando): string | null {
+  return officialLink(bando);
+}
 
-/** Riga unica quando un dato non è sulla fonte: mai inventare, sempre dire dove guardare. */
-export const SPORTELLO_MISSING_LINE = "non è sul testo, lo vedi aprendo il bando ufficiale";
+export function domandaHref(bando: Bando): string | null {
+  return realApplicationUrl(bando) ?? null;
+}
+
+export function moduloHref(bando: Bando): string | null {
+  return realFormsUrl(bando) ?? null;
+}
+
+export function protocolEmail(bando: Bando): string | null {
+  const value = bando.ufficio_protocollo_pec ?? bando.pec;
+  return nonEmpty(value) ? value.trim() : null;
+}
+
+export type OfficialAmount = { label: string; value: string };
+
+/** Solo importi già presenti sulla fonte. Nessun numero inventato. */
+export function officialAmounts(bando: Bando): OfficialAmount[] {
+  const out: OfficialAmount[] = [];
+  if (typeof bando.importo_max === "number" && bando.importo_max > 0) {
+    out.push({ label: "Soldi massimi", value: `${formatItalianInteger(bando.importo_max)} €` });
+  }
+  if (typeof bando.aid_intensity_percent === "number" && bando.aid_intensity_percent > 0) {
+    out.push({ label: "Quanto copre", value: `${bando.aid_intensity_percent}%` });
+  }
+  if (typeof bando.total_budget === "number" && bando.total_budget > 0) {
+    out.push({ label: "Cassa totale", value: `${formatItalianInteger(bando.total_budget)} €` });
+  }
+  if (nonEmpty(bando.apertura)) {
+    const t = new Date(bando.apertura);
+    if (Number.isFinite(t.getTime())) {
+      out.push({ label: "Apre il", value: t.toLocaleDateString("it-IT") });
+    }
+  }
+  return out;
+}
+
+export type ProfiloSportello = Pick<
+  CompanyProfile,
+  "ragione_sociale" | "partita_iva" | "codice_ateco" | "comune" | "provincia" | "regione"
+> &
+  Partial<Pick<CompanyProfile, "pec" | "email_referente" | "forma_giuridica" | "telefono">>;
+
+export type ProfileFact = { label: string; value: string; kind: "name" | "sede" | "ateco" | "piva" | "other" };
+
+/** Dati già inseriti dall'utente, da copiare. Non è un giudizio di compatibilità. */
+export function profileFacts(profile: ProfiloSportello | null | undefined): ProfileFact[] {
+  if (!profile) return [];
+  const out: ProfileFact[] = [];
+  if (nonEmpty(profile.ragione_sociale)) {
+    out.push({ label: "Nome impresa", value: profile.ragione_sociale.trim(), kind: "name" });
+  }
+  if (nonEmpty(profile.partita_iva)) {
+    out.push({ label: "Partita IVA", value: profile.partita_iva.trim(), kind: "piva" });
+  }
+  const sede = [profile.comune, profile.provincia, profile.regione].filter(nonEmpty).join(", ");
+  if (sede) out.push({ label: "Dove sei", value: sede, kind: "sede" });
+  if (nonEmpty(profile.codice_ateco)) {
+    out.push({
+      label: "Codice attività della tua impresa",
+      value: profile.codice_ateco.trim(),
+      kind: "ateco",
+    });
+  }
+  if (nonEmpty(profile.forma_giuridica)) {
+    out.push({ label: "Forma della società", value: profile.forma_giuridica, kind: "other" });
+  }
+  return out;
+}
 
 export interface SportelloFact {
   label: string;
@@ -41,11 +151,7 @@ export interface SportelloFact {
 
 function euro(n: number | undefined | null): string | null {
   if (typeof n !== "number" || !Number.isFinite(n) || n <= 0) return null;
-  return new Intl.NumberFormat("it-IT", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(n);
+  return `${formatItalianInteger(n)} €`;
 }
 
 function list(items: string[] | undefined, max = 4): string | null {
@@ -56,68 +162,197 @@ function list(items: string[] | undefined, max = 4): string | null {
 }
 
 /**
- * Tutto quello che la fonte ufficiale dichiara davvero su un bando a sportello.
- * Nessun valore inventato: se il dato manca, `value` è null e la UI mostra
- * SPORTELLO_MISSING_LINE.
+ * Pacchetto ufficiale: solo campi presenti. Se manca, value è null
+ * e la UI usa MISSING_OFFICIAL_LINE + bottone al sito.
  */
 export function sportelloFacts(bando: Bando): SportelloFact[] {
-  const official = officialLink(bando);
-  const domanda = realApplicationUrl(bando) ?? null;
-  const modulo = realFormsUrl(bando) ?? null;
-  const protocollo = bando.ufficio_protocollo_pec ?? bando.pec ?? null;
+  const official = officialPageHref(bando);
+  const domanda = domandaHref(bando);
+  const modulo = moduloHref(bando);
+  const protocollo = protocolEmail(bando);
   const intensity =
     typeof bando.aid_intensity_percent === "number" && bando.aid_intensity_percent > 0
       ? `${bando.aid_intensity_percent}%`
       : null;
 
   return [
-    { label: "Bando ufficiale", value: official ? "Apri la pagina ufficiale" : null, href: official ?? undefined },
-    { label: "Link per la domanda", value: domanda ? "Vai alla domanda" : null, href: domanda ?? undefined },
-    { label: "Modulo da compilare", value: modulo ? "Scarica il modulo" : null, href: modulo ?? undefined },
-    { label: "Importo massimo", value: euro(bando.importo_max) },
+    { label: "Bando ufficiale", value: official ? "Apri il bando" : null, href: official ?? undefined },
+    { label: "Domanda", value: domanda ? "Apri la domanda" : null, href: domanda ?? undefined },
+    { label: "Modulo", value: modulo ? "Scarica il modulo" : null, href: modulo ?? undefined },
+    { label: "Soldi massimi", value: euro(bando.importo_max) },
     { label: "Quanto copre", value: intensity },
-    { label: "Soldi totali disponibili", value: euro(bando.total_budget) },
-    { label: "Requisiti dichiarati", value: list(bando.requisiti) },
+    { label: "Cassa totale", value: euro(bando.total_budget) },
+    { label: "Requisiti", value: list(bando.requisiti) },
     { label: "Spese ammesse", value: list(bando.eligible_expenses) },
-    { label: "Dove si protocolla", value: protocollo },
+    { label: "Posta dell'ufficio", value: protocollo },
   ];
 }
 
-/** Dati impresa già in profilo: si mostrano così come sono, senza giudizi di compatibilità. */
+/** Dati impresa già in profilo: si mostrano così come sono, senza giudizi. */
 export function profiloFacts(profile: ProfiloSportello | null | undefined): SportelloFact[] {
-  if (!profile) return [];
-  const sede = [profile.comune, profile.provincia ? `(${profile.provincia})` : "", profile.regione]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-  return [
-    { label: "Impresa", value: profile.ragione_sociale || null },
-    { label: "P. IVA", value: profile.partita_iva || null },
-    { label: "Codice ATECO in profilo", value: profile.codice_ateco || null },
-    { label: "Sede", value: sede || null },
-    { label: "Contatto", value: profile.pec || profile.email_referente || null },
-    { label: "Forma giuridica", value: profile.forma_giuridica ?? null },
-  ];
+  return profileFacts(profile).map((f) => ({ label: f.label, value: f.value }));
 }
 
-export type ProfiloSportello = Pick<
-  CompanyProfile,
-  "ragione_sociale" | "partita_iva" | "codice_ateco" | "comune" | "provincia" | "regione"
-> &
-  Partial<Pick<CompanyProfile, "pec" | "email_referente" | "forma_giuridica" | "telefono">>;
-
-/**
- * Campi pronti da copiare per i portali esterni (Invitalia, Camera, MIMIT):
- * la PWA non compila quei siti, ma dà i valori reali del profilo da incollare.
- */
 export function campiDaCopiare(profile: ProfiloSportello | null | undefined): SportelloFact[] {
   if (!profile) return [];
   return profiloFacts(profile).filter((f) => Boolean(f.value));
 }
 
-/** Blocco unico "Usa i miei dati": solo valori realmente presenti nel profilo. */
 export function copiaMieiDati(profile: ProfiloSportello | null | undefined): string {
   return campiDaCopiare(profile)
     .map((f) => `${f.label}: ${f.value}`)
     .join("\n");
 }
+
+/** ATECO citato dal testo ufficiale (dal match del feed). Mai inventato. */
+export function officialAtecoMentions(bando: Bando): string[] {
+  const confirmed = bando.match?.confirmed ?? [];
+  return confirmed.filter((line) => nonEmpty(line) && /ateco/i.test(line));
+}
+
+export type SportelloGap = { what: string; line: string };
+
+export function sportelloGaps(bando: Bando): SportelloGap[] {
+  const gaps: SportelloGap[] = [];
+  if (!officialPageHref(bando)) {
+    gaps.push({ what: "scheda ufficiale", line: MISSING_OFFICIAL_LINE });
+  }
+  if (!domandaHref(bando)) {
+    gaps.push({ what: "pagina della domanda", line: MISSING_OFFICIAL_LINE });
+  }
+  if (!moduloHref(bando)) {
+    gaps.push({ what: "modulo", line: MISSING_OFFICIAL_LINE });
+  }
+  if (officialAmounts(bando).length === 0) {
+    gaps.push({
+      what: "importo",
+      line: "L'importo non è ancora sul testo. Aprendo il bando ufficiale lo vedi.",
+    });
+  }
+  if (!(bando.requisiti ?? []).some(nonEmpty)) {
+    gaps.push({ what: "requisiti", line: MISSING_OFFICIAL_LINE });
+  }
+  return gaps;
+}
+
+export type SportelloStepId = "official" | "dossier" | "check" | "apply";
+
+export type SportelloStep = {
+  id: SportelloStepId;
+  n: number;
+  title: string;
+  wePrepared: string;
+  youDo: string;
+};
+
+export function sportelloSteps(bando: Bando): SportelloStep[] {
+  const official = officialPageHref(bando);
+  const apply = domandaHref(bando) ?? moduloHref(bando) ?? official;
+  const ateco = officialAtecoMentions(bando);
+  return [
+    {
+      id: "official",
+      n: 1,
+      title: SPORTELLO_STEPS[0],
+      wePrepared: official
+        ? "Abbiamo il link della pagina dell'ente."
+        : "Il link della scheda non c'è in archivio.",
+      youDo: official ? "Clicca e leggi la pagina ufficiale." : MISSING_OFFICIAL_LINE,
+    },
+    {
+      id: "dossier",
+      n: 2,
+      title: SPORTELLO_STEPS[1],
+      wePrepared: "Prepariamo una bozza solo con i dati già presenti (importo, requisiti, link).",
+      youDo: "Apri la bozza e controlla. Non inventiamo i campi vuoti.",
+    },
+    {
+      id: "check",
+      n: 3,
+      title: SPORTELLO_STEPS[2],
+      wePrepared:
+        ateco.length > 0
+          ? `Il testo ufficiale scrive: ${ateco.join(" · ")}.`
+          : "Non diciamo se sei dentro se il bando non lo scrive.",
+      youDo:
+        ateco.length > 0
+          ? "Controlla comunque sul sito dell'ente."
+          : "Leggi tu sul bando ufficiale. Non inventiamo il codice attività.",
+    },
+    {
+      id: "apply",
+      n: 4,
+      title: SPORTELLO_STEPS[3],
+      wePrepared: apply
+        ? "Ti portiamo sulla pagina dell'ente."
+        : "La pagina di invio non è distinta dalla scheda.",
+      youDo: "UEradar non spedisce niente. Lo fai tu sul sito dell'ente.",
+    },
+  ];
+}
+
+const PROGRESS_KEY = "ueradar:sportello-steps:v1";
+
+export type SportelloProgress = Record<SportelloStepId, boolean>;
+
+function emptyProgress(): SportelloProgress {
+  return { official: false, dossier: false, check: false, apply: false };
+}
+
+export function readSportelloProgress(
+  bandoId: string,
+  storage: Pick<Storage, "getItem"> | null | undefined,
+): SportelloProgress {
+  if (!storage) return emptyProgress();
+  try {
+    const raw = storage.getItem(PROGRESS_KEY);
+    if (!raw) return emptyProgress();
+    const all = JSON.parse(raw) as Record<string, Partial<SportelloProgress>>;
+    const row = all[bandoId] ?? {};
+    return {
+      official: row.official === true,
+      dossier: row.dossier === true,
+      check: row.check === true,
+      apply: row.apply === true,
+    };
+  } catch {
+    return emptyProgress();
+  }
+}
+
+export function writeSportelloProgress(
+  bandoId: string,
+  patch: Partial<SportelloProgress>,
+  storage: Pick<Storage, "getItem" | "setItem"> | null | undefined,
+): SportelloProgress {
+  const current = readSportelloProgress(bandoId, storage);
+  const next = { ...current, ...patch };
+  if (!storage) return next;
+  try {
+    const raw = storage.getItem(PROGRESS_KEY);
+    const all = raw ? (JSON.parse(raw) as Record<string, SportelloProgress>) : {};
+    all[bandoId] = next;
+    storage.setItem(PROGRESS_KEY, JSON.stringify(all));
+  } catch {
+    // Storage privato: la sessione continua in memoria.
+  }
+  return next;
+}
+
+export function nextSportelloStep(
+  steps: SportelloStep[],
+  progress: SportelloProgress,
+): SportelloStepId {
+  return steps.find((s) => !progress[s.id])?.id ?? "apply";
+}
+
+export function browserSportelloStorage(): Pick<Storage, "getItem" | "setItem"> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+export { isSportello };

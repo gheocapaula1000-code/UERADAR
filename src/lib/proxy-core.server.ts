@@ -110,6 +110,7 @@ export function mapCoreOpportunity(item: CoreOpportunity): Bando {
       (item.competition_index as number | null | undefined) ?? undefined,
     eligible_expenses: (item.eligible_expenses as string[] | null | undefined) ?? [],
     verification_status: item.verification_status as Bando["verification_status"],
+    sportello: item.sportello === true || item.verification_status === "SPORTELLO",
     official_source: item.official_source as boolean | undefined,
     last_verified_at: (item.last_verified_at as string | null | undefined) ?? undefined,
     first_seen_at: (item.first_seen_at as string | null | undefined) ?? undefined,
