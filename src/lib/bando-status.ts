@@ -126,11 +126,32 @@ export function isFlash(
  * ------------------------------------------------------------------ */
 
 export const VERIFIED_HINT =
-  "Verificato = data e importo massimo sul testo ufficiale. Riguarda i dati della scheda, non la tua impresa.";
+  "Verificato = data (o sportello) e importo massimo sul testo ufficiale. Riguarda i dati della scheda, non la tua impresa.";
+
+/** Testo unico per le schede a sportello, in italiano semplice. */
+export const SPORTELLO_NOTICE =
+  "A sportello. Non c'è una data di chiusura: si può chiedere finché ci sono soldi.";
 
 
 function nonEmpty(value: unknown): boolean {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+/**
+ * Procedura a sportello dichiarata dalla fonte: l'assenza di scadenza è un
+ * dato completo, non un buco. Nessuna data viene inventata.
+ */
+export function isSportello(
+  bando: Pick<Bando, "verification_status" | "sportello">,
+): boolean {
+  return bando.sportello === true || bando.verification_status === "SPORTELLO";
+}
+
+/** Lo stato "data" è completo con una scadenza ufficiale oppure con lo sportello. */
+export function hasDateState(
+  bando: Pick<Bando, "scadenza" | "verification_status" | "sportello">,
+): boolean {
+  return nonEmpty(bando.scadenza) || isSportello(bando);
 }
 
 /** Almeno un dato economico utilizzabile (importo, intensità o spese ammissibili). */
@@ -149,12 +170,14 @@ export function officialLink(bando: Bando): string | null {
 /**
  * Fail-closed: in assenza anche di un solo dato obbligatorio il bando NON è
  * verificato. Nessuna promozione automatica, nessun valore inventato.
+ * Lo sportello vale come stato-data completo.
  */
 export function isVerified(bando: Bando, now: number = Date.now()): boolean {
-  if (bando.verification_status !== "VERIFICATO") return false;
+  const status = bando.verification_status;
+  if (status !== "VERIFICATO" && status !== "SPORTELLO") return false;
   if (!nonEmpty(bando.titolo) || !nonEmpty(bando.ente)) return false;
   if (!officialLink(bando)) return false;
-  if (!nonEmpty(bando.scadenza) || isExpired(bando, now)) return false;
+  if (!hasDateState(bando) || isExpired(bando, now)) return false;
   if (!hasEconomics(bando)) return false;
   // Requisiti o evidenza documentale: se entrambi assenti non si promuove.
   const hasRequisiti = (bando.requisiti ?? []).some((r) => nonEmpty(r));
@@ -163,9 +186,9 @@ export function isVerified(bando: Bando, now: number = Date.now()): boolean {
   return true;
 }
 
-/** True quando mancano scadenza e/o dato economico: scheda da completare sulla fonte. */
+/** True quando manca lo stato-data (scadenza o sportello) e/o il dato economico. */
 export function hasIncompleteCoreData(bando: Bando): boolean {
-  return !nonEmpty(bando.scadenza) || !hasEconomics(bando);
+  return !hasDateState(bando) || !hasEconomics(bando);
 }
 
 /**
@@ -184,10 +207,10 @@ export function isRareOrHidden(bando: Pick<Bando, "is_hidden" | "rarity_score">)
  */
 export function qualityRank(bando: Bando, now: number = Date.now()): number {
   if (isVerified(bando, now)) return 0;
-  const withDeadline = nonEmpty(bando.scadenza) && !isExpired(bando, now);
+  const withDeadline = hasDateState(bando) && !isExpired(bando, now);
   if (withDeadline) return 1;
   if (hasEconomics(bando)) return 2;
-  if (nonEmpty(bando.scadenza)) return 3;
+  if (hasDateState(bando)) return 3;
   return 4;
 }
 

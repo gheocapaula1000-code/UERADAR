@@ -122,3 +122,16 @@ describe("qualita e ordinamento feed", () => {
     expect(ordered.map((b) => b.id)).toEqual(["c", "r", "n"]);
   });
 });
+
+describe("bandi a sportello", () => {
+  it("sportello + importo non è una scheda incompleta", () => {
+    const b = bando({ scadenza: undefined, verification_status: "SPORTELLO" });
+    expect(hasIncompleteCoreData(b)).toBe(false);
+    expect(isVerified(b, NOW)).toBe(true);
+    expect(qualityRank(b, NOW)).toBe(0);
+  });
+
+  it("senza data e senza sportello resta incompleto", () => {
+    expect(hasIncompleteCoreData(bando({ scadenza: undefined }))).toBe(true);
+  });
+});

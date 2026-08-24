@@ -17,9 +17,11 @@ import {
   isExpired,
   isFlash,
   isRareOrHidden,
+  isSportello,
   isVerified,
   matchPreview,
   officialLink,
+  SPORTELLO_NOTICE,
   VERIFIED_HINT,
 } from "@/lib/bando-status";
 
@@ -102,6 +104,7 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
   const verdict = admitBando(bando);
   const gaps = verdict.ok ? verdict.gaps : null;
   const parziale = Boolean(gaps?.missing_deadline || gaps?.missing_economics) || partial;
+  const sportello = isSportello(bando);
   const ufficialeHref = officialLink(bando);
 
 
@@ -247,6 +250,12 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
                 : new Date(bando.scadenza).toLocaleDateString("it-IT")}
           </div>
         ) : null}
+        {!bando.scadenza && sportello ? (
+          <div className="col-span-2 flex min-w-0 items-start gap-1.5 text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 wrap-anywhere">{SPORTELLO_NOTICE}</span>
+          </div>
+        ) : null}
         {!expired && bando.click_day ? (
           <div className="flex items-center gap-1.5 text-warning">
             <Sparkles className="h-3.5 w-3.5" /> Click Day
@@ -258,8 +267,8 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         <div className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
           <p className="font-semibold">Da verificare</p>
           <p className="mt-1 text-muted-foreground">
-            Mancano ancora data o importo sul testo ufficiale. Non vuol dire che la tua impresa è
-            esclusa.
+            Manca ancora la data (o lo sportello) oppure l'importo sul testo ufficiale. Non vuol
+            dire che la tua impresa è esclusa.
           </p>
           <ul className="mt-1.5 space-y-1 text-muted-foreground">
             {gaps?.missing_deadline && (

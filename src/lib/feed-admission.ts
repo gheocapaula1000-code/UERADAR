@@ -1,4 +1,5 @@
 import type { Bando, BandoScope } from "./bandocore-types";
+import { isSportello } from "./bando-status";
 
 /**
  * Registro delle fonti core (ordine di priorità).
@@ -376,6 +377,8 @@ export interface AdmissionGaps {
 }
 
 export const MISSING_DEADLINE_LABEL = "Manca la scadenza nel testo ufficiale";
+export const SPORTELLO_LABEL =
+  "A sportello. Non c'è una data di chiusura: si può chiedere finché ci sono soldi.";
 export const MISSING_ECONOMICS_LABEL = "Manca l'importo nel testo ufficiale";
 
 function hostOf(url: string): string | null {
@@ -459,7 +462,7 @@ export function admitBando(bando: Bando, now: number = Date.now()): Admission {
     ok: true,
     source,
     gaps: {
-      missing_deadline: deadline === null && opening === null,
+      missing_deadline: deadline === null && opening === null && !isSportello(bando),
       missing_economics: !hasEconomicData(bando),
     },
   };
@@ -486,7 +489,10 @@ export type FeedTier = "ALTA_PRIORITA" | "DA_VERIFICARE";
  * Il badge match non incide: tutto il resto resta visibile in «Da verificare».
  */
 export function feedTier(bando: Bando, now: number = Date.now()): FeedTier {
-  const hasDate = parseDate(bando.scadenza) !== null || parseDate(bando.apertura) !== null;
+  const hasDate =
+    parseDate(bando.scadenza) !== null ||
+    parseDate(bando.apertura) !== null ||
+    isSportello(bando);
   const deadline = parseDate(bando.scadenza);
   const notExpired = deadline === null || deadline >= now;
   return hasDate && notExpired && hasEconomicData(bando)
