@@ -7,7 +7,16 @@ import { partecipaHref, SPORTELLO_LEAD, SPORTELLO_STEPS } from "@/lib/sportello"
  * Guida passo-passo per i bandi a sportello: mai "Da verificare", sempre
  * un prossimo click. I link puntano solo a URL presenti sulla fonte.
  */
-export function SportelloGuide({ bando, compact = false }: { bando: Bando; compact?: boolean }) {
+export function SportelloGuide({
+  bando,
+  compact = false,
+  onPrepare,
+}: {
+  bando: Bando;
+  compact?: boolean;
+  /** In pagina dettaglio prepara i documenti sul posto, senza navigare. */
+  onPrepare?: () => void;
+}) {
   const href = partecipaHref(bando);
 
   return (
@@ -43,13 +52,23 @@ export function SportelloGuide({ bando, compact = false }: { bando: Bando; compa
             Link di presentazione non disponibile sulla fonte ufficiale.
           </p>
         )}
-        <Link
-          to="/bando/$id"
-          params={{ id: bando.id }}
-          className="tap inline-flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-semibold hover:border-primary/50"
-        >
-          <FileText className="h-4 w-4" aria-hidden="true" /> Prepara i documenti
-        </Link>
+        {onPrepare ? (
+          <button
+            type="button"
+            onClick={onPrepare}
+            className="tap inline-flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-semibold hover:border-primary/50"
+          >
+            <FileText className="h-4 w-4" aria-hidden="true" /> Prepara i documenti
+          </button>
+        ) : (
+          <Link
+            to="/bando/$id"
+            params={{ id: bando.id }}
+            className="tap inline-flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-semibold hover:border-primary/50"
+          >
+            <FileText className="h-4 w-4" aria-hidden="true" /> Prepara i documenti
+          </Link>
+        )}
       </div>
     </div>
   );

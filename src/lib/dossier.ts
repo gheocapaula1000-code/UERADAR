@@ -1,5 +1,5 @@
 import type { Bando, CompanyProfile } from "./bandocore-types";
-import { daysLeft as daysLeftOf, isExpired, matchStatusMeta } from "./bando-status";
+import { daysLeft as daysLeftOf, isExpired, isSportello, matchStatusMeta } from "./bando-status";
 
 /** Avviso obbligatorio riportato su ogni resa del dossier (schermo, TXT, PDF). */
 export const DOSSIER_DISCLAIMER = `AVVISO — BOZZA INFORMATIVA
@@ -242,9 +242,12 @@ export function buildCoverLetter(bando: Bando, profile: AllowedProfile): string 
 
 /** Dati ufficiali minimi mancanti nel bando ricevuto dal feed (fail-closed). */
 export function missingOfficialData(bando: Bando, now: number = Date.now()): string[] {
-  const missing = REQUIRED_OFFICIAL.filter((f) => !bando[f.key]).map((f) => f.label);
+  const sportello = isSportello(bando);
+  const missing = REQUIRED_OFFICIAL.filter(
+    (f) => !bando[f.key] && !(sportello && f.key === "scadenza"),
+  ).map((f) => f.label);
   if (!officialUrl(bando)) missing.push("URL della fonte ufficiale (official_url / notice_url)");
-  if (bando.verification_status !== "VERIFICATO") {
+  if (bando.verification_status !== "VERIFICATO" && !sportello) {
     missing.push(
       bando.verification_status
         ? `Verifica ufficiale non completata (stato: ${bando.verification_status})`
