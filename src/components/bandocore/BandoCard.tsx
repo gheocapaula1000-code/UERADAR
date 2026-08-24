@@ -251,37 +251,55 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         ) : null}
       </div>
 
-      {(gaps?.missing_deadline || gaps?.missing_economics) && (
-        <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
-          {gaps.missing_deadline && (
-            <li className="flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5" /> {MISSING_DEADLINE_LABEL}
-            </li>
-          )}
-          {gaps.missing_economics && (
-            <li className="flex items-center gap-1.5">
-              <Euro className="h-3.5 w-3.5" /> {MISSING_ECONOMICS_LABEL}
-            </li>
-          )}
-        </ul>
+      {parziale && (
+        <div className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
+          <p className="font-semibold">Da verificare</p>
+          <p className="mt-1 text-muted-foreground">
+            Mancano ancora data o importo sul testo ufficiale. Non vuol dire che la tua impresa è
+            esclusa.
+          </p>
+          <ul className="mt-1.5 space-y-1 text-muted-foreground">
+            {gaps?.missing_deadline && (
+              <li className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" /> {MISSING_DEADLINE_LABEL}
+              </li>
+            )}
+            {gaps?.missing_economics && (
+              <li className="flex items-center gap-1.5">
+                <Euro className="h-3.5 w-3.5" /> {MISSING_ECONOMICS_LABEL}
+              </li>
+            )}
+            {partial && <li>Dati ufficiali mancanti: {missingOfficial.join(", ")}.</li>}
+          </ul>
+        </div>
       )}
 
-      {partial && (
-        <p className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
-          Dossier parziale — dati ufficiali mancanti: {missingOfficial.join(", ")}.
-        </p>
-      )}
+      {parziale && ufficialeHref ? (
+        <a
+          href={ufficialeHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
+        >
+          Apri il bando ufficiale <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </a>
+      ) : null}
 
       <Link
         to="/bando/$id"
         params={{ id: bando.id }}
         aria-label={`Genera dossier candidatura per ${bando.titolo} — bozza informativa da verificare`}
         title="Genera un dossier di candidatura in bozza: contenuto informativo da verificare, nessuna domanda viene inviata"
-        className="cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
+        className={
+          parziale && ufficialeHref
+            ? "tap mt-2 inline-flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-semibold hover:border-primary/50"
+            : "cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
+        }
       >
-        {partial ? "Genera dossier parziale" : "Genera dossier candidatura"}{" "}
+        {parziale ? "Genera dossier parziale" : "Genera dossier candidatura"}{" "}
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </Link>
+
     </div>
   );
 }
