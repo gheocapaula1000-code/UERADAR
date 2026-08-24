@@ -10,8 +10,6 @@ import {
   CheckCircle2,
   CalendarX,
   FileSearch,
-  AlertTriangle,
-  XCircle,
 } from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
 import {
