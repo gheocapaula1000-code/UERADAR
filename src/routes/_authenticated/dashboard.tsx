@@ -493,7 +493,8 @@ function Dashboard() {
             </ul>
             <p className="mt-2 text-xs text-muted-foreground">
               Le schede ufficiali restano visibili anche quando manca la scadenza o l'importo:
-              vengono segnalate come «Da verificare». Nessuna data e nessun importo viene stimato.
+              vengono segnalate come «Da verificare». I bandi a sportello non hanno una data di
+              chiusura e sono completi così. Nessuna data e nessun importo viene stimato.
             </p>
           </section>
         )}
@@ -912,8 +913,8 @@ function Dashboard() {
                   </span>
                 </h3>
                 <p className="mt-1 mb-4 text-xs text-muted-foreground">
-                  Mancano ancora data o importo sul testo ufficiale. Non vuol dire che la tua
-                  impresa è esclusa.
+                  Manca ancora la data (o lo sportello) oppure l'importo sul testo ufficiale. Non
+                  vuol dire che la tua impresa è esclusa.
                 </p>
 
                 {tiers.review.length === 0 ? (
