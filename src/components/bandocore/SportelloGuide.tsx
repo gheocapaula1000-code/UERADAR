@@ -1,7 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, CalendarCheck, FileText } from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
-import { partecipaHref, SPORTELLO_LEAD, SPORTELLO_STEPS } from "@/lib/sportello";
+import {
+  partecipaHref,
+  SPORTELLO_BADGE,
+  SPORTELLO_LEAD,
+  SPORTELLO_STEPS,
+  SPORTELLO_URGENCY,
+} from "@/lib/sportello";
 
 /**
  * Guida passo-passo per i bandi a sportello: mai "Da verificare", sempre
@@ -23,7 +29,11 @@ export function SportelloGuide({
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
       <p className="flex items-start gap-2 text-sm font-medium text-primary">
         <CalendarCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-        <span className="min-w-0 wrap-anywhere">{SPORTELLO_LEAD}</span>
+        <span className="min-w-0 wrap-anywhere">{SPORTELLO_BADGE}</span>
+      </p>
+      <p className="mt-1.5 min-w-0 wrap-anywhere text-xs text-muted-foreground">{SPORTELLO_LEAD}</p>
+      <p className="mt-1 min-w-0 wrap-anywhere text-xs font-semibold text-warning">
+        {SPORTELLO_URGENCY}
       </p>
 
       <ol className="mt-2.5 space-y-1 text-xs text-muted-foreground">
