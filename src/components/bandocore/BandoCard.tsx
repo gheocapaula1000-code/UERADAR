@@ -21,7 +21,6 @@ import {
   isVerified,
   matchPreview,
   officialLink,
-  SPORTELLO_NOTICE,
   VERIFIED_HINT,
 } from "@/lib/bando-status";
 
@@ -30,6 +29,7 @@ import { missingOfficialData } from "@/lib/dossier";
 import { admitBando, MISSING_DEADLINE_LABEL, MISSING_ECONOMICS_LABEL } from "@/lib/feed-admission";
 import { cardEnterDelayMs } from "@/lib/motion";
 import { MatchScore } from "@/components/bandocore/MatchScore";
+import { SportelloGuide } from "@/components/bandocore/SportelloGuide";
 
 const categoryStyles: Record<Bando["categoria"], { label: string; class: string }> = {
   FONDO_PERDUTO: { label: "Fondo Perduto", class: "bg-primary/15 text-primary border-primary/30" },
@@ -103,8 +103,10 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
   const verified = isVerified(bando);
   const verdict = admitBando(bando);
   const gaps = verdict.ok ? verdict.gaps : null;
-  const parziale = Boolean(gaps?.missing_deadline || gaps?.missing_economics) || partial;
   const sportello = isSportello(bando);
+  // A sportello non è un buco informativo: niente "Da verificare" per la data mancante.
+  const parziale =
+    !sportello && (Boolean(gaps?.missing_deadline || gaps?.missing_economics) || partial);
   const ufficialeHref = officialLink(bando);
 
 
@@ -250,18 +252,18 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
                 : new Date(bando.scadenza).toLocaleDateString("it-IT")}
           </div>
         ) : null}
-        {!bando.scadenza && sportello ? (
-          <div className="col-span-2 flex min-w-0 items-start gap-1.5 text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5 shrink-0" />
-            <span className="min-w-0 wrap-anywhere">{SPORTELLO_NOTICE}</span>
-          </div>
-        ) : null}
         {!expired && bando.click_day ? (
           <div className="flex items-center gap-1.5 text-warning">
             <Sparkles className="h-3.5 w-3.5" /> Click Day
           </div>
         ) : null}
       </div>
+
+      {sportello && (
+        <div className="mt-4">
+          <SportelloGuide bando={bando} compact />
+        </div>
+      )}
 
       {parziale && (
         <div className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
@@ -286,7 +288,7 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         </div>
       )}
 
-      {parziale && ufficialeHref ? (
+      {!sportello && parziale && ufficialeHref ? (
         <a
           href={ufficialeHref}
           target="_blank"
@@ -297,6 +299,7 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         </a>
       ) : null}
 
+      {!sportello && (
       <Link
         to="/bando/$id"
         params={{ id: bando.id }}
@@ -311,6 +314,7 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         {parziale ? "Genera dossier parziale" : "Genera dossier candidatura"}{" "}
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </Link>
+      )}
 
     </div>
   );
