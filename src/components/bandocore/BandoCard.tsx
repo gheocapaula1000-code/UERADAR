@@ -153,8 +153,15 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         )}
       </div>
 
-      <h3 className="mt-3 min-w-0 wrap-anywhere font-semibold leading-tight line-clamp-2">{bando.titolo}</h3>
+      <Link
+        to="/bando/$id"
+        params={{ id: bando.id }}
+        className="mt-3 min-w-0 wrap-anywhere font-semibold leading-tight line-clamp-2 hover:text-primary"
+      >
+        <h3 className="min-w-0 wrap-anywhere">{bando.titolo}</h3>
+      </Link>
       <p className="mt-1 min-w-0 wrap-anywhere text-xs text-muted-foreground">{bando.ente}</p>
+
 
       {(bando.pnrr_mission || bando.programme_name || bando.programme_code) && (
         <div className="mt-2 flex min-w-0 flex-wrap gap-1.5">
