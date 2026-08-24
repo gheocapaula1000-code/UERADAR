@@ -366,7 +366,7 @@ function BandoDetail() {
                   <Radar className="h-3 w-3" /> Fonte locale
                 </span>
               )}
-              {bando.match && (
+              {bando.match && !isSportello(bando) && (
                 <span
                   className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs ${matchStatusMeta(bando.match.status).badgeClass}`}
                 >
@@ -385,7 +385,7 @@ function BandoDetail() {
                   <CalendarX className="h-3 w-3" /> Scaduto
                 </span>
               )}
-              {isVerified(bando) && (
+              {isVerified(bando) && !isSportello(bando) && (
                 <span
                   className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400"
                   title={VERIFIED_HINT}
@@ -404,7 +404,7 @@ function BandoDetail() {
             </div>
             <h1 className="mt-3 text-2xl md:text-3xl font-bold">{bando.titolo}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{bando.ente}</p>
-            {isVerified(bando) && (
+            {isVerified(bando) && !isSportello(bando) && (
               <p className="mt-1 text-[11px] text-muted-foreground">{VERIFIED_HINT}</p>
             )}
 
@@ -430,7 +430,7 @@ function BandoDetail() {
               {bando.descrizione}
             </div>
 
-            {bando.match && (
+            {bando.match && !isSportello(bando) && (
               <div className="mt-6 grid gap-3 md:grid-cols-2">
                 {matchStatusMeta(bando.match.status).tone === "negative" && (
                   <div className="md:col-span-2 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
@@ -978,7 +978,7 @@ function BandoDetail() {
                 <dl className="mt-3 space-y-2 text-xs">
                   <Row l="Ragione Sociale" v={profile.ragione_sociale} />
                   <Row l="P. IVA" v={profile.partita_iva} />
-                  <Row l="ATECO" v={profile.codice_ateco} />
+                  <Row l="Codice attività (ATECO)" v={profile.codice_ateco} />
                   <Row
                     l="Sede"
                     v={`${profile.comune} (${profile.provincia}), ${profile.regione}`}
