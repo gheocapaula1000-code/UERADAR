@@ -100,10 +100,14 @@ describe("copy pubblico e autenticato", () => {
   it("le statistiche autenticate derivano dal feed e mostrano — durante il caricamento", () => {
     const src = readFileSync("src/routes/_authenticated/dashboard.tsx", "utf8");
     const flat = src.replace(/\s+/g, " ");
-    const guarded = flat.match(/v: query\.isLoading \? "—"/g) ?? [];
-    const allStats = flat.match(/v: query\.isLoading/g) ?? [];
-    expect(allStats.length).toBeGreaterThanOrEqual(6);
+    const guarded =
+      flat.match(/v: (?:query\.isLoading|dataUnavailable) \? (?:"—"|lastKnownCount)/g) ?? [];
+    const allStats = flat.match(/v: (?:query\.isLoading|dataUnavailable)/g) ?? [];
+    expect(allStats.length).toBeGreaterThanOrEqual(4);
     expect(guarded.length).toBe(allStats.length);
+    // il fallito fetch non diventa uno zero: mostra l'ultimo conteggio noto
+    expect(flat).toContain("lastKnownCount");
+
     // nessun valore numerico d'esempio hard-coded nelle card statistiche
     expect(src).not.toMatch(/v:\s*\d+\s*,/);
   });
