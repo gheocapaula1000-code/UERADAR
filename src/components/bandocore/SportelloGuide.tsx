@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, CalendarCheck, FileText } from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
@@ -5,6 +6,8 @@ import { officialLink } from "@/lib/bando-status";
 import { UsaIMieiDati } from "@/components/bandocore/UsaIMieiDati";
 import {
   partecipaHref,
+  sportelloAction,
+  SPORTELLO_ACTION_COUNT,
   SPORTELLO_BADGE,
   SPORTELLO_LEAD,
   SPORTELLO_STEPS,
@@ -70,11 +73,15 @@ export function SportelloGuide({
   /** In pagina dettaglio prepara i documenti sul posto, senza navigare. */
   onPrepare?: () => void;
 }) {
-  const href = partecipaHref(bando);
+  const [step, setStep] = useState(0);
   const facts = sportelloFacts(bando);
   const mine = profiloFacts(profile);
   const steps = sportelloSteps(bando, mine.length > 0);
   const official = officialLink(bando);
+  const action = sportelloAction(bando, step);
+  const advance = () => setStep((s) => Math.min(SPORTELLO_ACTION_COUNT - 1, s + 1));
+  const cta =
+    "cta-lift tap mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-base font-bold text-primary-foreground hover:brightness-110 hover:shadow-glow";
 
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
@@ -88,83 +95,80 @@ export function SportelloGuide({
       </p>
 
       {/* Un solo passo alla volta: decidiamo noi qual è, l'utente clicca. */}
-      {href ? (
+      {action.isPrepare ? (
+        onPrepare ? (
+          <button
+            type="button"
+            onClick={() => {
+              onPrepare();
+              advance();
+            }}
+            className={cta}
+          >
+            {action.label} <FileText className="h-5 w-5" aria-hidden="true" />
+          </button>
+        ) : (
+          <Link to="/bando/$id" params={{ id: bando.id }} className={cta}>
+            {action.label} <FileText className="h-5 w-5" aria-hidden="true" />
+          </Link>
+        )
+      ) : action.href ? (
         <a
-          href={href}
+          href={action.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="cta-lift tap mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-base font-bold text-primary-foreground hover:brightness-110 hover:shadow-glow"
+          onClick={advance}
+          className={cta}
         >
-          Partecipa adesso <ArrowRight className="h-5 w-5" aria-hidden="true" />
+          {action.label} <ArrowRight className="h-5 w-5" aria-hidden="true" />
         </a>
-      ) : official ? (
-        <a
-          href={official}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="cta-lift tap mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-base font-bold text-primary-foreground hover:brightness-110 hover:shadow-glow"
-        >
-          Apri il bando ufficiale <ArrowRight className="h-5 w-5" aria-hidden="true" />
-        </a>
-      ) : null}
+      ) : (
+        <button type="button" onClick={advance} className={cta}>
+          {action.label} <ArrowRight className="h-5 w-5" aria-hidden="true" />
+        </button>
+      )}
 
-      <p className="mt-2 text-center text-xs text-muted-foreground">Poi torna qui: pensiamo noi al resto.</p>
+      <p className="mt-2 text-center text-xs text-muted-foreground">
+        Passo {action.index + 1} di {SPORTELLO_ACTION_COUNT}. {action.after}
+      </p>
 
       <details className="group mt-3">
         <summary className="tap cursor-pointer list-none rounded-lg border border-border/70 px-3 py-2.5 text-sm font-semibold text-muted-foreground">
           Vedi i passi e i dati del bando
         </summary>
-      <ol className="mt-3 space-y-2">
-        {steps.map((step) => (
-          <li key={step.n} className="flex min-w-0 items-start gap-2.5">
-            <span
-              className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                step.done
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-primary/40 text-primary"
-              }`}
-            >
-              {step.n}
-            </span>
-            <span className="min-w-0">
-              <span className="block min-w-0 wrap-anywhere text-sm font-semibold">
-                {step.label}
+        <ol className="mt-3 space-y-2">
+          {steps.map((step) => (
+            <li key={step.n} className="flex min-w-0 items-start gap-2.5">
+              <span
+                className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                  step.done
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-primary/40 text-primary"
+                }`}
+              >
+                {step.n}
               </span>
-              <span className="block min-w-0 wrap-anywhere text-xs text-muted-foreground">
-                {step.done ? "Fatto: " : "Da fare: "}
-                {step.hint}
+              <span className="min-w-0">
+                <span className="block min-w-0 wrap-anywhere text-sm font-semibold">
+                  {step.label}
+                </span>
+                <span className="block min-w-0 wrap-anywhere text-xs text-muted-foreground">
+                  {step.done ? "Fatto: " : "Da fare: "}
+                  {step.hint}
+                </span>
               </span>
-            </span>
-          </li>
-        ))}
-      </ol>
+            </li>
+          ))}
+        </ol>
 
-      <ul className="mt-3 space-y-1.5 rounded-lg border border-border/70 bg-background/40 p-3 text-sm text-muted-foreground">
-        {facts.map((f) => (
-          <FactRow key={f.label} fact={f} official={official} />
-        ))}
-      </ul>
+        <ul className="mt-3 space-y-1.5 rounded-lg border border-border/70 bg-background/40 p-3 text-sm text-muted-foreground">
+          {facts.map((f) => (
+            <FactRow key={f.label} fact={f} official={official} />
+          ))}
+        </ul>
 
-      {mine.length > 0 && <UsaIMieiDati profile={profile} />}
+        {mine.length > 0 && <UsaIMieiDati profile={profile} />}
       </details>
-
-      {onPrepare ? (
-        <button
-          type="button"
-          onClick={onPrepare}
-          className="tap mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground"
-        >
-          <FileText className="h-4 w-4" aria-hidden="true" /> Prepara i documenti
-        </button>
-      ) : (
-        <Link
-          to="/bando/$id"
-          params={{ id: bando.id }}
-          className="tap mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground"
-        >
-          <FileText className="h-4 w-4" aria-hidden="true" /> Prepara i documenti
-        </Link>
-      )}
     </div>
   );
 }

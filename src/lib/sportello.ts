@@ -65,6 +65,74 @@ export function sportelloSteps(bando: Bando, hasProfile: boolean): SportelloStep
   ];
 }
 
+/** Un'azione alla volta: la PWA decide qual è il prossimo clic. */
+export interface SportelloAction {
+  /** indice del passo corrente (0-3) */
+  index: number;
+  /** verbo del bottone, sempre presente */
+  label: string;
+  /** URL da aprire, oppure null quando l'azione è interna (documenti) */
+  href: string | null;
+  /** true quando l'azione è "Prepara i documenti" */
+  isPrepare: boolean;
+  /** riga sotto al bottone: cosa succede dopo */
+  after: string;
+}
+
+const ACTION_LABELS = [
+  "Apri il bando ufficiale",
+  "Prepara i documenti",
+  "Controlla sul sito ufficiale",
+  "Partecipa adesso",
+] as const;
+
+export const SPORTELLO_ACTION_COUNT = ACTION_LABELS.length;
+
+/**
+ * Prossimo passo deciso da noi: l'utente non sceglie mai fra opzioni.
+ * Se un link manca, si resta su "Apri il bando ufficiale": mai vicoli ciechi.
+ */
+export function sportelloAction(bando: Bando, step: number): SportelloAction {
+  const official = officialLink(bando);
+  const partecipa = partecipaHref(bando);
+  const index = Math.max(0, Math.min(SPORTELLO_ACTION_COUNT - 1, Math.trunc(step) || 0));
+
+  if (index === 1) {
+    return {
+      index,
+      label: ACTION_LABELS[1],
+      href: null,
+      isPrepare: true,
+      after: "Riempiamo noi il dossier con i dati della tua impresa.",
+    };
+  }
+  if (index === 2) {
+    return {
+      index,
+      label: ACTION_LABELS[2],
+      href: official ?? partecipa,
+      isPrepare: false,
+      after: "Leggi i requisiti sul testo ufficiale, poi torna qui.",
+    };
+  }
+  if (index === 3) {
+    return {
+      index,
+      label: partecipa ? ACTION_LABELS[3] : ACTION_LABELS[0],
+      href: partecipa ?? official,
+      isPrepare: false,
+      after: "Invia la domanda sul sito dell'ente.",
+    };
+  }
+  return {
+    index: 0,
+    label: ACTION_LABELS[0],
+    href: official ?? partecipa,
+    isPrepare: false,
+    after: "Dai un'occhiata, poi torna qui: ti diciamo il passo dopo.",
+  };
+}
+
 /**
  * Dove mandare chi vuole partecipare: prima il canale di domanda dichiarato
  * dalla fonte, poi la modulistica, infine la scheda ufficiale. Nessun URL inventato.
@@ -116,9 +184,21 @@ export function sportelloFacts(bando: Bando): SportelloFact[] {
       : null;
 
   return [
-    { label: "Bando ufficiale", value: official ? "Apri la pagina ufficiale" : null, href: official ?? undefined },
-    { label: "Link per la domanda", value: domanda ? "Vai alla domanda" : null, href: domanda ?? undefined },
-    { label: "Modulo da compilare", value: modulo ? "Scarica il modulo" : null, href: modulo ?? undefined },
+    {
+      label: "Bando ufficiale",
+      value: official ? "Apri la pagina ufficiale" : null,
+      href: official ?? undefined,
+    },
+    {
+      label: "Link per la domanda",
+      value: domanda ? "Vai alla domanda" : null,
+      href: domanda ?? undefined,
+    },
+    {
+      label: "Modulo da compilare",
+      value: modulo ? "Scarica il modulo" : null,
+      href: modulo ?? undefined,
+    },
     { label: "Importo massimo", value: euro(bando.importo_max) },
     { label: "Quanto copre", value: intensity },
     { label: "Soldi totali disponibili", value: euro(bando.total_budget) },
