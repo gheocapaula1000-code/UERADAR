@@ -72,10 +72,13 @@ function safeOfficialHref(
 import {
   hasIncompleteCoreData,
   isExpired,
+  isSportello,
   isVerified,
   matchStatusMeta,
   VERIFIED_HINT,
 } from "@/lib/bando-status";
+
+import { SportelloGuide } from "@/components/bandocore/SportelloGuide";
 
 export { DRAFT_DISCLAIMER } from "@/lib/official-module";
 
@@ -310,6 +313,37 @@ function BandoDetail() {
     }
   };
 
+  const openDossier = async () => {
+                      setDossierBusy(true);
+                      setDossierError(null);
+                      try {
+                        const res = await Promise.race([
+                          claimDossier({ data: { opportunity_id: bando.id } }),
+                          new Promise<never>((_, reject) =>
+                            setTimeout(() => reject(new Error("TIMEOUT")), 12_000),
+                          ),
+                        ]);
+                        if (!res.allowed) {
+                          const msg =
+                            res.code === "QUOTA_EXCEEDED"
+                              ? "Hai esaurito i dossier inclusi in questo mese"
+                              : res.code === "EXPORT_NOT_INCLUDED"
+                                ? "Dossier non disponibile con il piano attivo"
+                                : "Dossier non disponibile in questo momento";
+                          setDossierError(msg);
+                          toast.error(msg);
+                          return;
+                        }
+                        setWatermarked(res.watermarked === true);
+                        setDossierOpen(true);
+                      } catch {
+                        setDossierError("Dossier non disponibile in questo momento");
+                        toast.error("Dossier non disponibile in questo momento");
+                      } finally {
+                        setDossierBusy(false);
+                      }
+  };
+
   const copyPec = async (value: string | undefined) => {
     if (!value) return;
     await navigator.clipboard.writeText(value);
@@ -365,7 +399,7 @@ function BandoDetail() {
                   <CheckCircle2 className="h-3 w-3" /> Verificato
                 </span>
               )}
-              {!isVerified(bando) && hasIncompleteCoreData(bando) && (
+              {!isVerified(bando) && !isSportello(bando) && hasIncompleteCoreData(bando) && (
                 <span
                   className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
                   title="Scadenza o importo non presenti nella fonte: da completare sulla fonte ufficiale"
@@ -378,6 +412,12 @@ function BandoDetail() {
             <p className="mt-1 text-sm text-muted-foreground">{bando.ente}</p>
             {isVerified(bando) && (
               <p className="mt-1 text-[11px] text-muted-foreground">{VERIFIED_HINT}</p>
+            )}
+
+            {isSportello(bando) && (
+              <div className="mt-4">
+                <SportelloGuide bando={bando} onPrepare={openDossier} />
+              </div>
             )}
 
             {bando.fonte_extratestuale && (
@@ -513,36 +553,7 @@ function BandoDetail() {
                   <button
                     type="button"
                     disabled={dossierBusy}
-                    onClick={async () => {
-                      setDossierBusy(true);
-                      setDossierError(null);
-                      try {
-                        const res = await Promise.race([
-                          claimDossier({ data: { opportunity_id: bando.id } }),
-                          new Promise<never>((_, reject) =>
-                            setTimeout(() => reject(new Error("TIMEOUT")), 12_000),
-                          ),
-                        ]);
-                        if (!res.allowed) {
-                          const msg =
-                            res.code === "QUOTA_EXCEEDED"
-                              ? "Hai esaurito i dossier inclusi in questo mese"
-                              : res.code === "EXPORT_NOT_INCLUDED"
-                                ? "Dossier non disponibile con il piano attivo"
-                                : "Dossier non disponibile in questo momento";
-                          setDossierError(msg);
-                          toast.error(msg);
-                          return;
-                        }
-                        setWatermarked(res.watermarked === true);
-                        setDossierOpen(true);
-                      } catch {
-                        setDossierError("Dossier non disponibile in questo momento");
-                        toast.error("Dossier non disponibile in questo momento");
-                      } finally {
-                        setDossierBusy(false);
-                      }
-                    }}
+                    onClick={openDossier}
                     className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
                   >
                     <FileText className="h-4 w-4" />{" "}
