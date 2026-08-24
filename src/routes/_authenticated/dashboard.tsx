@@ -14,9 +14,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Bando, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
 import { CATEGORY_FILTERS, type CategoryFilterKey } from "@/lib/bando-categories";
 import { feedMarker, runBoundedRefresh } from "@/lib/feed-refresh";
-import { isActive, isFlash, compareByQuality, isRareOrHidden } from "@/lib/bando-status";
+import { isActive, isFlash, isSportello, compareByQuality, isRareOrHidden } from "@/lib/bando-status";
 import { computeRadarStats } from "@/lib/radar-stats";
-import { splitFeedTiers } from "@/lib/feed-admission";
+import { splitGuidedFeedTiers } from "@/lib/feed-tiers";
 import { loadOfflineFeed, saveOfflineFeed } from "@/lib/offline-feed";
 import {
   DEFAULT_HOME_VIEW,
@@ -331,7 +331,7 @@ function Dashboard() {
 
   const unaSchedaPerMisura = (lista: Bando[]): Bando[] => {
     const rank = (b: Bando) => {
-      const hasDate = Boolean(b.scadenza);
+      const hasDate = Boolean(b.scadenza) || isSportello(b);
       const hasAmount = typeof b.importo_max === "number" && b.importo_max > 0;
       if (hasDate && hasAmount) return 0;
       if (hasDate) return 1;
@@ -367,7 +367,7 @@ function Dashboard() {
 
   const flashBandi = useMemo(
     () =>
-      unaSchedaPerMisura(statsSource.filter((b) => isFlash(b)))
+      unaSchedaPerMisura(statsSource.filter((b) => isFlash(b) || isSportello(b)))
         .sort((a, b) => compareByQuality(a, b))
         .slice(0, 6),
     [statsSource],
@@ -401,7 +401,7 @@ function Dashboard() {
     (hiddenOnly ? 1 : 0);
 
   // Due fasce: alta priorità e da verificare. Nessuna delle due viene nascosta.
-  const tiers = useMemo(() => splitFeedTiers(filtered), [filtered]);
+  const tiers = useMemo(() => splitGuidedFeedTiers(filtered), [filtered]);
 
   const resetFilters = () => {
     setCat("TUTTI");
@@ -890,11 +890,13 @@ function Dashboard() {
                   </span>
                 </h3>
                 <p className="mt-1 mb-4 text-xs text-muted-foreground">
-                  Hanno scadenza o apertura e un importo nel testo ufficiale.
+                  Prima questi: hanno una data di chiusura, oppure sono a sportello (i soldi
+                  possono finire).
                 </p>
                 {tiers.high.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                    Nessuna scheda con data e importo completi in questo elenco.
+                    Nessuna scheda pronta in questo elenco. Scorri sotto: c'è sempre un prossimo
+                    passo.
                   </div>
                 ) : (
                   <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -913,8 +915,8 @@ function Dashboard() {
                   </span>
                 </h3>
                 <p className="mt-1 mb-4 text-xs text-muted-foreground">
-                  Manca ancora la data (o lo sportello) oppure l'importo sul testo ufficiale. Non
-                  vuol dire che la tua impresa è esclusa.
+                  Qui manca ancora la data e non è a sportello, oppure mancano i soldi massimi sul
+                  testo ufficiale. Non vuol dire che la tua impresa è esclusa.
                 </p>
 
                 {tiers.review.length === 0 ? (
