@@ -96,6 +96,7 @@ export function profiloFacts(profile: ProfiloSportello | null | undefined): Spor
     { label: "Codice ATECO in profilo", value: profile.codice_ateco || null },
     { label: "Sede", value: sede || null },
     { label: "Contatto", value: profile.pec || profile.email_referente || null },
+    { label: "Forma giuridica", value: profile.forma_giuridica ?? null },
   ];
 }
 
@@ -103,4 +104,20 @@ export type ProfiloSportello = Pick<
   CompanyProfile,
   "ragione_sociale" | "partita_iva" | "codice_ateco" | "comune" | "provincia" | "regione"
 > &
-  Partial<Pick<CompanyProfile, "pec" | "email_referente">>;
+  Partial<Pick<CompanyProfile, "pec" | "email_referente" | "forma_giuridica" | "telefono">>;
+
+/**
+ * Campi pronti da copiare per i portali esterni (Invitalia, Camera, MIMIT):
+ * la PWA non compila quei siti, ma dà i valori reali del profilo da incollare.
+ */
+export function campiDaCopiare(profile: ProfiloSportello | null | undefined): SportelloFact[] {
+  if (!profile) return [];
+  return profiloFacts(profile).filter((f) => Boolean(f.value));
+}
+
+/** Blocco unico "Usa i miei dati": solo valori realmente presenti nel profilo. */
+export function copiaMieiDati(profile: ProfiloSportello | null | undefined): string {
+  return campiDaCopiare(profile)
+    .map((f) => `${f.label}: ${f.value}`)
+    .join("\n");
+}
