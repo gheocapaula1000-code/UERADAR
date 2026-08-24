@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import { Mail, Lock, ArrowLeft } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { BrandLogo } from "@/components/bandocore/BrandLogo";
 import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { seoHead } from "@/lib/seo";
@@ -19,6 +19,7 @@ function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -69,6 +70,27 @@ function AuthPage() {
       if (data.session) navigate({ to: "/dashboard" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Errore di autenticazione");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  const handleForgotPassword = async () => {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      toast.error("Inserisci l'email per recuperare la password");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
+        redirectTo: window.location.origin + "/auth",
+      });
+      if (error) throw error;
+      toast.success("Se l'account esiste, riceverai una email per reimpostare la password");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Recupero password non riuscito");
     } finally {
       setLoading(false);
     }
@@ -169,20 +191,45 @@ function AuthPage() {
               </div>
             </div>
             <div>
-              <label htmlFor="password" className="text-xs font-medium text-muted-foreground">Password</label>
+              <div className="flex items-center justify-between gap-2">
+                <label htmlFor="password" className="text-xs font-medium text-muted-foreground">Password</label>
+                {mode === "signin" ? (
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    disabled={loading}
+                    className="tap text-xs font-medium text-primary hover:underline disabled:opacity-50"
+                  >
+                    Password dimenticata?
+                  </button>
+                ) : null}
+              </div>
               <div className="mt-1 relative">
                 <Lock aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   id="password"
-                  type="password"
-                  autoComplete="current-password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
                   required
                   minLength={6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-input pl-10 pr-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full rounded-lg border border-border bg-input pl-10 pr-11 py-3 text-base focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Minimo 6 caratteri"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="tap absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Nascondi password" : "Mostra password"}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? (
+                    <EyeOff aria-hidden="true" className="h-4 w-4" />
+                  ) : (
+                    <Eye aria-hidden="true" className="h-4 w-4" />
+                  )}
+                </button>
               </div>
             </div>
             <button
