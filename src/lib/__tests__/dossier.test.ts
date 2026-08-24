@@ -63,7 +63,9 @@ const profile = {
 describe("dossier candidatura", () => {
   it("applica l'allowlist privacy escludendo contatti personali", () => {
     const picked = pickAllowedProfile(profile) as Record<string, unknown>;
-    expect(Object.keys(picked).every((k) => (ALLOWED_PROFILE_FIELDS as readonly string[]).includes(k))).toBe(true);
+    expect(
+      Object.keys(picked).every((k) => (ALLOWED_PROFILE_FIELDS as readonly string[]).includes(k)),
+    ).toBe(true);
     expect(picked["email_referente"]).toBeUndefined();
     expect(picked["telefono"]).toBeUndefined();
     expect(picked["pec"]).toBeUndefined();
@@ -187,12 +189,16 @@ describe("dossier candidatura", () => {
     }
   });
 
-  it("mostra nelle card la CTA dossier e lo stato parziale", () => {
+  it("mostra nelle card il prossimo passo e lo stato parziale, senza dire non compatibile", () => {
     const card = readFileSync("src/components/bandocore/BandoCard.tsx", "utf8");
-    expect(card).toContain("Genera dossier candidatura");
-    expect(card).toContain("Genera dossier parziale");
-    expect(card).toContain("matchPreview");
+    expect(card).toContain("OPEN_OFFICIAL_LABEL");
+    expect(card).toContain("cardPrimaryAction");
+    expect(card).toContain("VERIFY_PARTIAL_MEANING");
     expect(card).toContain('to="/bando/$id"');
+    expect(card).not.toContain("Genera dossier parziale");
+    expect(card).not.toContain("Non compatibile");
+    const page = readFileSync("src/routes/_authenticated/bando.$id.tsx", "utf8");
+    expect(page).toContain("Genera dossier candidatura");
   });
 
   it("filigrana la prova nel TXT e nel PDF, e la UI la dichiara prima dell'apertura", () => {

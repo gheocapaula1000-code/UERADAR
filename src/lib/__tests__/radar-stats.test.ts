@@ -86,8 +86,8 @@ describe("Radar Bandi usa i helper come unica fonte", () => {
     expect(dashboard).toContain("Bandi del catalogo ufficiale attualmente mostrati");
     expect(dashboard).not.toMatch(/compatibili con il profilo/);
     expect(dashboard).not.toContain("Bandi Attivi per te");
-    expect(dashboard).toContain("Catalogo");
-    expect(dashboard).toContain("Per la mia impresa");
+    expect(dashboard).toContain("CATALOG_SWITCH_LABEL");
+    expect(dashboard).toContain("PROFILE_SWITCH_LABEL");
     expect(dashboard).toContain('homeView === "catalog"');
     expect(dashboard).not.toMatch(/l:\s*["']COMPATIBILE["']/);
     expect(dashboard).not.toContain("Modulistica disponibile");

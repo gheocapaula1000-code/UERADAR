@@ -25,6 +25,26 @@ import {
   writeHomeView,
   type HomeView,
 } from "@/lib/home-view";
+import {
+  CATALOG_SWITCH_ARIA,
+  CATALOG_SWITCH_HINT,
+  CATALOG_SWITCH_LABEL,
+  PROFILE_SWITCH_ARIA,
+  PROFILE_SWITCH_HINT,
+  PROFILE_SWITCH_LABEL,
+  VERIFY_PARTIAL_LABEL,
+  VERIFY_PARTIAL_MEANING,
+  browserLastFeedCountStorage,
+  fetchErrorCopy,
+  highTierEmptyCopy,
+  homeFlashEmpty,
+  homeListEmpty,
+  readLastFeedCount,
+  reviewTierEmptyCopy,
+  saveLastFeedCount,
+  type EmptyActionKind,
+} from "@/lib/plain-ux";
+import { NextStepEmpty } from "@/components/bandocore/NextStepEmpty";
 import { Switch } from "@/components/ui/switch";
 import {
   RefreshCw,
@@ -92,10 +112,17 @@ function Dashboard() {
   const [homeView, setHomeView] = useState<HomeView>(
     () => readHomeView(browserHomeViewStorage()) || DEFAULT_HOME_VIEW,
   );
+  const [lastKnownCount, setLastKnownCount] = useState<number | null>(() =>
+    readLastFeedCount(
+      readHomeView(browserHomeViewStorage()) || DEFAULT_HOME_VIEW,
+      browserLastFeedCountStorage(),
+    ),
+  );
 
   const persistHomeView = useCallback((next: HomeView) => {
     setHomeView(next);
     writeHomeView(next, browserHomeViewStorage());
+    setLastKnownCount(readLastFeedCount(next, browserLastFeedCountStorage()));
   }, []);
   // Esito dell'ultimo aggiornamento: resta visibile finché non viene chiuso.
   const [refreshNotice, setRefreshNotice] = useState<{
@@ -234,6 +261,13 @@ function Dashboard() {
   const bandiAttivi = useMemo(() => bandi.filter((b) => isActive(b)), [bandi]);
   const isOffline = query.data?.source === "cache";
 
+  useEffect(() => {
+    if (!query.data || query.error) return;
+    const count = query.data.bandi.length;
+    saveLastFeedCount(homeView, count, browserLastFeedCountStorage());
+    setLastKnownCount(count);
+  }, [homeView, query.data, query.error]);
+
   // Filtro sede: nasconde solo i bandi di territori diversi da quello del profilo.
   const sedeOk = useMemo(() => {
     const norm = (v?: string | null) => (typeof v === "string" ? v.trim().toLowerCase() : "");
@@ -277,11 +311,15 @@ function Dashboard() {
       if (!prefix) return true;
       const consentiti = b.categoria ? SETTORI[b.categoria] : undefined;
       if (consentiti && !consentiti.includes(prefix)) return false;
-      const lista = (b as Bando & { atecoCompatibili?: string[] }).ateco_compatibili ??
+      const lista =
+        (b as Bando & { atecoCompatibili?: string[] }).ateco_compatibili ??
         (b as Bando & { atecoCompatibili?: string[] }).atecoCompatibili;
       if (Array.isArray(lista) && lista.length > 0) {
         return lista.some(
-          (code) => String(code).replace(/[^0-9]/g, "").slice(0, 2) === prefix,
+          (code) =>
+            String(code)
+              .replace(/[^0-9]/g, "")
+              .slice(0, 2) === prefix,
         );
       }
       return true;
@@ -311,12 +349,19 @@ function Dashboard() {
         path = normalized.slice(host.length);
       }
     }
-    if (host === "invitalia.it" && (path.includes("nuove-imprese-tasso-zero") || path.includes("nito"))) {
+    if (
+      host === "invitalia.it" &&
+      (path.includes("nuove-imprese-tasso-zero") || path.includes("nito"))
+    ) {
       return "invitalia:on-nito";
     }
     if (normalized) return normalized;
     const t = (b.titolo ?? "").toLowerCase();
-    if ((t.includes("nuove imprese") && t.includes("tasso zero")) || t.includes("nito-on") || t.includes("nito on")) {
+    if (
+      (t.includes("nuove imprese") && t.includes("tasso zero")) ||
+      t.includes("nito-on") ||
+      t.includes("nito on")
+    ) {
       return "invitalia:on-nito";
     }
     return b.id;
@@ -349,9 +394,7 @@ function Dashboard() {
   // Catalogo: tutti i Bandi ufficiali aperti. Profilo: sede/settore come oggi.
   const bandiPerProfilo = useMemo(
     () =>
-      bandiAttivi.filter(
-        (b) => b.match?.status !== "NON_COMPATIBILE" && sedeOk(b) && settoreOk(b),
-      ),
+      bandiAttivi.filter((b) => b.match?.status !== "NON_COMPATIBILE" && sedeOk(b) && settoreOk(b)),
     [bandiAttivi, sedeOk, settoreOk],
   );
   const statsSource = homeView === "catalog" ? bandiAttivi : bandiPerProfilo;
@@ -403,6 +446,40 @@ function Dashboard() {
     setHiddenOnly(false);
   };
 
+  const runEmptyAction = (kind: EmptyActionKind) => {
+    if (kind === "retry") {
+      void query.refetch();
+      return;
+    }
+    if (kind === "reset-filters") {
+      resetFilters();
+      return;
+    }
+    if (kind === "show-catalog") {
+      persistHomeView("catalog");
+      document
+        .getElementById("tutti-i-bandi")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const listEmpty = query.error
+    ? fetchErrorCopy(lastKnownCount)
+    : homeListEmpty({
+        fetchFailed: false,
+        lastKnownCount,
+        bandiCount: bandi.length,
+        filteredCount: filtered.length,
+        activeFilters,
+        homeView,
+      });
+  const flashEmpty = homeFlashEmpty({
+    fetchFailed: Boolean(query.error),
+    lastKnownCount,
+    flashCount: flashBandi.length,
+    listHasItems: filtered.length > 0,
+  });
+
   return (
     <AppShell>
       <RadarIntro />
@@ -414,9 +491,7 @@ function Dashboard() {
               <Radar className="h-7 w-7 shrink-0 text-accent" /> Radar Bandi
             </h1>
             <p className="mt-1 min-w-0 wrap-anywhere text-sm text-muted-foreground">
-              {homeView === "catalog"
-                ? "Tutti i Bandi ufficiali aperti."
-                : "I Bandi selezionati per la tua impresa."}
+              {homeView === "catalog" ? CATALOG_SWITCH_HINT : PROFILE_SWITCH_HINT}
               {query.data?.fetched_at
                 ? ` · Aggiornato il ${new Date(query.data.fetched_at).toLocaleString("it-IT")}`
                 : ""}
@@ -428,22 +503,27 @@ function Dashboard() {
                 <WifiOff className="h-3.5 w-3.5 shrink-0" /> Dati salvati
               </span>
             )}
-            <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
-              <span
-                className={`text-sm ${homeView === "catalog" ? "font-semibold text-foreground" : "text-muted-foreground"}`}
-              >
-                Catalogo
-              </span>
-              <Switch
-                checked={homeView === "profile"}
-                onCheckedChange={(on) => persistHomeView(on ? "profile" : "catalog")}
-                aria-label="Per la mia impresa: mostra solo i Bandi abbinati al profilo"
-              />
-              <span
-                className={`text-sm ${homeView === "profile" ? "font-semibold text-foreground" : "text-muted-foreground"}`}
-              >
-                Per la mia impresa
-              </span>
+            <div className="flex min-w-0 max-w-full flex-col gap-1 rounded-xl border border-border bg-card px-3 py-2">
+              <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
+                <span
+                  className={`text-sm ${homeView === "catalog" ? "font-semibold text-foreground" : "text-muted-foreground"}`}
+                >
+                  {CATALOG_SWITCH_LABEL}
+                </span>
+                <Switch
+                  checked={homeView === "profile"}
+                  onCheckedChange={(on) => persistHomeView(on ? "profile" : "catalog")}
+                  aria-label={homeView === "catalog" ? PROFILE_SWITCH_ARIA : CATALOG_SWITCH_ARIA}
+                />
+                <span
+                  className={`text-sm ${homeView === "profile" ? "font-semibold text-foreground" : "text-muted-foreground"}`}
+                >
+                  {PROFILE_SWITCH_LABEL}
+                </span>
+              </div>
+              <p className="min-w-0 wrap-anywhere text-xs text-muted-foreground">
+                {homeView === "catalog" ? CATALOG_SWITCH_HINT : PROFILE_SWITCH_HINT}
+              </p>
             </div>
             <button
               onClick={handleManualRefresh}
@@ -482,8 +562,8 @@ function Dashboard() {
               )}
             </ul>
             <p className="mt-2 text-xs text-muted-foreground">
-              Le schede ufficiali restano visibili anche quando manca la scadenza o l'importo:
-              vengono segnalate come «Da verificare». Nessuna data e nessun importo viene stimato.
+              «{VERIFY_PARTIAL_LABEL}» significa: {VERIFY_PARTIAL_MEANING} Nessuna data e nessun
+              importo viene stimato.
             </p>
           </section>
         )}
@@ -566,7 +646,9 @@ function Dashboard() {
                   className="rounded-xl border border-border bg-card p-3 text-left transition hover:border-primary/50"
                 >
                   <div className="flex min-w-0 items-start justify-between gap-2">
-                    <span className="min-w-0 wrap-anywhere text-sm font-medium line-clamp-1">{item.title}</span>
+                    <span className="min-w-0 wrap-anywhere text-sm font-medium line-clamp-1">
+                      {item.title}
+                    </span>
                     {item.read_at ? (
                       <CheckCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                     ) : (
@@ -585,33 +667,36 @@ function Dashboard() {
           {[
             {
               l: homeView === "catalog" ? "Bandi ufficiali aperti" : "Bandi attivi per te",
-              v: query.isLoading ? "—" : stats.totale,
+              v: query.isLoading ? "—" : query.error ? (lastKnownCount ?? "—") : stats.totale,
               c: "text-primary",
               d:
                 homeView === "catalog"
-                  ? "Bandi del catalogo ufficiale attualmente mostrati. Non è un conteggio di match."
-                  : "Bandi in feed per questo profilo (sede e settore). Non è un conteggio di match COMPATIBILE.",
+                  ? "Bandi del catalogo ufficiale attualmente mostrati. Tutti i bandi ufficiali aperti."
+                  : "Bandi in feed per questo profilo (sede e settore). Solo quelli che il profilo può usare (ATECO ufficiale).",
             },
             {
               l: "In scadenza a breve",
-              v: query.isLoading ? "—" : stats.flash,
+              v: query.isLoading ? "—" : query.error ? "—" : stats.flash,
               c: "text-warning",
               d: "Scadenza vicina o a sportello, da guardare per primi.",
             },
             {
               l: "Fonti locali / poco diffuse",
-              v: query.isLoading ? "—" : stats.hidden,
+              v: query.isLoading ? "—" : query.error ? "—" : stats.hidden,
               c: "text-accent",
               d: "Fonti minori o poco diffuse. Non è un metrico di vendita.",
             },
             {
               l: "Con modulistica / presentazione",
-              v: query.isLoading ? "—" : stats.withModulistica,
+              v: query.isLoading ? "—" : query.error ? "—" : stats.withModulistica,
               c: "text-primary",
               d: "Solo URL di modulistica o presentazione etichettati. Mai official_url.",
             },
           ].map((s) => (
-            <div key={s.l} className="min-w-0 overflow-x-clip rounded-xl border border-border bg-card p-4">
+            <div
+              key={s.l}
+              className="min-w-0 overflow-x-clip rounded-xl border border-border bg-card p-4"
+            >
               <div className="wrap-anywhere text-sm text-muted-foreground">{s.l}</div>
               <div className={`mt-1 wrap-anywhere text-3xl font-bold ${s.c}`}>{s.v}</div>
               <p className="mt-2 text-xs text-muted-foreground">{s.d}</p>
@@ -627,13 +712,19 @@ function Dashboard() {
                 l: "Importo Massimo",
                 v: query.isLoading
                   ? "—"
-                  : `${new Intl.NumberFormat("it-IT", { notation: "compact" }).format(stats.importo)} €`,
+                  : query.error
+                    ? "—"
+                    : `${new Intl.NumberFormat("it-IT", { notation: "compact" }).format(stats.importo)} €`,
                 c: "text-accent",
               },
-              { l: "UE + PNRR", v: query.isLoading ? "—" : stats.euPnrr, c: "text-info" },
+              {
+                l: "UE + PNRR",
+                v: query.isLoading ? "—" : query.error ? "—" : stats.euPnrr,
+                c: "text-info",
+              },
               {
                 l: "Imprenditoria Femminile",
-                v: query.isLoading ? "—" : stats.femm,
+                v: query.isLoading ? "—" : query.error ? "—" : stats.femm,
                 c: "text-femminile",
               },
             ].map((s) => (
@@ -653,7 +744,9 @@ function Dashboard() {
                 <Zap className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <h2 className="wrap-anywhere text-lg font-semibold">Opportunità locali e scadenze ravvicinate</h2>
+                <h2 className="wrap-anywhere text-lg font-semibold">
+                  Opportunità locali e scadenze ravvicinate
+                </h2>
                 <p className="text-xs text-muted-foreground">
                   Priorità ai bandi comunali e camerali della tua zona e alle scadenze più vicine.
                 </p>
@@ -664,14 +757,14 @@ function Dashboard() {
             {query.isLoading ? (
               Array.from({ length: 3 }).map((_, i) => <BandoCardSkeleton key={i} />)
             ) : query.error ? (
-              <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Elenco non disponibile in questo momento. Non mostriamo schede di esempio: riprova
-                con «Cerca nuovi Bandi» oppure consulta lo snapshot già salvato, se presente.
-              </div>
-            ) : flashBandi.length === 0 ? (
-              <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Nessuna scadenza ravvicinata tra le opportunità caricate dal catalogo ufficiale.
-              </div>
+              <p className="col-span-full text-center text-sm text-muted-foreground">
+                {fetchErrorCopy(lastKnownCount).title} Il pulsante Riprova è sotto, nell'elenco.
+              </p>
+            ) : flashEmpty ? (
+              <NextStepEmpty
+                copy={flashEmpty}
+                onAction={() => runEmptyAction(flashEmpty.actionKind)}
+              />
             ) : (
               flashBandi.map((b, i) => <BandoCard key={b.id} bando={b} index={i} />)
             )}
@@ -681,7 +774,7 @@ function Dashboard() {
         {/* FILTRI */}
         <section className="space-y-4">
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-            <h2 className="min-w-0 wrap-anywhere text-lg font-semibold">
+            <h2 id="tutti-i-bandi" className="min-w-0 wrap-anywhere text-lg font-semibold">
               Tutti i Bandi{" "}
               <span className="text-sm font-normal text-muted-foreground">
                 ({filtered.length}
@@ -797,26 +890,8 @@ function Dashboard() {
                 <BandoCardSkeleton key={i} />
               ))}
             </div>
-          ) : query.error ? (
-            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              Il catalogo ufficiale non è raggiungibile in questo momento. Non inventiamo Bandi:
-              riprova tra poco con «Cerca nuovi Bandi».
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              {bandi.length === 0
-                ? "Nessun Bando ufficiale in questo aggiornamento. Non inventiamo schede."
-                : "Nessun Bando corrisponde ai filtri scelti."}
-              {activeFilters > 0 && (
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="tap ml-2 font-semibold text-primary underline"
-                >
-                  Azzera i filtri
-                </button>
-              )}
-            </div>
+          ) : listEmpty ? (
+            <NextStepEmpty copy={listEmpty} onAction={() => runEmptyAction(listEmpty.actionKind)} />
           ) : (
             <div className="space-y-8">
               <div>
@@ -830,9 +905,9 @@ function Dashboard() {
                   Hanno scadenza o apertura e un importo nel testo ufficiale.
                 </p>
                 {tiers.high.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                    Nessuna scheda con match forte, data e importo completi in questo elenco.
-                  </div>
+                  <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                    {highTierEmptyCopy().title} {highTierEmptyCopy().body}
+                  </p>
                 ) : (
                   <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {tiers.high.map((b: Bando, i: number) => (
@@ -850,13 +925,12 @@ function Dashboard() {
                   </span>
                 </h3>
                 <p className="mt-1 mb-4 text-xs text-muted-foreground">
-                  Schede da fonte ufficiale in cui manca l'importo o la scadenza, oppure con campi
-                  ancora da verificare sulla fonte.
+                  {VERIFY_PARTIAL_MEANING} Non vuol dire che la tua impresa è esclusa.
                 </p>
                 {tiers.review.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                    Nessuna scheda da verificare in questo elenco.
-                  </div>
+                  <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                    {reviewTierEmptyCopy().title} {reviewTierEmptyCopy().body}
+                  </p>
                 ) : (
                   <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {tiers.review.map((b: Bando, i: number) => (
@@ -872,8 +946,8 @@ function Dashboard() {
         <p className="rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground">
           {COVERAGE_HEADLINE} {MONITORING_COPY}{" "}
           {homeView === "catalog"
-            ? "Qui vedi il catalogo ufficiale aperto. Passa a «Per la mia impresa» per l'elenco abbinato al profilo."
-            : "I risultati arrivano da fonti ufficiali e specialistiche e sono ordinati sul profilo della tua impresa."}
+            ? `${CATALOG_SWITCH_HINT} Passa a «${PROFILE_SWITCH_LABEL}» per vedere solo i bandi che il profilo può usare.`
+            : `${PROFILE_SWITCH_HINT} Passa a «${CATALOG_SWITCH_LABEL}» per vedere tutti i bandi ufficiali aperti.`}
         </p>
       </div>
     </AppShell>

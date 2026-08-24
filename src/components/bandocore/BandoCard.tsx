@@ -10,8 +10,7 @@ import {
   CheckCircle2,
   CalendarX,
   FileSearch,
-  AlertTriangle,
-  XCircle,
+  ExternalLink,
 } from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
 import {
@@ -19,15 +18,24 @@ import {
   isExpired,
   isFlash,
   isRareOrHidden,
-  isVerified,
-  matchPreview,
-  VERIFIED_HINT,
+  officialLink,
 } from "@/lib/bando-status";
 import { formatItalianInteger } from "@/lib/catalog";
-import { missingOfficialData } from "@/lib/dossier";
 import { admitBando, MISSING_DEADLINE_LABEL, MISSING_ECONOMICS_LABEL } from "@/lib/feed-admission";
 import { cardEnterDelayMs } from "@/lib/motion";
 import { MatchScore } from "@/components/bandocore/MatchScore";
+import {
+  OPEN_OFFICIAL_LABEL,
+  VERIFY_OK_LABEL,
+  VERIFY_PARTIAL_LABEL,
+  VERIFY_PARTIAL_MEANING,
+  VERIFY_PARTIAL_NOT_INELIGIBLE,
+  cardPrimaryAction,
+  isPublicPartial,
+  mayShowOfficialCompatible,
+  publicVerifyStatus,
+  safePublicHref,
+} from "@/lib/plain-ux";
 
 const categoryStyles: Record<Bando["categoria"], { label: string; class: string }> = {
   FONDO_PERDUTO: { label: "Fondo Perduto", class: "bg-primary/15 text-primary border-primary/30" },
@@ -95,12 +103,13 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
   const flash = isFlash(bando);
   const rareOrHidden = isRareOrHidden(bando);
   const urgent = !expired && daysLeft !== null && daysLeft <= 10 && daysLeft >= 0;
-  const preview = matchPreview(bando.match);
-  const missingOfficial = missingOfficialData(bando);
-  const partial = missingOfficial.length > 0;
-  const verified = isVerified(bando);
+  const showCompatible = mayShowOfficialCompatible(bando.match);
+  const partial = isPublicPartial(bando);
+  const verified = publicVerifyStatus(bando) === "VERIFICATO";
   const verdict = admitBando(bando);
   const gaps = verdict.ok ? verdict.gaps : null;
+  const primary = cardPrimaryAction(bando);
+  const officialHref = safePublicHref(officialLink(bando));
 
   return (
     <div
@@ -127,9 +136,17 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
           {verified && (
             <span
               className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-400"
-              title={VERIFIED_HINT}
+              title="Sul testo ufficiale ci sono la data e l'importo massimo."
             >
-              <CheckCircle2 className="h-3 w-3" /> Verificato
+              <CheckCircle2 className="h-3 w-3" /> {VERIFY_OK_LABEL}
+            </span>
+          )}
+          {partial && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning"
+              title={VERIFY_PARTIAL_MEANING}
+            >
+              {VERIFY_PARTIAL_LABEL}
             </span>
           )}
           {rareOrHidden && !bando.is_hidden && (
@@ -153,7 +170,11 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         )}
       </div>
 
-      <h3 className="mt-3 min-w-0 wrap-anywhere font-semibold leading-tight line-clamp-2">{bando.titolo}</h3>
+      <h3 className="mt-3 min-w-0 wrap-anywhere font-semibold leading-tight line-clamp-2">
+        <Link to="/bando/$id" params={{ id: bando.id }} className="hover:underline">
+          {bando.titolo}
+        </Link>
+      </h3>
       <p className="mt-1 min-w-0 wrap-anywhere text-xs text-muted-foreground">{bando.ente}</p>
 
       {(bando.pnrr_mission || bando.programme_name || bando.programme_code) && (
@@ -184,43 +205,22 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         </div>
       )}
 
-      <p className="mt-3 min-w-0 wrap-anywhere text-sm text-muted-foreground line-clamp-3 flex-1">{bando.descrizione}</p>
+      <p className="mt-3 min-w-0 wrap-anywhere text-sm text-muted-foreground line-clamp-3 flex-1">
+        {bando.descrizione}
+      </p>
 
-      {preview && (
-        <div className={`mt-4 rounded-lg border p-2.5 ${preview.boxClass}`}>
+      {showCompatible && (
+        <div className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5">
           <div className="flex min-w-0 items-center justify-between gap-2 text-xs">
-            <span className={`flex min-w-0 flex-wrap items-center gap-1.5 font-medium ${preview.textClass}`}>
-              {preview.tone === "positive" ? (
-                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-              ) : preview.tone === "negative" ? (
-                <XCircle className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-              )}
-              {preview.label}
+            <span className="flex min-w-0 flex-wrap items-center gap-1.5 font-medium text-emerald-400">
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              Il testo ufficiale cita il tuo codice ATECO
             </span>
-            <MatchScore score={preview.score} />
+            <MatchScore score={bando.match?.score} />
           </div>
-          {preview.confirmed.length > 0 ? (
+          {(bando.match?.confirmed?.length ?? 0) > 0 ? (
             <p className="mt-1.5 text-[11px] text-muted-foreground">
-              Confermato: {preview.confirmed.join(" · ")}
-            </p>
-          ) : null}
-          {preview.missing.length > 0 ? (
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Da controllare: {preview.missing.join(" · ")}
-            </p>
-          ) : null}
-          {preview.blockers.length > 0 ? (
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Blocco: {preview.blockers.join(" · ")}
-            </p>
-          ) : null}
-          {preview.confirmed.length === 0 &&
-          preview.missing.length === 0 &&
-          preview.blockers.length === 0 ? (
-            <p className="mt-1.5 text-[11px] text-muted-foreground">
-              Controlla i requisiti sul bando ufficiale
+              Sul testo: {bando.match?.confirmed.slice(0, 2).join(" · ")}
             </p>
           ) : null}
         </div>
@@ -230,15 +230,15 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
           <MapPin className="h-3.5 w-3.5 shrink-0" />
           <span className="min-w-0 wrap-anywhere">
-          {scopeLabels[bando.scope]}
-          {bando.comune ? ` · ${bando.comune}` : bando.regione ? ` · ${bando.regione}` : ""}
+            {scopeLabels[bando.scope]}
+            {bando.comune ? ` · ${bando.comune}` : bando.regione ? ` · ${bando.regione}` : ""}
           </span>
         </div>
         {bando.importo_max ? (
           <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
             <Euro className="h-3.5 w-3.5 shrink-0" />
             <span className="min-w-0 wrap-anywhere">
-            fino a {formatItalianInteger(bando.importo_max)} €
+              fino a {formatItalianInteger(bando.importo_max)} €
             </span>
           </div>
         ) : null}
@@ -278,20 +278,32 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
 
       {partial && (
         <p className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
-          Dossier parziale — dati ufficiali mancanti: {missingOfficial.join(", ")}.
+          {VERIFY_PARTIAL_MEANING} {VERIFY_PARTIAL_NOT_INELIGIBLE}
         </p>
       )}
 
-      <Link
-        to="/bando/$id"
-        params={{ id: bando.id }}
-        aria-label={`Genera dossier candidatura per ${bando.titolo} — bozza informativa da verificare`}
-        title="Genera un dossier di candidatura in bozza: contenuto informativo da verificare, nessuna domanda viene inviata"
-        className="cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
-      >
-        {partial ? "Genera dossier parziale" : "Genera dossier candidatura"}{" "}
-        <ArrowRight className="h-4 w-4" aria-hidden="true" />
-      </Link>
+      {primary.kind === "official" && officialHref ? (
+        <a
+          href={officialHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`${OPEN_OFFICIAL_LABEL}: ${bando.titolo}`}
+          className="cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
+        >
+          {OPEN_OFFICIAL_LABEL}
+          <ExternalLink className="h-4 w-4" aria-hidden="true" />
+        </a>
+      ) : (
+        <Link
+          to="/bando/$id"
+          params={{ id: bando.id }}
+          aria-label={`${primary.label} ${bando.titolo}`}
+          className="cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
+        >
+          {primary.label}
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
+      )}
     </div>
   );
 }
