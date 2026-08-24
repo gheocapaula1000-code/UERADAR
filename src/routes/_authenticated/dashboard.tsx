@@ -233,6 +233,13 @@ function Dashboard() {
   const bandi = useMemo(() => query.data?.bandi ?? [], [query.data?.bandi]);
   const bandiAttivi = useMemo(() => bandi.filter((b) => isActive(b)), [bandi]);
   const isOffline = query.data?.source === "cache";
+  // Un errore di rete non deve diventare uno zero: mostriamo «—» e l'ultimo conteggio noto.
+  const dataUnavailable = query.isLoading || Boolean(query.error);
+  const [lastKnownCount, setLastKnownCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (query.data?.bandi) setLastKnownCount(query.data.bandi.length);
+  }, [query.data?.bandi]);
+
 
   // Filtro sede: nasconde solo i bandi di territori diversi da quello del profilo.
   const sedeOk = useMemo(() => {
