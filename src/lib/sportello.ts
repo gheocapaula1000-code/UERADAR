@@ -15,10 +15,55 @@ export const SPORTELLO_URGENCY = "Meglio fare subito: i soldi possono finire.";
 /** I tre passi sempre visibili: l'utente deve sapere qual è il prossimo click. */
 export const SPORTELLO_STEPS = [
   "Apri il bando ufficiale",
-  "Prepara i documenti (solo dati reali della fonte)",
+  "Prepara i documenti",
   "Controlla se la tua impresa c'entra",
   "Invia la domanda sul sito dell'ente",
 ] as const;
+
+export interface SportelloStep {
+  n: number;
+  label: string;
+  done: boolean;
+  /** Cosa succede al click, in parole semplici. */
+  hint: string;
+}
+
+/**
+ * I quattro passi con stato "fatto" / "da fare". "Fatto" indica solo cose che la
+ * PWA ha davvero pronte (link trovato, dati impresa in profilo): nessuna promessa
+ * sull'esito della domanda.
+ */
+export function sportelloSteps(bando: Bando, hasProfile: boolean): SportelloStep[] {
+  const link = partecipaHref(bando) ?? officialLink(bando);
+  return [
+    {
+      n: 1,
+      label: "Apri il bando ufficiale",
+      done: Boolean(link),
+      hint: link ? "Il link è pronto qui sotto." : "Il link non è sulla fonte.",
+    },
+    {
+      n: 2,
+      label: "Prepara i documenti",
+      done: hasProfile,
+      hint: hasProfile
+        ? "Il dossier si riempie con i dati della tua impresa."
+        : "Compila il profilo impresa e si riempie da solo.",
+    },
+    {
+      n: 3,
+      label: "Controlla se la tua impresa c'entra",
+      done: false,
+      hint: "Lo dice il testo ufficiale: leggi i requisiti.",
+    },
+    {
+      n: 4,
+      label: "Invia la domanda sul sito dell'ente",
+      done: false,
+      hint: "Si invia sul sito dell'ente, con i campi copiati da qui.",
+    },
+  ];
+}
 
 /**
  * Dove mandare chi vuole partecipare: prima il canale di domanda dichiarato
@@ -31,7 +76,7 @@ export function partecipaHref(bando: Bando): string | null {
 export { isSportello };
 
 /** Riga unica quando un dato non è sulla fonte: mai inventare, sempre dire dove guardare. */
-export const SPORTELLO_MISSING_LINE = "non è sul testo, lo vedi aprendo il bando ufficiale";
+export const SPORTELLO_MISSING_LINE = "Non c'è sul bando. Aprendo il sito ufficiale lo vedi.";
 
 export interface SportelloFact {
   label: string;
