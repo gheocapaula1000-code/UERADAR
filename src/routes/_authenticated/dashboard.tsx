@@ -680,9 +680,21 @@ function Dashboard() {
               Array.from({ length: 3 }).map((_, i) => <BandoCardSkeleton key={i} />)
             ) : query.error ? (
               <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Elenco non disponibile in questo momento. Non mostriamo schede di esempio: riprova
-                con «Cerca nuovi Bandi» oppure consulta lo snapshot già salvato, se presente.
+                <p>
+                  Non siamo riusciti a leggere l'elenco adesso.
+                  {lastKnownCount !== null
+                    ? ` Ultimo dato noto: ${lastKnownCount} bandi.`
+                    : ""}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => query.refetch()}
+                  className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                >
+                  Riprova
+                </button>
               </div>
+
             ) : flashBandi.length === 0 ? (
               <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
                 Nessuna scadenza ravvicinata tra le opportunità caricate dal catalogo ufficiale.
