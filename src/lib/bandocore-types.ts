@@ -108,7 +108,9 @@ export interface Bando {
   aid_intensity_percent?: number;
   total_budget?: number;
   eligible_expenses?: string[];
-  verification_status?: "VERIFICATO" | "PARZIALE" | "DA_VERIFICARE";
+  verification_status?: "VERIFICATO" | "PARZIALE" | "DA_VERIFICARE" | "SPORTELLO";
+  /** True quando la fonte ufficiale dichiara procedura a sportello senza data di chiusura. */
+  sportello?: boolean;
   official_source?: boolean;
   last_verified_at?: string;
   first_seen_at?: string;
