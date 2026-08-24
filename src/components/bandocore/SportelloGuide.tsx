@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, CalendarCheck, FileText } from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
+import { officialLink } from "@/lib/bando-status";
 import { UsaIMieiDati } from "@/components/bandocore/UsaIMieiDati";
 import {
   partecipaHref,
@@ -10,12 +11,13 @@ import {
   SPORTELLO_URGENCY,
   SPORTELLO_MISSING_LINE,
   sportelloFacts,
+  sportelloSteps,
   profiloFacts,
   type ProfiloSportello,
   type SportelloFact,
 } from "@/lib/sportello";
 
-function FactRow({ fact }: { fact: SportelloFact }) {
+function FactRow({ fact, official }: { fact: SportelloFact; official?: string | null }) {
   return (
     <li className="min-w-0 wrap-anywhere">
       <span className="font-medium text-foreground">{fact.label}: </span>
@@ -33,7 +35,19 @@ function FactRow({ fact }: { fact: SportelloFact }) {
           <span>{fact.value}</span>
         )
       ) : (
-        <span className="italic text-muted-foreground/80">{SPORTELLO_MISSING_LINE}</span>
+        <span className="text-muted-foreground/90">
+          {SPORTELLO_MISSING_LINE}{" "}
+          {official && (
+            <a
+              href={official}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tap font-semibold text-primary underline underline-offset-2"
+            >
+              Apri il sito ufficiale
+            </a>
+          )}
+        </span>
       )}
     </li>
   );
