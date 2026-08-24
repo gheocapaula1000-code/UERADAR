@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, CalendarCheck, FileText } from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
@@ -5,6 +6,8 @@ import { officialLink } from "@/lib/bando-status";
 import { UsaIMieiDati } from "@/components/bandocore/UsaIMieiDati";
 import {
   partecipaHref,
+  sportelloAction,
+  SPORTELLO_ACTION_COUNT,
   SPORTELLO_BADGE,
   SPORTELLO_LEAD,
   SPORTELLO_STEPS,
@@ -16,6 +19,7 @@ import {
   type ProfiloSportello,
   type SportelloFact,
 } from "@/lib/sportello";
+
 
 function FactRow({ fact, official }: { fact: SportelloFact; official?: string | null }) {
   return (
