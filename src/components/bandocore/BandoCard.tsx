@@ -109,7 +109,6 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
     !sportello && (Boolean(gaps?.missing_deadline || gaps?.missing_economics) || partial);
   const ufficialeHref = officialLink(bando);
 
-
   return (
     <div
       style={{ animationDelay: `${cardEnterDelayMs(index)}ms` }}
@@ -170,7 +169,6 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
       </Link>
       <p className="mt-1 min-w-0 wrap-anywhere text-xs text-muted-foreground">{bando.ente}</p>
 
-
       {(bando.pnrr_mission || bando.programme_name || bando.programme_code) && (
         <div className="mt-2 flex min-w-0 flex-wrap gap-1.5">
           {bando.pnrr_mission && (
@@ -199,12 +197,16 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         </div>
       )}
 
-      <p className="mt-3 min-w-0 wrap-anywhere text-sm text-muted-foreground line-clamp-3 flex-1">{bando.descrizione}</p>
+      <p className="mt-3 min-w-0 wrap-anywhere text-sm text-muted-foreground line-clamp-3 flex-1">
+        {bando.descrizione}
+      </p>
 
       {preview && preview.status === "COMPATIBILE" && (
         <div className={`mt-4 rounded-lg border p-2.5 ${preview.boxClass}`}>
           <div className="flex min-w-0 items-center justify-between gap-2 text-xs">
-            <span className={`flex min-w-0 flex-wrap items-center gap-1.5 font-medium ${preview.textClass}`}>
+            <span
+              className={`flex min-w-0 flex-wrap items-center gap-1.5 font-medium ${preview.textClass}`}
+            >
               <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
               Il testo ufficiale cita il codice ATECO della tua impresa
             </span>
@@ -223,20 +225,19 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         </div>
       )}
 
-
       <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 text-xs">
         <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
           <MapPin className="h-3.5 w-3.5 shrink-0" />
           <span className="min-w-0 wrap-anywhere">
-          {scopeLabels[bando.scope]}
-          {bando.comune ? ` · ${bando.comune}` : bando.regione ? ` · ${bando.regione}` : ""}
+            {scopeLabels[bando.scope]}
+            {bando.comune ? ` · ${bando.comune}` : bando.regione ? ` · ${bando.regione}` : ""}
           </span>
         </div>
         {bando.importo_max ? (
           <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
             <Euro className="h-3.5 w-3.5 shrink-0" />
             <span className="min-w-0 wrap-anywhere">
-            fino a {formatItalianInteger(bando.importo_max)} €
+              fino a {formatItalianInteger(bando.importo_max)} €
             </span>
           </div>
         ) : null}
@@ -300,22 +301,21 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
       ) : null}
 
       {!sportello && (
-      <Link
-        to="/bando/$id"
-        params={{ id: bando.id }}
-        aria-label={`Genera dossier candidatura per ${bando.titolo} — bozza informativa da verificare`}
-        title="Genera un dossier di candidatura in bozza: contenuto informativo da verificare, nessuna domanda viene inviata"
-        className={
-          parziale && ufficialeHref
-            ? "tap mt-2 inline-flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-semibold hover:border-primary/50"
-            : "cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
-        }
-      >
-        {parziale ? "Genera dossier parziale" : "Genera dossier candidatura"}{" "}
-        <ArrowRight className="h-4 w-4" aria-hidden="true" />
-      </Link>
+        <Link
+          to="/bando/$id"
+          params={{ id: bando.id }}
+          aria-label={`Genera dossier candidatura per ${bando.titolo} — bozza informativa da verificare`}
+          title="Genera un dossier di candidatura in bozza: contenuto informativo da verificare, nessuna domanda viene inviata"
+          className={
+            parziale && ufficialeHref
+              ? "tap mt-2 inline-flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-semibold hover:border-primary/50"
+              : "cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
+          }
+        >
+          {parziale ? "Genera dossier parziale" : "Genera dossier candidatura"}{" "}
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
       )}
-
     </div>
   );
 }
