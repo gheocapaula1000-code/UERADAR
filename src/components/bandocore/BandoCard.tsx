@@ -30,7 +30,7 @@ import { admitBando, MISSING_DEADLINE_LABEL, MISSING_ECONOMICS_LABEL } from "@/l
 import { cardEnterDelayMs } from "@/lib/motion";
 import { MatchScore } from "@/components/bandocore/MatchScore";
 import { SportelloGuide } from "@/components/bandocore/SportelloGuide";
-import { SPORTELLO_BADGE, type ProfiloSportello } from "@/lib/sportello";
+import { type ProfiloSportello } from "@/lib/sportello";
 
 const categoryStyles: Record<Bando["categoria"], { label: string; class: string }> = {
   FONDO_PERDUTO: { label: "Fondo Perduto", class: "bg-primary/15 text-primary border-primary/30" },
@@ -140,7 +140,7 @@ export function BandoCard({
               <Radar className="h-3 w-3" /> Fonte locale
             </span>
           )}
-          {verified && (
+          {verified && !sportello && (
             <span
               className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-400"
               title={VERIFIED_HINT}
@@ -156,11 +156,6 @@ export function BandoCard({
               <FileSearch className="h-3 w-3" /> Poco diffuso
             </span>
           )}
-          {sportello && (
-            <span className="inline-flex max-w-full wrap-anywhere items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-              <Calendar className="h-3 w-3" /> {SPORTELLO_BADGE}
-            </span>
-          )}
         </div>
 
         {expired && (
@@ -168,7 +163,7 @@ export function BandoCard({
             <CalendarX className="h-3 w-3" /> Scaduto
           </span>
         )}
-        {flash && (
+        {flash && !sportello && (
           <span className="urgent-pulse inline-flex items-center gap-1 rounded-full bg-warning/20 text-warning px-2 py-0.5 text-xs font-semibold">
             <Zap className="h-3 w-3" /> Flash
           </span>
@@ -216,7 +211,7 @@ export function BandoCard({
         {bando.descrizione}
       </p>
 
-      {preview && preview.status === "COMPATIBILE" && (
+      {!sportello && preview && preview.status === "COMPATIBILE" && (
         <div className={`mt-4 rounded-lg border p-2.5 ${preview.boxClass}`}>
           <div className="flex min-w-0 items-center justify-between gap-2 text-xs">
             <span
@@ -285,8 +280,8 @@ export function BandoCard({
         <div className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
           <p className="font-semibold">Da verificare</p>
           <p className="mt-1 text-muted-foreground">
-            Manca ancora la data (o lo sportello) oppure l'importo sul testo ufficiale. Non vuol
-            dire che la tua impresa è esclusa.
+            Mancano ancora data o importo sul testo ufficiale. Non vuol dire che la tua impresa è
+            esclusa.
           </p>
           <ul className="mt-1.5 space-y-1 text-muted-foreground">
             {gaps?.missing_deadline && (

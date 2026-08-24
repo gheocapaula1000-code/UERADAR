@@ -13,8 +13,8 @@ async function writeClipboard(text: string): Promise<boolean> {
 }
 
 /**
- * "Usa i miei dati": la PWA non compila i portali esterni (Invitalia, Camera,
- * MIMIT). Mostra i campi reali del profilo, pronti da copiare uno per uno.
+ * "Usa i miei dati": la PWA non compila i portali esterni.
+ * Mostra i campi reali del profilo, pronti da copiare uno per uno.
  * Nessun valore inventato, nessun giudizio di compatibilità.
  */
 export function UsaIMieiDati({ profile }: { profile?: ProfiloSportello | null }) {
@@ -38,14 +38,14 @@ export function UsaIMieiDati({ profile }: { profile?: ProfiloSportello | null })
     <div className="mt-2 rounded-lg border border-border/70 bg-background/40 p-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="min-w-0 wrap-anywhere text-xs font-semibold text-foreground">
-          Campi pronti da copiare sul sito dell'ente
+          I tuoi dati, pronti da copiare
         </p>
         <button
           type="button"
           onClick={() => copy("Tutti i dati", copiaMieiDati(profile))}
           className="tap inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary"
         >
-          <Copy className="h-3.5 w-3.5" aria-hidden="true" /> Usa i miei dati
+          <Copy className="h-3.5 w-3.5" aria-hidden="true" /> Copia i tuoi dati
         </button>
       </div>
       <ul className="mt-2 space-y-1">
@@ -71,7 +71,8 @@ export function UsaIMieiDati({ profile }: { profile?: ProfiloSportello | null })
         ))}
       </ul>
       <p className="mt-2 min-w-0 wrap-anywhere text-[11px] text-muted-foreground/80">
-        La domanda si invia sul sito dell'ente: questi campi si incollano lì.
+        Il codice attività della tua impresa si chiama ATECO. Non diciamo se il bando lo accetta:
+        lo leggi sul sito dell'ente. La domanda la invii tu lì.
       </p>
     </div>
   );
