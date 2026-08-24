@@ -171,24 +171,6 @@ export function SportelloGuide({
 
       {mine.length > 0 && <UsaIMieiDati profile={profile} />}
       </details>
-
-      {onPrepare ? (
-        <button
-          type="button"
-          onClick={onPrepare}
-          className="tap mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground"
-        >
-          <FileText className="h-4 w-4" aria-hidden="true" /> Prepara i documenti
-        </button>
-      ) : (
-        <Link
-          to="/bando/$id"
-          params={{ id: bando.id }}
-          className="tap mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground"
-        >
-          <FileText className="h-4 w-4" aria-hidden="true" /> Prepara i documenti
-        </Link>
-      )}
     </div>
   );
 }
