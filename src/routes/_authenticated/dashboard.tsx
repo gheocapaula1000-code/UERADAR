@@ -588,7 +588,11 @@ function Dashboard() {
           {[
             {
               l: homeView === "catalog" ? "Bandi ufficiali aperti" : "Bandi attivi per te",
-              v: query.isLoading ? "—" : stats.totale,
+              v: dataUnavailable
+                ? lastKnownCount !== null
+                  ? `${lastKnownCount} (ultimo dato)`
+                  : "—"
+                : stats.totale,
               c: "text-primary",
               d:
                 homeView === "catalog"
@@ -597,23 +601,24 @@ function Dashboard() {
             },
             {
               l: "In scadenza a breve",
-              v: query.isLoading ? "—" : stats.flash,
+              v: dataUnavailable ? "—" : stats.flash,
               c: "text-warning",
               d: "Scadenza vicina o a sportello, da guardare per primi.",
             },
             {
               l: "Fonti locali / poco diffuse",
-              v: query.isLoading ? "—" : stats.hidden,
+              v: dataUnavailable ? "—" : stats.hidden,
               c: "text-accent",
               d: "Fonti minori o poco diffuse. Non è un metrico di vendita.",
             },
             {
               l: "Con modulistica / presentazione",
-              v: query.isLoading ? "—" : stats.withModulistica,
+              v: dataUnavailable ? "—" : stats.withModulistica,
               c: "text-primary",
               d: "Solo URL di modulistica o presentazione etichettati. Mai official_url.",
             },
           ].map((s) => (
+
             <div key={s.l} className="min-w-0 overflow-x-clip rounded-xl border border-border bg-card p-4">
               <div className="wrap-anywhere text-sm text-muted-foreground">{s.l}</div>
               <div className={`mt-1 wrap-anywhere text-3xl font-bold ${s.c}`}>{s.v}</div>
