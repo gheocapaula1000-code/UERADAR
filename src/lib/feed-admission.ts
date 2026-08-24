@@ -378,7 +378,7 @@ export interface AdmissionGaps {
 
 export const MISSING_DEADLINE_LABEL = "Manca la scadenza nel testo ufficiale";
 export const SPORTELLO_LABEL =
-  "Puoi chiedere adesso. Non c'è una data di chiusura: si può chiedere finché ci sono soldi.";
+  "A sportello · fino a esaurimento fondi";
 export const MISSING_ECONOMICS_LABEL = "Manca l'importo nel testo ufficiale";
 
 function hostOf(url: string): string | null {

@@ -30,6 +30,7 @@ import { admitBando, MISSING_DEADLINE_LABEL, MISSING_ECONOMICS_LABEL } from "@/l
 import { cardEnterDelayMs } from "@/lib/motion";
 import { MatchScore } from "@/components/bandocore/MatchScore";
 import { SportelloGuide } from "@/components/bandocore/SportelloGuide";
+import { SPORTELLO_BADGE } from "@/lib/sportello";
 
 const categoryStyles: Record<Bando["categoria"], { label: string; class: string }> = {
   FONDO_PERDUTO: { label: "Fondo Perduto", class: "bg-primary/15 text-primary border-primary/30" },
@@ -147,7 +148,13 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
               <FileSearch className="h-3 w-3" /> Poco diffuso
             </span>
           )}
+          {sportello && (
+            <span className="inline-flex max-w-full wrap-anywhere items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+              <Calendar className="h-3 w-3" /> {SPORTELLO_BADGE}
+            </span>
+          )}
         </div>
+
         {expired && (
           <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
             <CalendarX className="h-3 w-3" /> Scaduto

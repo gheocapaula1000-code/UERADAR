@@ -130,7 +130,7 @@ export const VERIFIED_HINT =
 
 /** Testo unico per le schede a sportello, in italiano semplice. */
 export const SPORTELLO_NOTICE =
-  "Puoi chiedere adesso. Non c'è una data di chiusura: si può chiedere finché ci sono soldi.";
+  "Puoi chiedere adesso. Non c'è una data di chiusura: si può chiedere fino a esaurimento fondi.";
 
 
 function nonEmpty(value: unknown): boolean {
