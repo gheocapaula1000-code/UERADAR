@@ -20,7 +20,6 @@ import {
   type SportelloFact,
 } from "@/lib/sportello";
 
-
 function FactRow({ fact, official }: { fact: SportelloFact; official?: string | null }) {
   return (
     <li className="min-w-0 wrap-anywhere">
@@ -133,43 +132,42 @@ export function SportelloGuide({
         Passo {action.index + 1} di {SPORTELLO_ACTION_COUNT}. {action.after}
       </p>
 
-
       <details className="group mt-3">
         <summary className="tap cursor-pointer list-none rounded-lg border border-border/70 px-3 py-2.5 text-sm font-semibold text-muted-foreground">
           Vedi i passi e i dati del bando
         </summary>
-      <ol className="mt-3 space-y-2">
-        {steps.map((step) => (
-          <li key={step.n} className="flex min-w-0 items-start gap-2.5">
-            <span
-              className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                step.done
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-primary/40 text-primary"
-              }`}
-            >
-              {step.n}
-            </span>
-            <span className="min-w-0">
-              <span className="block min-w-0 wrap-anywhere text-sm font-semibold">
-                {step.label}
+        <ol className="mt-3 space-y-2">
+          {steps.map((step) => (
+            <li key={step.n} className="flex min-w-0 items-start gap-2.5">
+              <span
+                className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                  step.done
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-primary/40 text-primary"
+                }`}
+              >
+                {step.n}
               </span>
-              <span className="block min-w-0 wrap-anywhere text-xs text-muted-foreground">
-                {step.done ? "Fatto: " : "Da fare: "}
-                {step.hint}
+              <span className="min-w-0">
+                <span className="block min-w-0 wrap-anywhere text-sm font-semibold">
+                  {step.label}
+                </span>
+                <span className="block min-w-0 wrap-anywhere text-xs text-muted-foreground">
+                  {step.done ? "Fatto: " : "Da fare: "}
+                  {step.hint}
+                </span>
               </span>
-            </span>
-          </li>
-        ))}
-      </ol>
+            </li>
+          ))}
+        </ol>
 
-      <ul className="mt-3 space-y-1.5 rounded-lg border border-border/70 bg-background/40 p-3 text-sm text-muted-foreground">
-        {facts.map((f) => (
-          <FactRow key={f.label} fact={f} official={official} />
-        ))}
-      </ul>
+        <ul className="mt-3 space-y-1.5 rounded-lg border border-border/70 bg-background/40 p-3 text-sm text-muted-foreground">
+          {facts.map((f) => (
+            <FactRow key={f.label} fact={f} official={official} />
+          ))}
+        </ul>
 
-      {mine.length > 0 && <UsaIMieiDati profile={profile} />}
+        {mine.length > 0 && <UsaIMieiDati profile={profile} />}
       </details>
     </div>
   );

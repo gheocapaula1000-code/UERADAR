@@ -133,7 +133,6 @@ export function sportelloAction(bando: Bando, step: number): SportelloAction {
   };
 }
 
-
 /**
  * Dove mandare chi vuole partecipare: prima il canale di domanda dichiarato
  * dalla fonte, poi la modulistica, infine la scheda ufficiale. Nessun URL inventato.
@@ -185,9 +184,21 @@ export function sportelloFacts(bando: Bando): SportelloFact[] {
       : null;
 
   return [
-    { label: "Bando ufficiale", value: official ? "Apri la pagina ufficiale" : null, href: official ?? undefined },
-    { label: "Link per la domanda", value: domanda ? "Vai alla domanda" : null, href: domanda ?? undefined },
-    { label: "Modulo da compilare", value: modulo ? "Scarica il modulo" : null, href: modulo ?? undefined },
+    {
+      label: "Bando ufficiale",
+      value: official ? "Apri la pagina ufficiale" : null,
+      href: official ?? undefined,
+    },
+    {
+      label: "Link per la domanda",
+      value: domanda ? "Vai alla domanda" : null,
+      href: domanda ?? undefined,
+    },
+    {
+      label: "Modulo da compilare",
+      value: modulo ? "Scarica il modulo" : null,
+      href: modulo ?? undefined,
+    },
     { label: "Importo massimo", value: euro(bando.importo_max) },
     { label: "Quanto copre", value: intensity },
     { label: "Soldi totali disponibili", value: euro(bando.total_budget) },
