@@ -893,7 +893,7 @@ function Dashboard() {
                 </p>
                 {tiers.high.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                    Nessuna scheda con match forte, data e importo completi in questo elenco.
+                    Nessuna scheda con data e importo completi in questo elenco.
                   </div>
                 ) : (
                   <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -912,9 +912,10 @@ function Dashboard() {
                   </span>
                 </h3>
                 <p className="mt-1 mb-4 text-xs text-muted-foreground">
-                  Schede da fonte ufficiale in cui manca l'importo o la scadenza, oppure con campi
-                  ancora da verificare sulla fonte.
+                  Mancano ancora data o importo sul testo ufficiale. Non vuol dire che la tua
+                  impresa è esclusa.
                 </p>
+
                 {tiers.review.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                     Nessuna scheda da verificare in questo elenco.
