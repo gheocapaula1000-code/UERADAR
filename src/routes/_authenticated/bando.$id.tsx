@@ -410,7 +410,7 @@ function BandoDetail() {
 
             {isSportello(bando) && (
               <div className="mt-4">
-                <SportelloGuide bando={bando} onPrepare={openDossier} />
+                <SportelloGuide bando={bando} profile={profile} onPrepare={openDossier} />
               </div>
             )}
 

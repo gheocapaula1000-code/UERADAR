@@ -30,7 +30,7 @@ import { admitBando, MISSING_DEADLINE_LABEL, MISSING_ECONOMICS_LABEL } from "@/l
 import { cardEnterDelayMs } from "@/lib/motion";
 import { MatchScore } from "@/components/bandocore/MatchScore";
 import { SportelloGuide } from "@/components/bandocore/SportelloGuide";
-import { SPORTELLO_BADGE } from "@/lib/sportello";
+import { SPORTELLO_BADGE, type ProfiloSportello } from "@/lib/sportello";
 
 const categoryStyles: Record<Bando["categoria"], { label: string; class: string }> = {
   FONDO_PERDUTO: { label: "Fondo Perduto", class: "bg-primary/15 text-primary border-primary/30" },
@@ -91,7 +91,15 @@ const scopeLabels: Record<Bando["scope"], string> = {
   EUROPEO: "Europeo",
 };
 
-export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }) {
+export function BandoCard({
+  bando,
+  index = 0,
+  profile,
+}: {
+  bando: Bando;
+  index?: number;
+  profile?: ProfiloSportello | null;
+}) {
   const cat = categoryStyles[bando.categoria] ?? categoryStyles.ALTRO;
   const daysLeft = daysLeftOf(bando);
   const expired = isExpired(bando);
@@ -269,7 +277,7 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
 
       {sportello && (
         <div className="mt-4">
-          <SportelloGuide bando={bando} compact />
+          <SportelloGuide bando={bando} compact profile={profile} />
         </div>
       )}
 
