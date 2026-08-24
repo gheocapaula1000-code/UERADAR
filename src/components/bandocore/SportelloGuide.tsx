@@ -7,7 +7,36 @@ import {
   SPORTELLO_LEAD,
   SPORTELLO_STEPS,
   SPORTELLO_URGENCY,
+  SPORTELLO_MISSING_LINE,
+  sportelloFacts,
+  profiloFacts,
+  type ProfiloSportello,
+  type SportelloFact,
 } from "@/lib/sportello";
+
+function FactRow({ fact }: { fact: SportelloFact }) {
+  return (
+    <li className="min-w-0 wrap-anywhere">
+      <span className="font-medium text-foreground">{fact.label}: </span>
+      {fact.value ? (
+        fact.href ? (
+          <a
+            href={fact.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="tap text-primary underline underline-offset-2"
+          >
+            {fact.value}
+          </a>
+        ) : (
+          <span>{fact.value}</span>
+        )
+      ) : (
+        <span className="italic text-muted-foreground/80">{SPORTELLO_MISSING_LINE}</span>
+      )}
+    </li>
+  );
+}
 
 /**
  * Guida passo-passo per i bandi a sportello: mai "Da verificare", sempre
@@ -16,14 +45,19 @@ import {
 export function SportelloGuide({
   bando,
   compact = false,
+  profile,
   onPrepare,
 }: {
   bando: Bando;
   compact?: boolean;
+  /** Dati impresa già salvati: mostrati così come sono, senza giudizi di compatibilità. */
+  profile?: ProfiloSportello | null;
   /** In pagina dettaglio prepara i documenti sul posto, senza navigare. */
   onPrepare?: () => void;
 }) {
   const href = partecipaHref(bando);
+  const facts = sportelloFacts(bando);
+  const mine = profiloFacts(profile);
 
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
@@ -46,6 +80,23 @@ export function SportelloGuide({
           </li>
         ))}
       </ol>
+
+      <ul className="mt-3 space-y-1 rounded-lg border border-border/70 bg-background/40 p-2.5 text-xs text-muted-foreground">
+        {facts.map((f) => (
+          <FactRow key={f.label} fact={f} />
+        ))}
+      </ul>
+
+      {mine.length > 0 && (
+        <div className="mt-2 rounded-lg border border-border/70 bg-background/40 p-2.5">
+          <p className="text-xs font-semibold text-foreground">I tuoi dati già pronti</p>
+          <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+            {mine.map((f) => (
+              <FactRow key={f.label} fact={f} />
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className={compact ? "mt-3 grid gap-2" : "mt-3 grid gap-2 sm:grid-cols-2"}>
         {href ? (

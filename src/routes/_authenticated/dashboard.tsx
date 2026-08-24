@@ -701,7 +701,7 @@ function Dashboard() {
                 Nessuna scadenza ravvicinata tra le opportunità caricate dal catalogo ufficiale.
               </div>
             ) : (
-              flashBandi.map((b, i) => <BandoCard key={b.id} bando={b} index={i} />)
+              flashBandi.map((b, i) => <BandoCard key={b.id} bando={b} index={i} profile={profile} />)
             )}
           </div>
         </section>
@@ -899,7 +899,7 @@ function Dashboard() {
                 ) : (
                   <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {tiers.high.map((b: Bando, i: number) => (
-                      <BandoCard key={b.id} bando={b} index={i} />
+                      <BandoCard key={b.id} bando={b} index={i} profile={profile} />
                     ))}
                   </div>
                 )}
@@ -924,7 +924,7 @@ function Dashboard() {
                 ) : (
                   <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {tiers.review.map((b: Bando, i: number) => (
-                      <BandoCard key={b.id} bando={b} index={i} />
+                      <BandoCard key={b.id} bando={b} index={i} profile={profile} />
                     ))}
                   </div>
                 )}
