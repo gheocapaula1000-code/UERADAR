@@ -38,6 +38,6 @@ export function isCatalogRequest(parsed: { action: FeedGatewayAction; mode?: Fee
   return parsed.action === "catalog" || parsed.mode === "catalog";
 }
 
-/** Catalogo ufficiale: tetto sopra le ~1560 righe official_source, senza matching. */
-export const CATALOG_LIMIT = 2000;
+/** Catalogo ufficiale: tetto allineato al massimo del Core (5000), senza matching. */
+export const CATALOG_LIMIT = 5000;
 export const PROFILE_FEED_LIMIT = 250;
