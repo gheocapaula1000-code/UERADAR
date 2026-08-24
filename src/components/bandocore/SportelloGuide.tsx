@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, CalendarCheck, FileText } from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
+import { UsaIMieiDati } from "@/components/bandocore/UsaIMieiDati";
 import {
   partecipaHref,
   SPORTELLO_BADGE,
@@ -87,16 +88,7 @@ export function SportelloGuide({
         ))}
       </ul>
 
-      {mine.length > 0 && (
-        <div className="mt-2 rounded-lg border border-border/70 bg-background/40 p-2.5">
-          <p className="text-xs font-semibold text-foreground">I tuoi dati già pronti</p>
-          <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
-            {mine.map((f) => (
-              <FactRow key={f.label} fact={f} />
-            ))}
-          </ul>
-        </div>
-      )}
+      {mine.length > 0 && <UsaIMieiDati profile={profile} />}
 
       <div className={compact ? "mt-3 grid gap-2" : "mt-3 grid gap-2 sm:grid-cols-2"}>
         {href ? (
