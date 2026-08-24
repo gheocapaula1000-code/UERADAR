@@ -54,8 +54,8 @@ describe("Home usa la preferenza persistita", () => {
     expect(dashboard).toContain("readHomeView");
     expect(dashboard).toContain("writeHomeView");
     expect(dashboard).toContain("DEFAULT_HOME_VIEW");
-    expect(dashboard).toContain("Catalogo");
-    expect(dashboard).toContain("Per la mia impresa");
-    expect(dashboard).toContain("homeView === \"profile\"");
+    expect(dashboard).toContain("CATALOG_SWITCH_LABEL");
+    expect(dashboard).toContain("PROFILE_SWITCH_LABEL");
+    expect(dashboard).toContain('homeView === "profile"');
   });
 });
