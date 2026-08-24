@@ -10,8 +10,6 @@ import {
   CheckCircle2,
   CalendarX,
   FileSearch,
-  AlertTriangle,
-  XCircle,
 } from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
 import {
@@ -21,8 +19,10 @@ import {
   isRareOrHidden,
   isVerified,
   matchPreview,
+  officialLink,
   VERIFIED_HINT,
 } from "@/lib/bando-status";
+
 import { formatItalianInteger } from "@/lib/catalog";
 import { missingOfficialData } from "@/lib/dossier";
 import { admitBando, MISSING_DEADLINE_LABEL, MISSING_ECONOMICS_LABEL } from "@/lib/feed-admission";
@@ -101,6 +101,9 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
   const verified = isVerified(bando);
   const verdict = admitBando(bando);
   const gaps = verdict.ok ? verdict.gaps : null;
+  const parziale = Boolean(gaps?.missing_deadline || gaps?.missing_economics) || partial;
+  const ufficialeHref = officialLink(bando);
+
 
   return (
     <div
@@ -153,8 +156,15 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         )}
       </div>
 
-      <h3 className="mt-3 min-w-0 wrap-anywhere font-semibold leading-tight line-clamp-2">{bando.titolo}</h3>
+      <Link
+        to="/bando/$id"
+        params={{ id: bando.id }}
+        className="mt-3 min-w-0 wrap-anywhere font-semibold leading-tight line-clamp-2 hover:text-primary"
+      >
+        <h3 className="min-w-0 wrap-anywhere">{bando.titolo}</h3>
+      </Link>
       <p className="mt-1 min-w-0 wrap-anywhere text-xs text-muted-foreground">{bando.ente}</p>
+
 
       {(bando.pnrr_mission || bando.programme_name || bando.programme_code) && (
         <div className="mt-2 flex min-w-0 flex-wrap gap-1.5">
@@ -186,18 +196,12 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
 
       <p className="mt-3 min-w-0 wrap-anywhere text-sm text-muted-foreground line-clamp-3 flex-1">{bando.descrizione}</p>
 
-      {preview && (
+      {preview && preview.status === "COMPATIBILE" && (
         <div className={`mt-4 rounded-lg border p-2.5 ${preview.boxClass}`}>
           <div className="flex min-w-0 items-center justify-between gap-2 text-xs">
             <span className={`flex min-w-0 flex-wrap items-center gap-1.5 font-medium ${preview.textClass}`}>
-              {preview.tone === "positive" ? (
-                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-              ) : preview.tone === "negative" ? (
-                <XCircle className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-              )}
-              {preview.label}
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              Il testo ufficiale cita il codice ATECO della tua impresa
             </span>
             <MatchScore score={preview.score} />
           </div>
@@ -211,20 +215,9 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
               Da controllare: {preview.missing.join(" · ")}
             </p>
           ) : null}
-          {preview.blockers.length > 0 ? (
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Blocco: {preview.blockers.join(" · ")}
-            </p>
-          ) : null}
-          {preview.confirmed.length === 0 &&
-          preview.missing.length === 0 &&
-          preview.blockers.length === 0 ? (
-            <p className="mt-1.5 text-[11px] text-muted-foreground">
-              Controlla i requisiti sul bando ufficiale
-            </p>
-          ) : null}
         </div>
       )}
+
 
       <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 text-xs">
         <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
@@ -261,37 +254,55 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
         ) : null}
       </div>
 
-      {(gaps?.missing_deadline || gaps?.missing_economics) && (
-        <ul className="mt-3 space-y-1 text-[11px] text-muted-foreground">
-          {gaps.missing_deadline && (
-            <li className="flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5" /> {MISSING_DEADLINE_LABEL}
-            </li>
-          )}
-          {gaps.missing_economics && (
-            <li className="flex items-center gap-1.5">
-              <Euro className="h-3.5 w-3.5" /> {MISSING_ECONOMICS_LABEL}
-            </li>
-          )}
-        </ul>
+      {parziale && (
+        <div className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
+          <p className="font-semibold">Da verificare</p>
+          <p className="mt-1 text-muted-foreground">
+            Mancano ancora data o importo sul testo ufficiale. Non vuol dire che la tua impresa è
+            esclusa.
+          </p>
+          <ul className="mt-1.5 space-y-1 text-muted-foreground">
+            {gaps?.missing_deadline && (
+              <li className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" /> {MISSING_DEADLINE_LABEL}
+              </li>
+            )}
+            {gaps?.missing_economics && (
+              <li className="flex items-center gap-1.5">
+                <Euro className="h-3.5 w-3.5" /> {MISSING_ECONOMICS_LABEL}
+              </li>
+            )}
+            {partial && <li>Dati ufficiali mancanti: {missingOfficial.join(", ")}.</li>}
+          </ul>
+        </div>
       )}
 
-      {partial && (
-        <p className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
-          Dossier parziale — dati ufficiali mancanti: {missingOfficial.join(", ")}.
-        </p>
-      )}
+      {parziale && ufficialeHref ? (
+        <a
+          href={ufficialeHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
+        >
+          Apri il bando ufficiale <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </a>
+      ) : null}
 
       <Link
         to="/bando/$id"
         params={{ id: bando.id }}
         aria-label={`Genera dossier candidatura per ${bando.titolo} — bozza informativa da verificare`}
         title="Genera un dossier di candidatura in bozza: contenuto informativo da verificare, nessuna domanda viene inviata"
-        className="cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
+        className={
+          parziale && ufficialeHref
+            ? "tap mt-2 inline-flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-semibold hover:border-primary/50"
+            : "cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
+        }
       >
-        {partial ? "Genera dossier parziale" : "Genera dossier candidatura"}{" "}
+        {parziale ? "Genera dossier parziale" : "Genera dossier candidatura"}{" "}
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </Link>
+
     </div>
   );
 }

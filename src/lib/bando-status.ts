@@ -126,7 +126,8 @@ export function isFlash(
  * ------------------------------------------------------------------ */
 
 export const VERIFIED_HINT =
-  "Verificato = dati obbligatori presenti dalla fonte; non è garanzia di ammissibilità.";
+  "Verificato = data e importo massimo sul testo ufficiale. Riguarda i dati della scheda, non la tua impresa.";
+
 
 function nonEmpty(value: unknown): boolean {
   return typeof value === "string" && value.trim().length > 0;

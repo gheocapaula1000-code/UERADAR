@@ -233,6 +233,13 @@ function Dashboard() {
   const bandi = useMemo(() => query.data?.bandi ?? [], [query.data?.bandi]);
   const bandiAttivi = useMemo(() => bandi.filter((b) => isActive(b)), [bandi]);
   const isOffline = query.data?.source === "cache";
+  // Un errore di rete non deve diventare uno zero: mostriamo «—» e l'ultimo conteggio noto.
+  const dataUnavailable = query.isLoading || Boolean(query.error);
+  const [lastKnownCount, setLastKnownCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (query.data?.bandi) setLastKnownCount(query.data.bandi.length);
+  }, [query.data?.bandi]);
+
 
   // Filtro sede: nasconde solo i bandi di territori diversi da quello del profilo.
   const sedeOk = useMemo(() => {
@@ -415,8 +422,8 @@ function Dashboard() {
             </h1>
             <p className="mt-1 min-w-0 wrap-anywhere text-sm text-muted-foreground">
               {homeView === "catalog"
-                ? "Tutti i Bandi ufficiali aperti."
-                : "I Bandi selezionati per la tua impresa."}
+                ? "Catalogo: tutti i bandi ufficiali aperti."
+                : "Per la mia impresa: solo i bandi che il tuo profilo può usare, se il testo ufficiale cita il tuo codice ATECO."}
               {query.data?.fetched_at
                 ? ` · Aggiornato il ${new Date(query.data.fetched_at).toLocaleString("it-IT")}`
                 : ""}
@@ -431,20 +438,23 @@ function Dashboard() {
             <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
               <span
                 className={`text-sm ${homeView === "catalog" ? "font-semibold text-foreground" : "text-muted-foreground"}`}
+                title="Catalogo: tutti i bandi ufficiali aperti."
               >
                 Catalogo
               </span>
               <Switch
                 checked={homeView === "profile"}
                 onCheckedChange={(on) => persistHomeView(on ? "profile" : "catalog")}
-                aria-label="Per la mia impresa: mostra solo i Bandi abbinati al profilo"
+                aria-label="Per la mia impresa: solo i bandi che il tuo profilo può usare, se il testo ufficiale cita il tuo codice ATECO"
               />
               <span
                 className={`text-sm ${homeView === "profile" ? "font-semibold text-foreground" : "text-muted-foreground"}`}
+                title="Per la mia impresa: solo i bandi che il tuo profilo può usare, se il testo ufficiale cita il tuo codice ATECO."
               >
                 Per la mia impresa
               </span>
             </div>
+
             <button
               onClick={handleManualRefresh}
               disabled={query.isFetching || isRefreshing}
@@ -585,7 +595,11 @@ function Dashboard() {
           {[
             {
               l: homeView === "catalog" ? "Bandi ufficiali aperti" : "Bandi attivi per te",
-              v: query.isLoading ? "—" : stats.totale,
+              v: dataUnavailable
+                ? lastKnownCount !== null
+                  ? `${lastKnownCount} (ultimo dato)`
+                  : "—"
+                : stats.totale,
               c: "text-primary",
               d:
                 homeView === "catalog"
@@ -594,23 +608,24 @@ function Dashboard() {
             },
             {
               l: "In scadenza a breve",
-              v: query.isLoading ? "—" : stats.flash,
+              v: dataUnavailable ? "—" : stats.flash,
               c: "text-warning",
               d: "Scadenza vicina o a sportello, da guardare per primi.",
             },
             {
               l: "Fonti locali / poco diffuse",
-              v: query.isLoading ? "—" : stats.hidden,
+              v: dataUnavailable ? "—" : stats.hidden,
               c: "text-accent",
               d: "Fonti minori o poco diffuse. Non è un metrico di vendita.",
             },
             {
               l: "Con modulistica / presentazione",
-              v: query.isLoading ? "—" : stats.withModulistica,
+              v: dataUnavailable ? "—" : stats.withModulistica,
               c: "text-primary",
               d: "Solo URL di modulistica o presentazione etichettati. Mai official_url.",
             },
           ].map((s) => (
+
             <div key={s.l} className="min-w-0 overflow-x-clip rounded-xl border border-border bg-card p-4">
               <div className="wrap-anywhere text-sm text-muted-foreground">{s.l}</div>
               <div className={`mt-1 wrap-anywhere text-3xl font-bold ${s.c}`}>{s.v}</div>
@@ -665,9 +680,21 @@ function Dashboard() {
               Array.from({ length: 3 }).map((_, i) => <BandoCardSkeleton key={i} />)
             ) : query.error ? (
               <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Elenco non disponibile in questo momento. Non mostriamo schede di esempio: riprova
-                con «Cerca nuovi Bandi» oppure consulta lo snapshot già salvato, se presente.
+                <p>
+                  Non siamo riusciti a leggere l'elenco adesso.
+                  {lastKnownCount !== null
+                    ? ` Ultimo dato noto: ${lastKnownCount} bandi.`
+                    : ""}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => query.refetch()}
+                  className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                >
+                  Riprova
+                </button>
               </div>
+
             ) : flashBandi.length === 0 ? (
               <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
                 Nessuna scadenza ravvicinata tra le opportunità caricate dal catalogo ufficiale.
@@ -799,24 +826,59 @@ function Dashboard() {
             </div>
           ) : query.error ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              Il catalogo ufficiale non è raggiungibile in questo momento. Non inventiamo Bandi:
-              riprova tra poco con «Cerca nuovi Bandi».
+              <p>
+                Non siamo riusciti a leggere il catalogo adesso.
+                {lastKnownCount !== null ? ` Ultimo dato noto: ${lastKnownCount} bandi.` : ""}
+              </p>
+              <button
+                type="button"
+                onClick={() => query.refetch()}
+                className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+              >
+                Riprova
+              </button>
             </div>
           ) : filtered.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              {bandi.length === 0
-                ? "Nessun Bando ufficiale in questo aggiornamento. Non inventiamo schede."
-                : "Nessun Bando corrisponde ai filtri scelti."}
-              {activeFilters > 0 && (
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="tap ml-2 font-semibold text-primary underline"
-                >
-                  Azzera i filtri
-                </button>
+              {activeFilters > 0 ? (
+                <>
+                  <p>Nessun bando con i filtri scelti.</p>
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                  >
+                    Azzera filtri
+                  </button>
+                </>
+              ) : homeView === "profile" ? (
+                <>
+                  <p>
+                    Nessun bando per il tuo profilo adesso. Non vuol dire che la tua impresa è
+                    esclusa: nel catalogo ci sono altri bandi aperti.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => persistHomeView("catalog")}
+                    className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                  >
+                    Vedi tutti i bandi
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p>Nessun bando ufficiale in questo aggiornamento. Non inventiamo schede.</p>
+                  <button
+                    type="button"
+                    onClick={() => query.refetch()}
+                    className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                  >
+                    Riprova
+                  </button>
+                </>
               )}
             </div>
+
           ) : (
             <div className="space-y-8">
               <div>
@@ -831,7 +893,7 @@ function Dashboard() {
                 </p>
                 {tiers.high.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                    Nessuna scheda con match forte, data e importo completi in questo elenco.
+                    Nessuna scheda con data e importo completi in questo elenco.
                   </div>
                 ) : (
                   <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -850,9 +912,10 @@ function Dashboard() {
                   </span>
                 </h3>
                 <p className="mt-1 mb-4 text-xs text-muted-foreground">
-                  Schede da fonte ufficiale in cui manca l'importo o la scadenza, oppure con campi
-                  ancora da verificare sulla fonte.
+                  Mancano ancora data o importo sul testo ufficiale. Non vuol dire che la tua
+                  impresa è esclusa.
                 </p>
+
                 {tiers.review.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
                     Nessuna scheda da verificare in questo elenco.
