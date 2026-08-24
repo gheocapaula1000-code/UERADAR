@@ -101,6 +101,9 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
   const verified = isVerified(bando);
   const verdict = admitBando(bando);
   const gaps = verdict.ok ? verdict.gaps : null;
+  const parziale = Boolean(gaps?.missing_deadline || gaps?.missing_economics) || partial;
+  const ufficialeHref = officialLink(bando);
+
 
   return (
     <div
