@@ -75,6 +75,7 @@ import {
 } from "@/lib/bando-status";
 
 import { SportelloGuide } from "@/components/bandocore/SportelloGuide";
+import { officialLink } from "@/lib/bando-status";
 
 export { DRAFT_DISCLAIMER } from "@/lib/official-module";
 
@@ -217,6 +218,9 @@ function BandoDetail() {
   const modulisticaHint = classifyModulisticaHint(realFormsUrl(bando) ?? realApplicationUrl(bando));
 
   const protocolloPec = bando.ufficio_protocollo_pec ?? bando.pec;
+  // Regola dura: nessun vicolo cieco. Quando un dato manca, il prossimo passo
+  // resta sempre "Apri il bando ufficiale".
+  const ufficialeHref = safeOfficialHref(officialLink(bando));
 
   const copyInstance = async () => {
     if (!dossierOpen) return;
@@ -556,9 +560,19 @@ function BandoDetail() {
                       {dossierBusy ? "Apertura…" : "Genera dossier candidatura"}
                     </button>
                     {dossierError ? (
-                      <p role="alert" className="text-xs font-semibold text-destructive">
-                        {dossierError}
-                      </p>
+                      <div role="alert" className="space-y-2">
+                        <p className="text-xs font-semibold text-destructive">{dossierError}</p>
+                        {ufficialeHref && (
+                          <a
+                            href={ufficialeHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="tap flex items-center justify-center gap-2 rounded-lg border-2 border-border px-4 py-3 text-sm font-semibold hover:border-primary/50"
+                          >
+                            <ExternalLink className="h-4 w-4" /> Apri il bando ufficiale
+                          </a>
+                        )}
+                      </div>
                     ) : null}
                   </div>
                 )}
@@ -939,9 +953,21 @@ function BandoDetail() {
                     )}
                 </div>
               ) : (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  PEC non disponibile per questo bando.
-                </p>
+                <div className="mt-3">
+                  <p className="text-xs text-muted-foreground">
+                    La PEC non c'è sul bando. Aprendo il sito ufficiale la vedi.
+                  </p>
+                  {ufficialeHref && (
+                    <a
+                      href={ufficialeHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="tap mt-2 flex items-center justify-center gap-2 rounded-lg border-2 border-border px-4 py-3 text-sm font-semibold hover:border-primary/50"
+                    >
+                      <ExternalLink className="h-4 w-4" /> Apri il bando ufficiale
+                    </a>
+                  )}
+                </div>
               )}
 
               {applyHref ? (
@@ -954,9 +980,22 @@ function BandoDetail() {
                   <ExternalLink className="h-4 w-4" /> Piattaforma di sottomissione
                 </a>
               ) : (
-                <p className="mt-4 text-xs text-muted-foreground">
-                  Link di presentazione non disponibile sulla fonte ufficiale
-                </p>
+                <div className="mt-4">
+                  <p className="text-xs text-muted-foreground">
+                    Il link per inviare la domanda non c'è sul bando. Aprendo il sito ufficiale lo
+                    vedi.
+                  </p>
+                  {ufficialeHref && (
+                    <a
+                      href={ufficialeHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="tap mt-2 flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-3 text-sm font-bold text-accent-foreground hover:brightness-110"
+                    >
+                      <ExternalLink className="h-4 w-4" /> Apri il bando ufficiale
+                    </a>
+                  )}
+                </div>
               )}
               {formsHref && formsHref !== applyHref ? (
                 <a
