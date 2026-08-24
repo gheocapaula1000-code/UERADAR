@@ -46,10 +46,7 @@ import { toast } from "sonner";
 const INVITALIA_ON_PLATFORM_URL =
   "https://www.invitalia.it/incentivi-e-strumenti/nuove-imprese-tasso-zero/presenta-la-domanda/come-si-presenta-la-domanda";
 
-function safeOfficialHref(
-  raw?: string | null,
-  kind?: "platform",
-): string | null {
+function safeOfficialHref(raw?: string | null, kind?: "platform"): string | null {
   if (!raw || !raw.trim()) return null;
   try {
     const url = new URL(raw.trim());
@@ -59,8 +56,7 @@ function safeOfficialHref(
     if (
       kind === "platform" &&
       url.hostname === "www.invitalia.it" &&
-      url.pathname.replace(/\/+$/, "") ===
-        "/incentivi-e-strumenti/ON-nuove-imprese-tasso-zero"
+      url.pathname.replace(/\/+$/, "") === "/incentivi-e-strumenti/ON-nuove-imprese-tasso-zero"
     ) {
       return INVITALIA_ON_PLATFORM_URL;
     }
@@ -72,10 +68,13 @@ function safeOfficialHref(
 import {
   hasIncompleteCoreData,
   isExpired,
+  isSportello,
   isVerified,
   matchStatusMeta,
   VERIFIED_HINT,
 } from "@/lib/bando-status";
+
+import { SportelloGuide } from "@/components/bandocore/SportelloGuide";
 
 export { DRAFT_DISCLAIMER } from "@/lib/official-module";
 
@@ -173,6 +172,7 @@ function BandoDetail() {
   const dossier = buildDossier(bando, profile);
   // Nessun output prima del claim server: testo, TXT, PDF e clipboard
   // esistono solo dopo `dossierOpen`, e portano la filigrana se in prova.
+  // prettier-ignore
   const dossierText = dossierOpen
     ? renderDossierText(dossier, { watermarked })
     : "";
@@ -310,6 +310,35 @@ function BandoDetail() {
     }
   };
 
+  const openDossier = async () => {
+    setDossierBusy(true);
+    setDossierError(null);
+    try {
+      const res = await Promise.race([
+        claimDossier({ data: { opportunity_id: bando.id } }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), 12_000)),
+      ]);
+      if (!res.allowed) {
+        const msg =
+          res.code === "QUOTA_EXCEEDED"
+            ? "Hai esaurito i dossier inclusi in questo mese"
+            : res.code === "EXPORT_NOT_INCLUDED"
+              ? "Dossier non disponibile con il piano attivo"
+              : "Dossier non disponibile in questo momento";
+        setDossierError(msg);
+        toast.error(msg);
+        return;
+      }
+      setWatermarked(res.watermarked === true);
+      setDossierOpen(true);
+    } catch {
+      setDossierError("Dossier non disponibile in questo momento");
+      toast.error("Dossier non disponibile in questo momento");
+    } finally {
+      setDossierBusy(false);
+    }
+  };
+
   const copyPec = async (value: string | undefined) => {
     if (!value) return;
     await navigator.clipboard.writeText(value);
@@ -348,8 +377,7 @@ function BandoDetail() {
                   ) : (
                     <AlertTriangle className="h-3 w-3" />
                   )}
-                  {matchStatusMeta(bando.match.status).label} ·{" "}
-                  {bando.match.score}%
+                  {matchStatusMeta(bando.match.status).label} · {bando.match.score}%
                 </span>
               )}
               {isExpired(bando) && (
@@ -365,7 +393,7 @@ function BandoDetail() {
                   <CheckCircle2 className="h-3 w-3" /> Verificato
                 </span>
               )}
-              {!isVerified(bando) && hasIncompleteCoreData(bando) && (
+              {!isVerified(bando) && !isSportello(bando) && hasIncompleteCoreData(bando) && (
                 <span
                   className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
                   title="Scadenza o importo non presenti nella fonte: da completare sulla fonte ufficiale"
@@ -378,6 +406,12 @@ function BandoDetail() {
             <p className="mt-1 text-sm text-muted-foreground">{bando.ente}</p>
             {isVerified(bando) && (
               <p className="mt-1 text-[11px] text-muted-foreground">{VERIFIED_HINT}</p>
+            )}
+
+            {isSportello(bando) && (
+              <div className="mt-4">
+                <SportelloGuide bando={bando} onPrepare={openDossier} />
+              </div>
             )}
 
             {bando.fonte_extratestuale && (
@@ -408,7 +442,9 @@ function BandoDetail() {
                         <li key={item}>• {item}</li>
                       ))}
                       {(bando.match.blockers ?? []).length === 0 && (
-                        <li>Requisiti di ammissibilità non soddisfatti secondo la fonte ufficiale.</li>
+                        <li>
+                          Requisiti di ammissibilità non soddisfatti secondo la fonte ufficiale.
+                        </li>
                       )}
                     </ul>
                   </div>
@@ -463,23 +499,23 @@ function BandoDetail() {
                     const evidenceHref = safeOfficialHref(evidence.source_url);
                     if (!evidenceHref) return null;
                     return (
-                    <a
-                      key={evidence.source_url}
-                      href={evidenceHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-start gap-2 rounded-xl border border-border bg-background/40 p-3 text-sm transition hover:border-primary/50"
-                    >
-                      <FileSearch className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-                      <span>
-                        <span className="block font-medium">
-                          {evidence.source_title || "Documento ufficiale"}
+                      <a
+                        key={evidence.source_url}
+                        href={evidenceHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-start gap-2 rounded-xl border border-border bg-background/40 p-3 text-sm transition hover:border-primary/50"
+                      >
+                        <FileSearch className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                        <span>
+                          <span className="block font-medium">
+                            {evidence.source_title || "Documento ufficiale"}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            {evidence.evidence_type.replace(/_/g, " ")}
+                          </span>
                         </span>
-                        <span className="mt-0.5 block text-xs text-muted-foreground">
-                          {evidence.evidence_type.replace(/_/g, " ")}
-                        </span>
-                      </span>
-                    </a>
+                      </a>
                     );
                   })}
                 </div>
@@ -510,49 +546,20 @@ function BandoDetail() {
                 </div>
                 {!dossierOpen && (
                   <div className="flex flex-col items-start gap-2">
-                  <button
-                    type="button"
-                    disabled={dossierBusy}
-                    onClick={async () => {
-                      setDossierBusy(true);
-                      setDossierError(null);
-                      try {
-                        const res = await Promise.race([
-                          claimDossier({ data: { opportunity_id: bando.id } }),
-                          new Promise<never>((_, reject) =>
-                            setTimeout(() => reject(new Error("TIMEOUT")), 12_000),
-                          ),
-                        ]);
-                        if (!res.allowed) {
-                          const msg =
-                            res.code === "QUOTA_EXCEEDED"
-                              ? "Hai esaurito i dossier inclusi in questo mese"
-                              : res.code === "EXPORT_NOT_INCLUDED"
-                                ? "Dossier non disponibile con il piano attivo"
-                                : "Dossier non disponibile in questo momento";
-                          setDossierError(msg);
-                          toast.error(msg);
-                          return;
-                        }
-                        setWatermarked(res.watermarked === true);
-                        setDossierOpen(true);
-                      } catch {
-                        setDossierError("Dossier non disponibile in questo momento");
-                        toast.error("Dossier non disponibile in questo momento");
-                      } finally {
-                        setDossierBusy(false);
-                      }
-                    }}
-                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-                  >
-                    <FileText className="h-4 w-4" />{" "}
-                    {dossierBusy ? "Apertura…" : "Genera dossier candidatura"}
-                  </button>
-                  {dossierError ? (
-                    <p role="alert" className="text-xs font-semibold text-destructive">
-                      {dossierError}
-                    </p>
-                  ) : null}
+                    <button
+                      type="button"
+                      disabled={dossierBusy}
+                      onClick={openDossier}
+                      className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                    >
+                      <FileText className="h-4 w-4" />{" "}
+                      {dossierBusy ? "Apertura…" : "Genera dossier candidatura"}
+                    </button>
+                    {dossierError ? (
+                      <p role="alert" className="text-xs font-semibold text-destructive">
+                        {dossierError}
+                      </p>
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -563,7 +570,8 @@ function BandoDetail() {
                   Incluso: {usageQ.data.limits.dossiersPerMonth} dossier
                   {usageQ.data.dossiers_used > 0
                     ? ` · già aperti in questo periodo: ${usageQ.data.dossiers_used}`
-                    : ""}.
+                    : ""}
+                  .
                 </p>
               ) : null}
 
@@ -571,9 +579,10 @@ function BandoDetail() {
                 role="note"
                 className="mt-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning"
               >
-                <strong>Attenzione:</strong> bozza informativa precompilata, non inviata e non pronta
-                alla firma. Nessuna domanda, email o PEC viene trasmessa da UEradar.com. Verifica dati,
-                requisiti, modulistica e scadenze sulla fonte ufficiale prima di qualsiasi utilizzo.
+                <strong>Attenzione:</strong> bozza informativa precompilata, non inviata e non
+                pronta alla firma. Nessuna domanda, email o PEC viene trasmessa da UEradar.com.
+                Verifica dati, requisiti, modulistica e scadenze sulla fonte ufficiale prima di
+                qualsiasi utilizzo.
               </p>
 
               {dossierOpen && watermarked ? (
@@ -596,15 +605,26 @@ function BandoDetail() {
                   <DossierBlock
                     icon={<CheckCircle2 className="h-4 w-4" />}
                     title={`Compatibilità profilo — ${dossier.compatibility.label}${
-                      dossier.compatibility.score !== null ? ` · ${dossier.compatibility.score}%` : ""
+                      dossier.compatibility.score !== null
+                        ? ` · ${dossier.compatibility.score}%`
+                        : ""
                     }`}
                   >
-                    <ListSection label="Requisiti confermati" items={dossier.compatibility.confirmed} />
+                    <ListSection
+                      label="Requisiti confermati"
+                      items={dossier.compatibility.confirmed}
+                    />
                     <ListSection label="Blocker" items={dossier.compatibility.blockers} />
-                    <ListSection label="Campi da verificare" items={dossier.compatibility.to_check} />
+                    <ListSection
+                      label="Campi da verificare"
+                      items={dossier.compatibility.to_check}
+                    />
                   </DossierBlock>
 
-                  <DossierBlock icon={<ListChecks className="h-4 w-4" />} title="Checklist requisiti">
+                  <DossierBlock
+                    icon={<ListChecks className="h-4 w-4" />}
+                    title="Checklist requisiti"
+                  >
                     {dossier.requirements.length ? (
                       <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
                         {dossier.requirements.map((r, i) => (
@@ -635,7 +655,10 @@ function BandoDetail() {
                     </ol>
                   </DossierBlock>
 
-                  <DossierBlock icon={<CalendarClock className="h-4 w-4" />} title="Timeline operativa">
+                  <DossierBlock
+                    icon={<CalendarClock className="h-4 w-4" />}
+                    title="Timeline operativa"
+                  >
                     <ul className="space-y-1 text-xs text-muted-foreground">
                       {dossier.timeline.map((s, i) => (
                         <li key={i}>
@@ -721,143 +744,146 @@ function BandoDetail() {
             </div>
 
             {officialModuleHref ? (
-            <div className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold">Autofill campi modulo ufficiale</h3>
-              </div>
-              {bando.pdf_field_mapping?.length ? (
-                <p className="mb-3 text-xs text-muted-foreground">
-                  Mappatura disponibile ({bando.pdf_field_mapping.length} campi). I campi senza
-                  corrispondenza chiara restano vuoti.
-                </p>
-              ) : (
-                <p className="mb-3 text-xs text-muted-foreground">
-                  Nessuna mappatura preimpostata: elenco dai soli campi di profilo noti. I dati
-                  assenti restano visibili come mancanti.
-                </p>
-              )}
-              <p
-                role="note"
-                className="mb-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning"
-              >
-                <strong>Attenzione — BOZZA INFORMATIVA:</strong> questa è una bozza informativa
-                precompilata dai tuoi dati, da verificare. Non è una domanda inviata né una dichiarazione sostitutiva
-                pronta alla firma. Controlla dati, requisiti, modulistica e scadenze sulla fonte
-                ufficiale del bando prima di qualsiasi utilizzo.
-              </p>
-              <div className="mb-3 flex flex-wrap gap-2">
-                {formsHref ? (
-                  <a
-                    href={formsHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-surface-elevated"
-                  >
-                    <ExternalLink className="h-4 w-4" /> Apri la modulistica ufficiale
-                  </a>
-                ) : null}
-                {applyHref && applyHref !== formsHref ? (
-                  <a
-                    href={applyHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-surface-elevated"
-                  >
-                    <ExternalLink className="h-4 w-4" /> Apri la pagina di presentazione
-                  </a>
-                ) : null}
-              </div>
-              <p className="mb-3 text-xs text-muted-foreground">
-                {modulisticaHint === "likely_pdf"
-                  ? "Il link sembra un PDF. Se è compilabile possiamo allineare solo i campi di profilo noti."
-                  : "Il link punta a un portale o a una pagina HTML. UEradar.com non compila e non invia nulla sul portale."}
-              </p>
-              {!dossierOpen ? (
-                <p className="text-sm text-muted-foreground">
-                  Genera prima il dossier candidatura: i campi per il modulo ufficiale fanno parte
-                  dello stesso documento.
-                </p>
-              ) : profile ? (
-                <>
-                  <p className="mb-2 text-xs font-medium">
-                    Campi da inserire nel modulo ufficiale
+              <div className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold">Autofill campi modulo ufficiale</h3>
+                </div>
+                {bando.pdf_field_mapping?.length ? (
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Mappatura disponibile ({bando.pdf_field_mapping.length} campi). I campi senza
+                    corrispondenza chiara restano vuoti.
                   </p>
-                  <pre className="whitespace-pre-wrap text-xs bg-background/50 rounded-lg p-4 max-h-80 overflow-y-auto font-mono">
-                    {instanceText}
-                  </pre>
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    Firma, date di impegno e dichiarazioni: da compilare esclusivamente sul modulo ufficiale dopo verifica.
+                ) : (
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Nessuna mappatura preimpostata: elenco dai soli campi di profilo noti. I dati
+                    assenti restano visibili come mancanti.
                   </p>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Completa prima il profilo aziendale per abilitare l'autofill.
+                )}
+                <p
+                  role="note"
+                  className="mb-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning"
+                >
+                  <strong>Attenzione — BOZZA INFORMATIVA:</strong> questa è una bozza informativa
+                  precompilata dai tuoi dati, da verificare. Non è una domanda inviata né una
+                  dichiarazione sostitutiva pronta alla firma. Controlla dati, requisiti,
+                  modulistica e scadenze sulla fonte ufficiale del bando prima di qualsiasi
+                  utilizzo.
                 </p>
-              )}
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {formsHref ? (
+                    <a
+                      href={formsHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-surface-elevated"
+                    >
+                      <ExternalLink className="h-4 w-4" /> Apri la modulistica ufficiale
+                    </a>
+                  ) : null}
+                  {applyHref && applyHref !== formsHref ? (
+                    <a
+                      href={applyHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-surface-elevated"
+                    >
+                      <ExternalLink className="h-4 w-4" /> Apri la pagina di presentazione
+                    </a>
+                  ) : null}
+                </div>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  {modulisticaHint === "likely_pdf"
+                    ? "Il link sembra un PDF. Se è compilabile possiamo allineare solo i campi di profilo noti."
+                    : "Il link punta a un portale o a una pagina HTML. UEradar.com non compila e non invia nulla sul portale."}
+                </p>
+                {!dossierOpen ? (
+                  <p className="text-sm text-muted-foreground">
+                    Genera prima il dossier candidatura: i campi per il modulo ufficiale fanno parte
+                    dello stesso documento.
+                  </p>
+                ) : profile ? (
+                  <>
+                    <p className="mb-2 text-xs font-medium">
+                      Campi da inserire nel modulo ufficiale
+                    </p>
+                    <pre className="whitespace-pre-wrap text-xs bg-background/50 rounded-lg p-4 max-h-80 overflow-y-auto font-mono">
+                      {instanceText}
+                    </pre>
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      {"Firma, date di impegno e dichiarazioni: da compilare esclusivamente sul modulo ufficiale dopo verifica."}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Completa prima il profilo aziendale per abilitare l'autofill.
+                  </p>
+                )}
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={copyInstance}
-                  disabled={!profile || !dossierOpen}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-                >
-                  <Copy className="h-4 w-4" /> Copia testo
-                </button>
-                <button
-                  type="button"
-                  onClick={downloadTxt}
-                  disabled={!profile || !dossierOpen}
-                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium disabled:opacity-50"
-                >
-                  <Download className="h-4 w-4" /> Scarica .txt
-                </button>
-                <button
-                  type="button"
-                  onClick={tryPrefillOfficialPdf}
-                  disabled={!profile || !dossierOpen || moduleBusy}
-                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium disabled:opacity-50"
-                >
-                  <FileDown className="h-4 w-4" />{" "}
-                  {moduleBusy ? "Verifica…" : "Se è un PDF compilabile, prova a precompilarlo"}
-                </button>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={copyInstance}
+                    disabled={!profile || !dossierOpen}
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                  >
+                    <Copy className="h-4 w-4" /> Copia testo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={downloadTxt}
+                    disabled={!profile || !dossierOpen}
+                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium disabled:opacity-50"
+                  >
+                    <Download className="h-4 w-4" /> Scarica .txt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={tryPrefillOfficialPdf}
+                    disabled={!profile || !dossierOpen || moduleBusy}
+                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium disabled:opacity-50"
+                  >
+                    <FileDown className="h-4 w-4" />{" "}
+                    {moduleBusy ? "Verifica…" : "Se è un PDF compilabile, prova a precompilarlo"}
+                  </button>
+                </div>
+                {dossierOpen && profile ? (
+                  <label className="mt-3 block text-xs text-muted-foreground">
+                    Oppure seleziona un PDF ufficiale già scaricato
+                    <input
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      className="mt-1 block text-xs"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        void onOfficialPdfFile(file);
+                        event.target.value = "";
+                      }}
+                    />
+                  </label>
+                ) : null}
+                {moduleNote ? (
+                  <p role="status" className="mt-3 text-xs text-muted-foreground">
+                    {moduleNote}
+                  </p>
+                ) : null}
+                {fillSummary ? (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Riepilogo: {fillSummary.filled} compilati, {fillSummary.empty} lasciati vuoti.
+                  </p>
+                ) : null}
+                {filledPdf ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      triggerPdfDownload(filledPdf, `modulo-ufficiale-${bando.id}.pdf`)
+                    }
+                    className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                  >
+                    <FileDown className="h-4 w-4" /> Scarica PDF precompilato
+                  </button>
+                ) : null}
               </div>
-              {dossierOpen && profile ? (
-                <label className="mt-3 block text-xs text-muted-foreground">
-                  Oppure seleziona un PDF ufficiale già scaricato
-                  <input
-                    type="file"
-                    accept="application/pdf,.pdf"
-                    className="mt-1 block text-xs"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      void onOfficialPdfFile(file);
-                      event.target.value = "";
-                    }}
-                  />
-                </label>
-              ) : null}
-              {moduleNote ? (
-                <p role="status" className="mt-3 text-xs text-muted-foreground">
-                  {moduleNote}
-                </p>
-              ) : null}
-              {fillSummary ? (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Riepilogo: {fillSummary.filled} compilati, {fillSummary.empty} lasciati vuoti.
-                </p>
-              ) : null}
-              {filledPdf ? (
-                <button
-                  type="button"
-                  onClick={() => triggerPdfDownload(filledPdf, `modulo-ufficiale-${bando.id}.pdf`)}
-                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-                >
-                  <FileDown className="h-4 w-4" /> Scarica PDF precompilato
-                </button>
-              ) : null}
-            </div>
             ) : (
               <div className="mt-8 rounded-xl border border-dashed border-border bg-card p-4">
                 <div className="flex items-start gap-3">
@@ -865,8 +891,7 @@ function BandoDetail() {
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">Modulistica ufficiale</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Questo bando non ha un URL di modulistica o presentazione distinto dalla scheda ente.
-                      Non inventiamo il modulo. Apri la fonte ufficiale e scarica i documenti lì.
+                      {"Questo bando non ha un URL di modulistica o presentazione distinto dalla scheda ente. Non inventiamo il modulo. Apri la fonte ufficiale e scarica i documenti lì."}
                     </p>
                   </div>
                 </div>
@@ -920,19 +945,19 @@ function BandoDetail() {
               )}
 
               {applyHref ? (
-                  <a
-                    href={applyHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:brightness-110"
-                  >
-                    <ExternalLink className="h-4 w-4" /> Piattaforma di sottomissione
-                  </a>
-                ) : (
-                  <p className="mt-4 text-xs text-muted-foreground">
-                    Link di presentazione non disponibile sulla fonte ufficiale
-                  </p>
-                )}
+                <a
+                  href={applyHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:brightness-110"
+                >
+                  <ExternalLink className="h-4 w-4" /> Piattaforma di sottomissione
+                </a>
+              ) : (
+                <p className="mt-4 text-xs text-muted-foreground">
+                  Link di presentazione non disponibile sulla fonte ufficiale
+                </p>
+              )}
               {formsHref && formsHref !== applyHref ? (
                 <a
                   href={formsHref}
