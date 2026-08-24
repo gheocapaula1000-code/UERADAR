@@ -172,7 +172,10 @@ function BandoDetail() {
   const dossier = buildDossier(bando, profile);
   // Nessun output prima del claim server: testo, TXT, PDF e clipboard
   // esistono solo dopo `dossierOpen`, e portano la filigrana se in prova.
-  const dossierText = dossierOpen ? renderDossierText(dossier, { watermarked }) : "";
+  // prettier-ignore
+  const dossierText = dossierOpen
+    ? renderDossierText(dossier, { watermarked })
+    : "";
 
   const copyDossier = async () => {
     if (!dossierOpen) return;
@@ -808,8 +811,7 @@ function BandoDetail() {
                       {instanceText}
                     </pre>
                     <p className="mt-2 text-[11px] text-muted-foreground">
-                      Firma, date di impegno e dichiarazioni: da compilare esclusivamente sul modulo
-                      ufficiale dopo verifica.
+                      {"Firma, date di impegno e dichiarazioni: da compilare esclusivamente sul modulo ufficiale dopo verifica."}
                     </p>
                   </>
                 ) : (
@@ -889,9 +891,7 @@ function BandoDetail() {
                   <div className="min-w-0">
                     <p className="text-sm font-semibold">Modulistica ufficiale</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Questo bando non ha un URL di modulistica o presentazione distinto dalla
-                      scheda ente. Non inventiamo il modulo. Apri la fonte ufficiale e scarica i
-                      documenti lì.
+                      {"Questo bando non ha un URL di modulistica o presentazione distinto dalla scheda ente. Non inventiamo il modulo. Apri la fonte ufficiale e scarica i documenti lì."}
                     </p>
                   </div>
                 </div>
