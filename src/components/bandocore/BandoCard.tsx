@@ -193,18 +193,12 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
 
       <p className="mt-3 min-w-0 wrap-anywhere text-sm text-muted-foreground line-clamp-3 flex-1">{bando.descrizione}</p>
 
-      {preview && (
+      {preview && preview.status === "COMPATIBILE" && (
         <div className={`mt-4 rounded-lg border p-2.5 ${preview.boxClass}`}>
           <div className="flex min-w-0 items-center justify-between gap-2 text-xs">
             <span className={`flex min-w-0 flex-wrap items-center gap-1.5 font-medium ${preview.textClass}`}>
-              {preview.tone === "positive" ? (
-                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-              ) : preview.tone === "negative" ? (
-                <XCircle className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-              )}
-              {preview.label}
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              Il testo ufficiale cita il codice ATECO della tua impresa
             </span>
             <MatchScore score={preview.score} />
           </div>
@@ -218,20 +212,9 @@ export function BandoCard({ bando, index = 0 }: { bando: Bando; index?: number }
               Da controllare: {preview.missing.join(" · ")}
             </p>
           ) : null}
-          {preview.blockers.length > 0 ? (
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Blocco: {preview.blockers.join(" · ")}
-            </p>
-          ) : null}
-          {preview.confirmed.length === 0 &&
-          preview.missing.length === 0 &&
-          preview.blockers.length === 0 ? (
-            <p className="mt-1.5 text-[11px] text-muted-foreground">
-              Controlla i requisiti sul bando ufficiale
-            </p>
-          ) : null}
         </div>
       )}
+
 
       <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 text-xs">
         <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
