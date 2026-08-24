@@ -74,11 +74,15 @@ export function SportelloGuide({
   /** In pagina dettaglio prepara i documenti sul posto, senza navigare. */
   onPrepare?: () => void;
 }) {
-  const href = partecipaHref(bando);
+  const [step, setStep] = useState(0);
   const facts = sportelloFacts(bando);
   const mine = profiloFacts(profile);
   const steps = sportelloSteps(bando, mine.length > 0);
   const official = officialLink(bando);
+  const action = sportelloAction(bando, step);
+  const advance = () => setStep((s) => Math.min(SPORTELLO_ACTION_COUNT - 1, s + 1));
+  const cta =
+    "cta-lift tap mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-base font-bold text-primary-foreground hover:brightness-110 hover:shadow-glow";
 
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
@@ -92,27 +96,43 @@ export function SportelloGuide({
       </p>
 
       {/* Un solo passo alla volta: decidiamo noi qual è, l'utente clicca. */}
-      {href ? (
+      {action.isPrepare ? (
+        onPrepare ? (
+          <button
+            type="button"
+            onClick={() => {
+              onPrepare();
+              advance();
+            }}
+            className={cta}
+          >
+            {action.label} <FileText className="h-5 w-5" aria-hidden="true" />
+          </button>
+        ) : (
+          <Link to="/bando/$id" params={{ id: bando.id }} className={cta}>
+            {action.label} <FileText className="h-5 w-5" aria-hidden="true" />
+          </Link>
+        )
+      ) : action.href ? (
         <a
-          href={href}
+          href={action.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="cta-lift tap mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-base font-bold text-primary-foreground hover:brightness-110 hover:shadow-glow"
+          onClick={advance}
+          className={cta}
         >
-          Partecipa adesso <ArrowRight className="h-5 w-5" aria-hidden="true" />
+          {action.label} <ArrowRight className="h-5 w-5" aria-hidden="true" />
         </a>
-      ) : official ? (
-        <a
-          href={official}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="cta-lift tap mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-base font-bold text-primary-foreground hover:brightness-110 hover:shadow-glow"
-        >
-          Apri il bando ufficiale <ArrowRight className="h-5 w-5" aria-hidden="true" />
-        </a>
-      ) : null}
+      ) : (
+        <button type="button" onClick={advance} className={cta}>
+          {action.label} <ArrowRight className="h-5 w-5" aria-hidden="true" />
+        </button>
+      )}
 
-      <p className="mt-2 text-center text-xs text-muted-foreground">Poi torna qui: pensiamo noi al resto.</p>
+      <p className="mt-2 text-center text-xs text-muted-foreground">
+        Passo {action.index + 1} di {SPORTELLO_ACTION_COUNT}. {action.after}
+      </p>
+
 
       <details className="group mt-3">
         <summary className="tap cursor-pointer list-none rounded-lg border border-border/70 px-3 py-2.5 text-sm font-semibold text-muted-foreground">
