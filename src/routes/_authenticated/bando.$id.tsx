@@ -544,7 +544,7 @@ function BandoDetail() {
                         : "Dossier parziale"}
                   </span>
                 </div>
-                {!dossierOpen && (
+                {!dossierOpen && !isSportello(bando) && (
                   <div className="flex flex-col items-start gap-2">
                     <button
                       type="button"
@@ -770,28 +770,30 @@ function BandoDetail() {
                   modulistica e scadenze sulla fonte ufficiale del bando prima di qualsiasi
                   utilizzo.
                 </p>
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {formsHref ? (
-                    <a
-                      href={formsHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-surface-elevated"
-                    >
-                      <ExternalLink className="h-4 w-4" /> Apri la modulistica ufficiale
-                    </a>
-                  ) : null}
-                  {applyHref && applyHref !== formsHref ? (
-                    <a
-                      href={applyHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-surface-elevated"
-                    >
-                      <ExternalLink className="h-4 w-4" /> Apri la pagina di presentazione
-                    </a>
-                  ) : null}
-                </div>
+                {!isSportello(bando) ? (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {formsHref ? (
+                      <a
+                        href={formsHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-surface-elevated"
+                      >
+                        <ExternalLink className="h-4 w-4" /> Apri la modulistica ufficiale
+                      </a>
+                    ) : null}
+                    {applyHref && applyHref !== formsHref ? (
+                      <a
+                        href={applyHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-surface-elevated"
+                      >
+                        <ExternalLink className="h-4 w-4" /> Apri la pagina di presentazione
+                      </a>
+                    ) : null}
+                  </div>
+                ) : null}
                 <p className="mb-3 text-xs text-muted-foreground">
                   {modulisticaHint === "likely_pdf"
                     ? "Il link sembra un PDF. Se è compilabile possiamo allineare solo i campi di profilo noti."
@@ -944,7 +946,7 @@ function BandoDetail() {
                 </p>
               )}
 
-              {applyHref ? (
+              {!isSportello(bando) && applyHref ? (
                 <a
                   href={applyHref}
                   target="_blank"
@@ -953,12 +955,12 @@ function BandoDetail() {
                 >
                   <ExternalLink className="h-4 w-4" /> Piattaforma di sottomissione
                 </a>
-              ) : (
+              ) : !isSportello(bando) ? (
                 <p className="mt-4 text-xs text-muted-foreground">
                   Link di presentazione non disponibile sulla fonte ufficiale
                 </p>
-              )}
-              {formsHref && formsHref !== applyHref ? (
+              ) : null}
+              {!isSportello(bando) && formsHref && formsHref !== applyHref ? (
                 <a
                   href={formsHref}
                   target="_blank"
