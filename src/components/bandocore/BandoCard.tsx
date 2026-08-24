@@ -21,8 +21,10 @@ import {
   isRareOrHidden,
   isVerified,
   matchPreview,
+  officialLink,
   VERIFIED_HINT,
 } from "@/lib/bando-status";
+
 import { formatItalianInteger } from "@/lib/catalog";
 import { missingOfficialData } from "@/lib/dossier";
 import { admitBando, MISSING_DEADLINE_LABEL, MISSING_ECONOMICS_LABEL } from "@/lib/feed-admission";
