@@ -207,10 +207,10 @@ export function isRareOrHidden(bando: Pick<Bando, "is_hidden" | "rarity_score">)
  */
 export function qualityRank(bando: Bando, now: number = Date.now()): number {
   if (isVerified(bando, now)) return 0;
-  const withDeadline = nonEmpty(bando.scadenza) && !isExpired(bando, now);
+  const withDeadline = hasDateState(bando) && !isExpired(bando, now);
   if (withDeadline) return 1;
   if (hasEconomics(bando)) return 2;
-  if (nonEmpty(bando.scadenza)) return 3;
+  if (hasDateState(bando)) return 3;
   return 4;
 }
 
