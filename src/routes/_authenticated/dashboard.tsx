@@ -826,24 +826,59 @@ function Dashboard() {
             </div>
           ) : query.error ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              Il catalogo ufficiale non è raggiungibile in questo momento. Non inventiamo Bandi:
-              riprova tra poco con «Cerca nuovi Bandi».
+              <p>
+                Non siamo riusciti a leggere il catalogo adesso.
+                {lastKnownCount !== null ? ` Ultimo dato noto: ${lastKnownCount} bandi.` : ""}
+              </p>
+              <button
+                type="button"
+                onClick={() => query.refetch()}
+                className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+              >
+                Riprova
+              </button>
             </div>
           ) : filtered.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              {bandi.length === 0
-                ? "Nessun Bando ufficiale in questo aggiornamento. Non inventiamo schede."
-                : "Nessun Bando corrisponde ai filtri scelti."}
-              {activeFilters > 0 && (
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="tap ml-2 font-semibold text-primary underline"
-                >
-                  Azzera i filtri
-                </button>
+              {activeFilters > 0 ? (
+                <>
+                  <p>Nessun bando con i filtri scelti.</p>
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                  >
+                    Azzera filtri
+                  </button>
+                </>
+              ) : homeView === "profile" ? (
+                <>
+                  <p>
+                    Nessun bando per il tuo profilo adesso. Non vuol dire che la tua impresa è
+                    esclusa: nel catalogo ci sono altri bandi aperti.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => persistHomeView("catalog")}
+                    className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                  >
+                    Vedi tutti i bandi
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p>Nessun bando ufficiale in questo aggiornamento. Non inventiamo schede.</p>
+                  <button
+                    type="button"
+                    onClick={() => query.refetch()}
+                    className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+                  >
+                    Riprova
+                  </button>
+                </>
               )}
             </div>
+
           ) : (
             <div className="space-y-8">
               <div>
