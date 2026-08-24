@@ -87,7 +87,7 @@ export function SportelloGuide({
         {SPORTELLO_URGENCY}
       </p>
 
-      {/* Azione principale sempre in alto: bottone enorme, un'idea sola. */}
+      {/* Un solo passo alla volta: decidiamo noi qual è, l'utente clicca. */}
       {href ? (
         <a
           href={href}
@@ -97,30 +97,23 @@ export function SportelloGuide({
         >
           Partecipa adesso <ArrowRight className="h-5 w-5" aria-hidden="true" />
         </a>
-      ) : (
-        <p className="mt-3 rounded-xl border border-border bg-muted/40 px-3 py-3 text-sm text-muted-foreground">
-          Il link per partecipare non c'è sul bando. Apri il sito ufficiale qui sotto.
-        </p>
-      )}
-
-      {onPrepare ? (
-        <button
-          type="button"
-          onClick={onPrepare}
-          className="tap mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-border px-4 py-3.5 text-base font-semibold hover:border-primary/50"
+      ) : official ? (
+        <a
+          href={official}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="cta-lift tap mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-base font-bold text-primary-foreground hover:brightness-110 hover:shadow-glow"
         >
-          <FileText className="h-5 w-5" aria-hidden="true" /> Prepara i documenti
-        </button>
-      ) : (
-        <Link
-          to="/bando/$id"
-          params={{ id: bando.id }}
-          className="tap mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-border px-4 py-3.5 text-base font-semibold hover:border-primary/50"
-        >
-          <FileText className="h-5 w-5" aria-hidden="true" /> Prepara i documenti
-        </Link>
-      )}
+          Apri il bando ufficiale <ArrowRight className="h-5 w-5" aria-hidden="true" />
+        </a>
+      ) : null}
 
+      <p className="mt-2 text-center text-xs text-muted-foreground">Poi torna qui: pensiamo noi al resto.</p>
+
+      <details className="group mt-3">
+        <summary className="tap cursor-pointer list-none rounded-lg border border-border/70 px-3 py-2.5 text-sm font-semibold text-muted-foreground">
+          Vedi i passi e i dati del bando
+        </summary>
       <ol className="mt-3 space-y-2">
         {steps.map((step) => (
           <li key={step.n} className="flex min-w-0 items-start gap-2.5">
@@ -153,7 +146,25 @@ export function SportelloGuide({
       </ul>
 
       {mine.length > 0 && <UsaIMieiDati profile={profile} />}
+      </details>
 
+      {onPrepare ? (
+        <button
+          type="button"
+          onClick={onPrepare}
+          className="tap mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground"
+        >
+          <FileText className="h-4 w-4" aria-hidden="true" /> Prepara i documenti
+        </button>
+      ) : (
+        <Link
+          to="/bando/$id"
+          params={{ id: bando.id }}
+          className="tap mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-muted-foreground hover:border-primary/50 hover:text-foreground"
+        >
+          <FileText className="h-4 w-4" aria-hidden="true" /> Prepara i documenti
+        </Link>
+      )}
     </div>
   );
 }
