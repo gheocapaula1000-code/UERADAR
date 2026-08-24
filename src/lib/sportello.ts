@@ -22,6 +22,11 @@ export const SPORTELLO_MISSING_LINE = MISSING_OFFICIAL_LINE;
 
 export const SPORTELLO_CTA = "Partecipa adesso";
 
+/** Paula: noi pensiamo per lui — we decide the next click; they only click. */
+export const WE_THINK_FOR_THEM = "noi pensiamo per lui";
+
+export const NOW_DO_THIS = "Adesso fai questo";
+
 export const SPORTELLO_STEPS = [
   "Apri il bando ufficiale",
   "Prepara i documenti",
@@ -344,6 +349,83 @@ export function nextSportelloStep(
   progress: SportelloProgress,
 ): SportelloStepId {
   return steps.find((s) => !progress[s.id])?.id ?? "apply";
+}
+
+export type RecommendedKind = "external" | "dossier" | "detail";
+
+export type RecommendedSportelloAction = {
+  stepId: SportelloStepId;
+  n: number;
+  title: string;
+  /** The only recommended click on this view. Already selected. */
+  label: string;
+  href: string | null;
+  kind: RecommendedKind;
+  helper: string;
+};
+
+/**
+ * Every sportello view calls this and shows this one action, already highlighted.
+ * Never two peer choices. The user only clicks.
+ */
+export function recommendedSportelloAction(
+  bando: Bando,
+  progress: SportelloProgress,
+  opts?: { compact?: boolean },
+): RecommendedSportelloAction {
+  const steps = sportelloSteps(bando);
+  const id = nextSportelloStep(steps, progress);
+  const step = steps.find((s) => s.id === id) ?? steps[0];
+  const official = officialPageHref(bando);
+  const domanda = domandaHref(bando);
+  const modulo = moduloHref(bando);
+  const apply = domanda ?? modulo ?? official;
+
+  if (id === "official") {
+    return {
+      stepId: "official",
+      n: step.n,
+      title: step.title,
+      label: official ? "Apri il bando ufficiale" : "Apri il sito ufficiale",
+      href: official,
+      kind: "external",
+      helper: step.youDo,
+    };
+  }
+
+  if (id === "dossier") {
+    return {
+      stepId: "dossier",
+      n: step.n,
+      title: step.title,
+      label: "Prepara i documenti",
+      href: null,
+      kind: opts?.compact ? "detail" : "dossier",
+      helper: step.youDo,
+    };
+  }
+
+  if (id === "check") {
+    return {
+      stepId: "check",
+      n: step.n,
+      title: step.title,
+      label: official ? "Controlla sul sito ufficiale" : "Apri il sito ufficiale",
+      href: official,
+      kind: "external",
+      helper: step.youDo,
+    };
+  }
+
+  return {
+    stepId: "apply",
+    n: step.n,
+    title: step.title,
+    label: apply ? SPORTELLO_CTA : "Apri il sito ufficiale",
+    href: apply,
+    kind: "external",
+    helper: step.youDo,
+  };
 }
 
 export function browserSportelloStorage(): Pick<Storage, "getItem" | "setItem"> | null {

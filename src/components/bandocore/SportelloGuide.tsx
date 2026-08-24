@@ -3,26 +3,22 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, FileText } from "lucide-react";
 import type { Bando } from "@/lib/bandocore-types";
 import { UsaIMieiDati } from "@/components/bandocore/UsaIMieiDati";
-import { officialLink } from "@/lib/bando-status";
 import {
   browserSportelloStorage,
-  domandaHref,
   MISSING_OFFICIAL_LINE,
-  moduloHref,
-  nextSportelloStep,
+  NOW_DO_THIS,
   officialAmounts,
   officialAtecoMentions,
-  officialPageHref,
-  partecipaHref,
   protocolEmail,
   readSportelloProgress,
-  SPORTELLO_CTA,
+  recommendedSportelloAction,
   SPORTELLO_LEAD,
   SPORTELLO_URGENCY,
   sportelloBadgeLabel,
   sportelloSteps,
   writeSportelloProgress,
   type ProfiloSportello,
+  type RecommendedSportelloAction,
   type SportelloProgress,
   type SportelloStepId,
 } from "@/lib/sportello";
@@ -36,6 +32,7 @@ function OfficialFallback({ href, line = MISSING_OFFICIAL_LINE }: { href: string
           href={href}
           target="_blank"
           rel="noopener noreferrer"
+          aria-current="step"
           className="tap inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-primary/40 bg-primary/10 px-3 py-3 text-sm font-semibold text-primary"
         >
           Apri il sito ufficiale
@@ -59,9 +56,60 @@ function StepMark({ done }: { done: boolean }) {
   );
 }
 
+const RECOMMENDED_CLASS =
+  "cta-lift tap inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-base font-bold text-primary-foreground ring-2 ring-primary/50 ring-offset-2 ring-offset-background hover:brightness-110 hover:shadow-glow";
+
+function RecommendedClick({
+  action,
+  bandoId,
+  onPrepare,
+  onMark,
+}: {
+  action: RecommendedSportelloAction;
+  bandoId: string;
+  onPrepare?: () => void;
+  onMark: () => void;
+}) {
+  if (action.kind === "dossier") {
+    return (
+      <button type="button" aria-current="step" onClick={() => { onMark(); onPrepare?.(); }} className={RECOMMENDED_CLASS}>
+        <FileText className="h-5 w-5" aria-hidden="true" /> {action.label}
+      </button>
+    );
+  }
+  if (action.kind === "detail") {
+    return (
+      <Link
+        to="/bando/$id"
+        params={{ id: bandoId }}
+        aria-current="step"
+        onClick={onMark}
+        className={RECOMMENDED_CLASS}
+      >
+        {action.label} <ArrowRight className="h-5 w-5" aria-hidden="true" />
+      </Link>
+    );
+  }
+  if (action.href) {
+    return (
+      <a
+        href={action.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-current="step"
+        onClick={onMark}
+        className={RECOMMENDED_CLASS}
+      >
+        {action.label} <ArrowRight className="h-5 w-5" aria-hidden="true" />
+      </a>
+    );
+  }
+  return <OfficialFallback href={null} />;
+}
+
 /**
- * Percorso guidato a sportello: un'idea per blocco, un click successivo,
- * mai un vicolo cieco. I link esistono solo se la fonte li ha.
+ * Percorso guidato a sportello: noi pensiamo per lui.
+ * Un'azione sola, già evidenziata. L'utente clicca, non sceglie.
  */
 export function SportelloGuide({
   bando,
@@ -74,10 +122,6 @@ export function SportelloGuide({
   profile?: ProfiloSportello | null;
   onPrepare?: () => void;
 }) {
-  const href = partecipaHref(bando);
-  const official = officialPageHref(bando);
-  const domanda = domandaHref(bando);
-  const modulo = moduloHref(bando);
   const amounts = officialAmounts(bando);
   const requisiti = (bando.requisiti ?? []).map((r) => r.trim()).filter(Boolean);
   const spese = (bando.eligible_expenses ?? []).map((r) => r.trim()).filter(Boolean);
@@ -87,14 +131,28 @@ export function SportelloGuide({
   const [progress, setProgress] = useState<SportelloProgress>(() =>
     readSportelloProgress(bando.id, browserSportelloStorage()),
   );
-  const nextId = nextSportelloStep(steps, progress);
-  const next = steps.find((s) => s.id === nextId) ?? steps[0];
+  const action = recommendedSportelloAction(bando, progress, { compact });
+  const nextId = action.stepId;
 
   const mark = (id: SportelloStepId, done = true) => {
     setProgress(writeSportelloProgress(bando.id, { [id]: done }, browserSportelloStorage()));
   };
 
   const badge = sportelloBadgeLabel(bando);
+  const recommended = (
+    <div className="mt-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-primary">{NOW_DO_THIS}</p>
+      <div className="mt-2">
+        <RecommendedClick
+          action={action}
+          bandoId={bando.id}
+          onPrepare={onPrepare}
+          onMark={() => mark(action.stepId)}
+        />
+      </div>
+      <p className="mt-2 min-w-0 wrap-anywhere text-sm text-muted-foreground">{action.helper}</p>
+    </div>
+  );
 
   if (compact) {
     return (
@@ -103,28 +161,15 @@ export function SportelloGuide({
         <p className="mt-2 min-w-0 wrap-anywhere text-sm font-semibold text-warning">
           {SPORTELLO_URGENCY}
         </p>
-        {href ? (
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => mark("apply")}
-            className="cta-lift tap mt-4 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-base font-bold text-primary-foreground hover:brightness-110 hover:shadow-glow"
-          >
-            {SPORTELLO_CTA} <ArrowRight className="h-5 w-5" aria-hidden="true" />
-          </a>
-        ) : (
-          <OfficialFallback href={officialLink(bando)} />
-        )}
+        {recommended}
         <p className="mt-3 min-w-0 wrap-anywhere text-sm font-medium text-foreground">
-          Prossimo passo {next.n}: {next.title}{" "}
+          Passo {action.n}: {action.title}{" "}
           <span className="text-warning">· da fare</span>
         </p>
         {amounts.length === 0 ? (
-          <OfficialFallback
-            href={official}
-            line="L'importo non è ancora sul testo. Aprendo il bando ufficiale lo vedi."
-          />
+          <p className="mt-2 min-w-0 wrap-anywhere text-sm text-muted-foreground">
+            L'importo non è ancora sul testo. Aprendo il bando ufficiale lo vedi.
+          </p>
         ) : null}
       </div>
     );
@@ -138,19 +183,7 @@ export function SportelloGuide({
         <p className="mt-2 min-w-0 wrap-anywhere text-sm font-semibold text-warning">
           {SPORTELLO_URGENCY}
         </p>
-        {href ? (
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => mark("apply")}
-            className="cta-lift tap mt-4 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-lg font-bold text-primary-foreground hover:brightness-110 hover:shadow-glow"
-          >
-            {SPORTELLO_CTA} <ArrowRight className="h-5 w-5" aria-hidden="true" />
-          </a>
-        ) : (
-          <OfficialFallback href={official} />
-        )}
+        {recommended}
       </section>
 
       <ol className="space-y-3">
@@ -184,29 +217,13 @@ export function SportelloGuide({
               </div>
               {isNext ? (
                 <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-primary">
-                  Adesso fai questo
+                  {NOW_DO_THIS}
                 </p>
               ) : null}
               <p className="mt-2 min-w-0 wrap-anywhere text-sm text-muted-foreground">
                 {step.wePrepared}
               </p>
               <p className="mt-1 min-w-0 wrap-anywhere text-sm">{step.youDo}</p>
-
-              {step.id === "official" ? (
-                official ? (
-                  <a
-                    href={official}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => mark("official")}
-                    className="tap mt-3 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-primary px-3 py-3 text-sm font-bold text-primary-foreground"
-                  >
-                    Apri il bando
-                  </a>
-                ) : (
-                  <OfficialFallback href={null} />
-                )
-              ) : null}
 
               {step.id === "dossier" ? (
                 <div className="mt-3 space-y-3">
@@ -220,10 +237,9 @@ export function SportelloGuide({
                       ))}
                     </ul>
                   ) : (
-                    <OfficialFallback
-                      href={official}
-                      line="L'importo non è ancora sul testo. Aprendo il bando ufficiale lo vedi."
-                    />
+                    <p className="min-w-0 wrap-anywhere text-sm text-muted-foreground">
+                      L'importo non è ancora sul testo. Aprendo il bando ufficiale lo vedi.
+                    </p>
                   )}
                   {requisiti.length > 0 ? (
                     <div>
@@ -235,7 +251,9 @@ export function SportelloGuide({
                       </ul>
                     </div>
                   ) : (
-                    <OfficialFallback href={official} />
+                    <p className="min-w-0 wrap-anywhere text-sm text-muted-foreground">
+                      {MISSING_OFFICIAL_LINE}
+                    </p>
                   )}
                   {spese.length > 0 ? (
                     <div>
@@ -247,27 +265,6 @@ export function SportelloGuide({
                       </ul>
                     </div>
                   ) : null}
-                  {onPrepare ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        mark("dossier");
-                        onPrepare();
-                      }}
-                      className="tap inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-3 text-sm font-bold text-primary"
-                    >
-                      <FileText className="h-4 w-4" aria-hidden="true" /> Prepara i documenti
-                    </button>
-                  ) : (
-                    <Link
-                      to="/bando/$id"
-                      params={{ id: bando.id }}
-                      onClick={() => mark("dossier")}
-                      className="tap inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-3 text-sm font-bold text-primary"
-                    >
-                      <FileText className="h-4 w-4" aria-hidden="true" /> Prepara i documenti
-                    </Link>
-                  )}
                 </div>
               ) : null}
 
@@ -283,53 +280,13 @@ export function SportelloGuide({
                     </p>
                   )}
                   <UsaIMieiDati profile={profile} />
-                  {official ? (
-                    <a
-                      href={official}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => mark("check")}
-                      className="tap inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-border px-3 py-3 text-sm font-semibold"
-                    >
-                      Controlla sul sito ufficiale
-                    </a>
-                  ) : (
-                    <OfficialFallback href={null} />
-                  )}
                 </div>
               ) : null}
 
-              {step.id === "apply" ? (
-                <div className="mt-3 space-y-2">
-                  {domanda ? (
-                    <a
-                      href={domanda}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => mark("apply")}
-                      className="tap inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-primary px-3 py-3 text-sm font-bold text-primary-foreground"
-                    >
-                      Apri la domanda
-                    </a>
-                  ) : (
-                    <OfficialFallback href={official} />
-                  )}
-                  {modulo ? (
-                    <a
-                      href={modulo}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="tap inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-border px-3 py-3 text-sm font-semibold"
-                    >
-                      Scarica il modulo
-                    </a>
-                  ) : null}
-                  {pec ? (
-                    <p className="min-w-0 wrap-anywhere text-sm text-muted-foreground">
-                      Posta dell'ufficio (se la chiedono): {pec}
-                    </p>
-                  ) : null}
-                </div>
+              {step.id === "apply" && pec ? (
+                <p className="mt-3 min-w-0 wrap-anywhere text-sm text-muted-foreground">
+                  Posta dell'ufficio (se la chiedono): {pec}
+                </p>
               ) : null}
             </li>
           );

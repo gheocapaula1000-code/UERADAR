@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { hasOfficialSportelloSentence, isHighPriorityFeed, isSportello } from "@/lib/bando-status";
 import type { Bando } from "@/lib/bandocore-types";
@@ -9,9 +10,12 @@ import {
   officialAtecoMentions,
   officialFundsPhrase,
   nextSportelloStep,
+  NOW_DO_THIS,
   profileFacts,
   readSportelloProgress,
+  recommendedSportelloAction,
   sportelloSteps,
+  WE_THINK_FOR_THEM,
   writeSportelloProgress,
 } from "@/lib/sportello";
 
@@ -93,6 +97,43 @@ describe("sportello onesto", () => {
     expect(nextSportelloStep(steps, readSportelloProgress("sp-1", storage))).toBe("official");
     writeSportelloProgress("sp-1", { official: true }, storage);
     expect(nextSportelloStep(steps, readSportelloProgress("sp-1", storage))).toBe("dossier");
+  });
+
+  it("noi pensiamo per lui: un'azione sola, già scelta, dal prossimo passo", () => {
+    expect(WE_THINK_FOR_THEM).toBe("noi pensiamo per lui");
+    expect(NOW_DO_THIS).toBe("Adesso fai questo");
+    const empty = { official: false, dossier: false, check: false, apply: false };
+    const first = recommendedSportelloAction(bando(), empty);
+    expect(first.stepId).toBe("official");
+    expect(first.label).toBe("Apri il bando ufficiale");
+    expect(first.href).toBe("https://bandi.regione.veneto.it/bando");
+    expect(first.kind).toBe("external");
+
+    const afterOfficial = recommendedSportelloAction(bando(), { ...empty, official: true });
+    expect(afterOfficial.stepId).toBe("dossier");
+    expect(afterOfficial.label).toBe("Prepara i documenti");
+    expect(afterOfficial.kind).toBe("dossier");
+    expect(recommendedSportelloAction(bando(), { ...empty, official: true }, { compact: true }).kind).toBe(
+      "detail",
+    );
+
+    const readyToSend = recommendedSportelloAction(bando({ application_url: "https://ente.it/domanda" }), {
+      official: true,
+      dossier: true,
+      check: true,
+      apply: false,
+    });
+    expect(readyToSend.stepId).toBe("apply");
+    expect(readyToSend.label).toBe(SPORTELLO_CTA);
+    expect(readyToSend.href).toBe("https://ente.it/domanda");
+  });
+
+  it("la scheda decide un click solo, già evidenziato", () => {
+    const src = readFileSync("src/components/bandocore/SportelloGuide.tsx", "utf8");
+    expect(src).toContain('aria-current="step"');
+    expect(src).toContain("recommendedSportelloAction");
+    expect(src).toContain("NOW_DO_THIS");
+    expect(src).not.toMatch(/if \(compact\)[\s\S]*OfficialFallback/);
   });
 });
 
