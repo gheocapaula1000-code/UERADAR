@@ -415,8 +415,8 @@ function Dashboard() {
             </h1>
             <p className="mt-1 min-w-0 wrap-anywhere text-sm text-muted-foreground">
               {homeView === "catalog"
-                ? "Tutti i Bandi ufficiali aperti."
-                : "I Bandi selezionati per la tua impresa."}
+                ? "Catalogo: tutti i bandi ufficiali aperti."
+                : "Per la mia impresa: solo i bandi che il tuo profilo può usare, se il testo ufficiale cita il tuo codice ATECO."}
               {query.data?.fetched_at
                 ? ` · Aggiornato il ${new Date(query.data.fetched_at).toLocaleString("it-IT")}`
                 : ""}
@@ -431,20 +431,23 @@ function Dashboard() {
             <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
               <span
                 className={`text-sm ${homeView === "catalog" ? "font-semibold text-foreground" : "text-muted-foreground"}`}
+                title="Catalogo: tutti i bandi ufficiali aperti."
               >
                 Catalogo
               </span>
               <Switch
                 checked={homeView === "profile"}
                 onCheckedChange={(on) => persistHomeView(on ? "profile" : "catalog")}
-                aria-label="Per la mia impresa: mostra solo i Bandi abbinati al profilo"
+                aria-label="Per la mia impresa: solo i bandi che il tuo profilo può usare, se il testo ufficiale cita il tuo codice ATECO"
               />
               <span
                 className={`text-sm ${homeView === "profile" ? "font-semibold text-foreground" : "text-muted-foreground"}`}
+                title="Per la mia impresa: solo i bandi che il tuo profilo può usare, se il testo ufficiale cita il tuo codice ATECO."
               >
                 Per la mia impresa
               </span>
             </div>
+
             <button
               onClick={handleManualRefresh}
               disabled={query.isFetching || isRefreshing}
