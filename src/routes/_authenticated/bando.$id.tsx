@@ -224,6 +224,12 @@ function BandoDetail() {
   // resta sempre "Apri il bando ufficiale".
   const ufficialeHref = safeOfficialHref(officialLink(bando));
   const territory = territoryBadge(bando);
+  const officialExpenses = (bando.eligible_expenses ?? []).filter(
+    (item) => typeof item === "string" && item.trim().length > 0,
+  );
+  const officialRequirements = (bando.requisiti ?? []).filter(
+    (item) => typeof item === "string" && item.trim().length > 0,
+  );
 
   const copyInstance = async () => {
     if (!dossierOpen) return;
@@ -505,16 +511,18 @@ function BandoDetail() {
                       : ""}
                   </p>
                 ) : (
-                  <p className="mt-3 text-sm text-muted-foreground">{MISSING_ON_NOTICE}</p>
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Importo massimo: {MISSING_ON_NOTICE}
+                  </p>
                 )}
                 {typeof bando.total_budget === "number" && bando.total_budget > 0 ? (
                   <p className="mt-1 text-xs text-muted-foreground">
                     Dotazione complessiva {new Intl.NumberFormat("it-IT").format(bando.total_budget)} €
                   </p>
                 ) : null}
-                {bando.eligible_expenses?.length ? (
+                {officialExpenses.length ? (
                   <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
-                    {bando.eligible_expenses.map((item, i) => (
+                    {officialExpenses.map((item, i) => (
                       <li key={i} className="flex gap-2">
                         <span className="text-primary">•</span> {item}
                       </li>
@@ -531,16 +539,18 @@ function BandoDetail() {
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   Requisiti dichiarati dalla fonte. Niente di inventato.
                 </p>
-                {bando.requisiti?.length ? (
+                {officialRequirements.length ? (
                   <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
-                    {bando.requisiti.map((r, i) => (
+                    {officialRequirements.map((r, i) => (
                       <li key={i} className="flex gap-2">
                         <span className="text-primary">•</span> {r}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-3 text-sm text-muted-foreground">{MISSING_ON_NOTICE}</p>
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Requisiti: {MISSING_ON_NOTICE}
+                  </p>
                 )}
               </div>
             </div>
