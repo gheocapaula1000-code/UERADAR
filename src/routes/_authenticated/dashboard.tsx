@@ -1,1 +1,1 @@
-PLACEHOLDER
+@file:/home/workdir/artifacts/dashboard_final.tsx
