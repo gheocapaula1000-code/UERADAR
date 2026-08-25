@@ -254,18 +254,21 @@ function Dashboard() {
       const br = norm(b.regione);
       const pr = norm(profile.regione);
       if (b.scope === "REGIONALE") {
-        if (!br || !pr) return true;
+        if (!pr) return true;
+        if (!br) return false;
         return br === pr;
       }
       if (b.scope === "CAMERALE") {
+        if (!pp && !pc) return true;
         if (bp && pp) return bp === pp;
         if (bc && pc) return bc === pc;
-        return true;
+        return false;
       }
       if (b.scope === "COMUNALE") {
+        if (!pc && !pp) return true;
         if (bc && pc) return bc === pc;
         if (bp && pp) return bp === pp;
-        return true;
+        return false;
       }
       return true;
     };
