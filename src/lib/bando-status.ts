@@ -288,3 +288,33 @@ export function compareByQualityAndGeo(
   // Boost più alto = prima in lista → invertito rispetto al rank numerico
   return geographicBoost(b, profile) - geographicBoost(a, profile);
 }
+
+export const MISSING_ON_NOTICE = "Non indicato sull'avviso ufficiale.";
+
+const SCOPE_LABEL: Record<Bando["scope"], string> = {
+  COMUNALE: "Comunale",
+  CAMERALE: "Camerale",
+  REGIONALE: "Regionale",
+  NAZIONALE: "Nazionale",
+  EUROPEO: "Europeo",
+};
+
+/** Badge territoriale: solo quanto dichiarato dalla fonte. Nessun territorio inventato. */
+export function territoryBadge(
+  bando: Pick<Bando, "scope" | "regione" | "provincia" | "comune">,
+): { label: string; title: string } {
+  const scope = SCOPE_LABEL[bando.scope] ?? bando.scope;
+  if (bando.scope === "NAZIONALE" || bando.scope === "EUROPEO") {
+    return { label: scope, title: "Ambito dichiarato dalla fonte ufficiale." };
+  }
+  const place = [bando.comune, bando.provincia, bando.regione].find(
+    (v) => typeof v === "string" && v.trim().length > 0,
+  );
+  if (place) {
+    return {
+      label: `${scope} · ${place}`,
+      title: "Territorio dichiarato dalla fonte ufficiale.",
+    };
+  }
+  return { label: scope, title: MISSING_ON_NOTICE };
+}

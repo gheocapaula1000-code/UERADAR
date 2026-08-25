@@ -71,6 +71,8 @@ import {
   isSportello,
   isVerified,
   matchStatusMeta,
+  MISSING_ON_NOTICE,
+  territoryBadge,
   VERIFIED_HINT,
 } from "@/lib/bando-status";
 
@@ -221,6 +223,7 @@ function BandoDetail() {
   // Regola dura: nessun vicolo cieco. Quando un dato manca, il prossimo passo
   // resta sempre "Apri il bando ufficiale".
   const ufficialeHref = safeOfficialHref(officialLink(bando));
+  const territory = territoryBadge(bando);
 
   const copyInstance = async () => {
     if (!dossierOpen) return;
@@ -365,6 +368,12 @@ function BandoDetail() {
               <span className="inline-block rounded-full bg-primary/15 border border-primary/30 text-primary px-2.5 py-0.5 text-xs font-medium">
                 {bando.categoria.replace(/_/g, " ")}
               </span>
+              <span
+                className="inline-flex items-center rounded-full border border-border bg-muted/40 px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
+                title={territory.title}
+              >
+                {territory.label}
+              </span>
               {bando.is_hidden && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-accent/50 bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-accent">
                   <Radar className="h-3 w-3" /> Fonte locale
@@ -482,18 +491,59 @@ function BandoDetail() {
               </div>
             )}
 
-            {bando.requisiti?.length ? (
-              <div className="mt-6">
-                <h3 className="text-sm font-semibold mb-2">Requisiti principali</h3>
-                <ul className="space-y-1 text-sm text-muted-foreground">
-                  {bando.requisiti.map((r, i) => (
-                    <li key={i} className="flex gap-2">
-                      <span className="text-primary">•</span> {r}
-                    </li>
-                  ))}
-                </ul>
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-border bg-background/40 p-4">
+                <h3 className="text-sm font-semibold">Cosa copre</h3>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Solo quanto è scritto sull&apos;avviso ufficiale.
+                </p>
+                {bando.importo_max ? (
+                  <p className="mt-3 text-sm">
+                    Fino a {new Intl.NumberFormat("it-IT").format(bando.importo_max)} €
+                    {typeof bando.aid_intensity_percent === "number"
+                      ? ` · intensità ${bando.aid_intensity_percent}%`
+                      : ""}
+                  </p>
+                ) : (
+                  <p className="mt-3 text-sm text-muted-foreground">{MISSING_ON_NOTICE}</p>
+                )}
+                {typeof bando.total_budget === "number" && bando.total_budget > 0 ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Dotazione complessiva {new Intl.NumberFormat("it-IT").format(bando.total_budget)} €
+                  </p>
+                ) : null}
+                {bando.eligible_expenses?.length ? (
+                  <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
+                    {bando.eligible_expenses.map((item, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-primary">•</span> {item}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Spese ammissibili: {MISSING_ON_NOTICE}
+                  </p>
+                )}
               </div>
-            ) : null}
+              <div className="rounded-xl border border-border bg-background/40 p-4">
+                <h3 className="text-sm font-semibold">Cosa ti serve</h3>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Requisiti dichiarati dalla fonte. Niente di inventato.
+                </p>
+                {bando.requisiti?.length ? (
+                  <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
+                    {bando.requisiti.map((r, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-primary">•</span> {r}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-3 text-sm text-muted-foreground">{MISSING_ON_NOTICE}</p>
+                )}
+              </div>
+            </div>
 
             {bando.evidence?.length ? (
               <div className="mt-6">

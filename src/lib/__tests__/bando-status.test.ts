@@ -6,7 +6,9 @@ import {
   isRareOrHidden,
   matchPreview,
   matchStatusMeta,
+  MISSING_ON_NOTICE,
   normalizeMatchStatus,
+  territoryBadge,
 } from "../bando-status";
 
 const NOW = Date.parse("2026-08-06T10:00:00.000Z");
@@ -76,5 +78,22 @@ describe("fonti rare o locali", () => {
     expect(isRareOrHidden({ rarity_score: 5 })).toBe(true);
     expect(isRareOrHidden({ rarity_score: 3 })).toBe(false);
     expect(isRareOrHidden({})).toBe(false);
+  });
+});
+
+describe("badge territoriale", () => {
+  it("mostra nazionale/europeo senza inventare un comune", () => {
+    expect(territoryBadge({ scope: "NAZIONALE" }).label).toBe("Nazionale");
+    expect(territoryBadge({ scope: "EUROPEO" }).label).toBe("Europeo");
+  });
+
+  it("per i bandi territoriali usa solo il luogo ufficiale", () => {
+    expect(territoryBadge({ scope: "REGIONALE", regione: "Veneto" }).label).toBe(
+      "Regionale · Veneto",
+    );
+    expect(territoryBadge({ scope: "COMUNALE", comune: "Padova" }).label).toBe(
+      "Comunale · Padova",
+    );
+    expect(territoryBadge({ scope: "REGIONALE" }).title).toBe(MISSING_ON_NOTICE);
   });
 });
