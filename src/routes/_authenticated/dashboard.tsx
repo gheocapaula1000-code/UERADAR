@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Bando, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
 import { CATEGORY_FILTERS, type CategoryFilterKey } from "@/lib/bando-categories";
 import { feedMarker, runBoundedRefresh } from "@/lib/feed-refresh";
-import { isActive, isFlash, compareByQuality, isRareOrHidden } from "@/lib/bando-status";
+import { isActive, isFlash, compareByQualityAndGeo, isRareOrHidden } from "@/lib/bando-status";
 import { computeRadarStats } from "@/lib/radar-stats";
 import { splitFeedTiers } from "@/lib/feed-admission";
 import { loadOfflineFeed, saveOfflineFeed } from "@/lib/offline-feed";
@@ -254,18 +254,21 @@ function Dashboard() {
       const br = norm(b.regione);
       const pr = norm(profile.regione);
       if (b.scope === "REGIONALE") {
-        if (!br || !pr) return true;
+        if (!pr) return true;
+        if (!br) return false;
         return br === pr;
       }
       if (b.scope === "CAMERALE") {
+        if (!pp && !pc) return true;
         if (bp && pp) return bp === pp;
         if (bc && pc) return bc === pc;
-        return true;
+        return false;
       }
       if (b.scope === "COMUNALE") {
+        if (!pc && !pp) return true;
         if (bc && pc) return bc === pc;
         if (bp && pp) return bp === pp;
-        return true;
+        return false;
       }
       return true;
     };
@@ -368,9 +371,9 @@ function Dashboard() {
   const flashBandi = useMemo(
     () =>
       unaSchedaPerMisura(statsSource.filter((b) => isFlash(b)))
-        .sort((a, b) => compareByQuality(a, b))
+        .sort((a, b) => compareByQualityAndGeo(a, b, profile))
         .slice(0, 6),
-    [statsSource],
+    [statsSource, profile],
   );
 
   const filtered = useMemo(() => {
@@ -391,7 +394,7 @@ function Dashboard() {
       }
       return true;
     });
-    return unaSchedaPerMisura(base).sort((a, b) => compareByQuality(a, b));
+    return unaSchedaPerMisura(base).sort((a, b) => compareByQualityAndGeo(a, b, profile));
   }, [bandi, cat, homeView, scope, hyperlocalOnly, hiddenOnly, profile, sedeOk, settoreOk]);
 
   const activeFilters =
