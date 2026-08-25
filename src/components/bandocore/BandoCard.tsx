@@ -21,6 +21,7 @@ import {
   isVerified,
   matchPreview,
   officialLink,
+  territoryBadge,
   VERIFIED_HINT,
 } from "@/lib/bando-status";
 
@@ -83,13 +84,6 @@ const categoryStyles: Record<Bando["categoria"], { label: string; class: string 
   ALTRO: { label: "Altro", class: "bg-muted text-muted-foreground border-border" },
 };
 
-const scopeLabels: Record<Bando["scope"], string> = {
-  COMUNALE: "Comunale",
-  CAMERALE: "Camerale",
-  REGIONALE: "Regionale",
-  NAZIONALE: "Nazionale",
-  EUROPEO: "Europeo",
-};
 
 export function BandoCard({
   bando,
@@ -243,9 +237,8 @@ export function BandoCard({
       <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 text-xs">
         <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
           <MapPin className="h-3.5 w-3.5 shrink-0" />
-          <span className="min-w-0 wrap-anywhere">
-            {scopeLabels[bando.scope]}
-            {bando.comune ? ` · ${bando.comune}` : bando.regione ? ` · ${bando.regione}` : ""}
+          <span className="min-w-0 wrap-anywhere" title={territoryBadge(bando).title}>
+            {territoryBadge(bando).label}
           </span>
         </div>
         {bando.importo_max ? (
