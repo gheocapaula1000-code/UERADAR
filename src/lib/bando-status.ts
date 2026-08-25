@@ -226,3 +226,65 @@ export function compareByQuality(a: Bando, b: Bando, now: number = Date.now()): 
   const tb = deadlineTime(b) ?? Number.POSITIVE_INFINITY;
   return ta - tb;
 }
+
+/* ------------------------------------------------------------------ *
+ * Ranking geografico (ADDITIVE, non-breaking)
+ * ------------------------------------------------------------------ *
+ * Preferisce bandi della stessa provincia/comune o regione del profilo.
+ * Non nasconde mai i bandi nazionali/europei e non altera compareByQuality.
+ * Se il profilo non ha dati geografici, il boost è 0 → comportamento identico.
+ */
+
+export type GeoProfile = {
+  regione?: string | null;
+  provincia?: string | null;
+  comune?: string | null;
+} | null;
+
+function normGeo(v?: string | null): string {
+  return typeof v === "string" ? v.trim().toLowerCase() : "";
+}
+
+/**
+ * Boost geografico puro.
+ * - Stessa provincia o stesso comune → +40
+ * - Stessa regione → +25
+ * - Altrimenti → 0
+ */
+export function geographicBoost(
+  bando: Pick<Bando, "scope" | "regione" | "provincia" | "comune">,
+  profile: GeoProfile,
+): number {
+  if (!profile) return 0;
+
+  const br = normGeo(bando.regione);
+  const bp = normGeo(bando.provincia);
+  const bc = normGeo(bando.comune);
+  const pr = normGeo(profile.regione);
+  const pp = normGeo(profile.provincia);
+  const pc = normGeo(profile.comune);
+
+  // Stessa provincia o stesso comune
+  if ((bp && pp && bp === pp) || (bc && pc && bc === pc)) return 40;
+
+  // Stessa regione
+  if (br && pr && br === pr) return 25;
+
+  return 0;
+}
+
+/**
+ * Comparatore esteso: prima la qualità dati (invariata), poi il boost geografico.
+ * Sostituibile in qualsiasi punto che oggi usa compareByQuality.
+ */
+export function compareByQualityAndGeo(
+  a: Bando,
+  b: Bando,
+  profile: GeoProfile,
+  now: number = Date.now(),
+): number {
+  const quality = compareByQuality(a, b, now);
+  if (quality !== 0) return quality;
+  // Boost più alto = prima in lista → invertito rispetto al rank numerico
+  return geographicBoost(b, profile) - geographicBoost(a, profile);
+}
