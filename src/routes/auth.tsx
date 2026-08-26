@@ -111,12 +111,12 @@ function AuthPage() {
         <div className="relative">
           <BrandLogo />
           <h2 className="mt-6 text-4xl font-bold leading-tight">
-            Il radar dei bandi
+            Il Radar dei Bandi
             <br />
-            per la tua impresa.
+            per la tua Impresa.
           </h2>
           <p className="mt-4 text-muted-foreground max-w-md">
-            Accedi per configurare il profilo aziendale e ricevere bandi filtrati su ATECO, sede
+            Accedi per configurare il Profilo Aziendale e ricevere Bandi filtrati su ATECO, sede
             legale e forma giuridica.
           </p>
         </div>
@@ -138,7 +138,7 @@ function AuthPage() {
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {mode === "signin"
-              ? "Accedi al tuo radar bandi."
+              ? "Accedi al tuo Radar Bandi."
               : TRIAL_HIGHLIGHT}
           </p>
 

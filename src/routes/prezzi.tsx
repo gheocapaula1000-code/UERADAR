@@ -66,8 +66,11 @@ function Pricing() {
             Piani per Partite IVA e Imprese
           </p>
           <h1 className="mt-3 text-3xl font-bold sm:text-4xl md:text-5xl">
-            {TRIAL_HIGHLIGHT}
+            Piani Istruttoria: il Radar dei Bandi per la tua Impresa
           </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
+            {TRIAL_HIGHLIGHT}
+          </p>
           <p className="mx-auto mt-5 max-w-3xl text-base text-foreground sm:text-lg">
             {VALUE_STATEMENT}
           </p>
@@ -85,8 +88,8 @@ function Pricing() {
             ))}
           </ul>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            Un piano acquistabile online: Istruttoria, 449 €/mese + IVA (5 utenti, 10
-            dossier/bozze). Non invia nulla agli enti. Studio resta su preventivo da 990 €/mese
+            Un piano acquistabile online: Istruttoria, 449 €/mese + IVA — 1 Impresa · 5 Utenti
+            (stessa PWA, stesso account; 10 Dossier/Bozze). Non invia nulla agli enti. Studio resta su preventivo da 990 €/mese
             + IVA. Il numero di opportunità pertinenti mostrate non è mai limitato. L'annuale include 2 mesi.
           </p>
         </div>
@@ -190,12 +193,12 @@ function Pricing() {
           <h2 className="px-6 pt-6 text-xl font-semibold sm:px-8">Istruttoria e Studio a confronto</h2>
           <p className="px-6 pt-2 text-sm text-muted-foreground sm:px-8">
             Tutti i prezzi sono IVA esclusa. Istruttoria 449 €/mese è l’unico piano a checkout.
-            Studio da 990 €/mese su richiesta, senza acquisto online. Istruttoria è una bozza di
-            dossier: non invia domande agli enti.
+            Studio da 990 €/mese su richiesta, senza acquisto online. Istruttoria è una Bozza di
+            Dossier: non invia domande agli enti.
           </p>
           <table className="mt-4 w-full min-w-[28rem] text-left text-sm">
             <caption className="sr-only">
-              Confronto Istruttoria e Studio: prezzi, utenti, imprese e dossier
+              Confronto Istruttoria e Studio: prezzi, Impresa e Utenti, Dossier e Bozze
             </caption>
             <thead>
               <tr className="border-y border-border bg-muted/40">

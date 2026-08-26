@@ -1,7 +1,7 @@
 {
   "name": "UEradar.com — Radar Bandi per PMI",
   "short_name": "UEradar",
-  "description": "Bandi, fondo perduto e incentivi per imprese italiane.",
+  "description": "Bandi, Fondo Perduto e Incentivi per Imprese italiane.",
   "start_url": "/",
   "display": "standalone",
   "scope": "/",

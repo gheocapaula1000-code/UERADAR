@@ -9,6 +9,9 @@ import { LEGAL } from "@/lib/legal";
 export const SITE_URL = "https://ueradar.com";
 export const SITE_NAME = "UEradar.com";
 export const SOCIAL_IMAGE = `${SITE_URL}/brand/ueradar-social-1200x630.png`;
+export const SOCIAL_IMAGE_ALT = "UEradar.com — Radar dei Bandi e Incentivi per PMI e P.IVA";
+/** Revisione del copy pubblico indicizzabile (ISO date), usata come lastmod sitemap. */
+export const PUBLIC_CONTENT_LASTMOD = "2026-08-26";
 
 export type RouteSeo = {
   /** Path canonico della rotta. */
@@ -23,7 +26,7 @@ export type RouteSeo = {
 export const ROUTE_SEO = {
   "/": {
     path: "/",
-    title: "UEradar.com — Bandi e incentivi per PMI e P.IVA",
+    title: "UEradar.com — Bandi e Incentivi per PMI e P.IVA",
     description:
       "Radar dei Bandi per Imprese italiane: Fondo Perduto, PNRR, Fondi Europei e Finanziamenti Agevolati filtrati su ATECO, sede e Profilo Aziendale della tua Impresa.",
     indexable: true,
@@ -33,7 +36,7 @@ export const ROUTE_SEO = {
     path: "/prezzi",
     title: "Prezzi UEradar.com — Istruttoria 449 €/mese + IVA",
     description:
-      "Istruttoria 449 €/mese + IVA: matching, dossier e bozza domanda. Non invia nulla agli enti. Studio su preventivo da 990 €/mese + IVA. 7 giorni gratis, senza carta.",
+      "Istruttoria 449 €/mese + IVA: matching, Dossier e Bozza domanda. Non invia nulla agli enti. Studio su preventivo da 990 €/mese + IVA. 7 giorni gratis, senza carta.",
     indexable: true,
     ogType: "website",
   },
@@ -71,37 +74,37 @@ export const ROUTE_SEO = {
   },
   "/auth": {
     path: "/auth",
-    title: "Accedi a UEradar.com — area riservata alle imprese",
+    title: "Accedi a UEradar.com — Radar dei Bandi per l'Impresa",
     description:
-      "Accesso riservato ai clienti UEradar.com: entra con email o Google per configurare il profilo aziendale e consultare il radar dei bandi filtrato sulla tua impresa.",
+      "Accesso riservato: entra con email o Google, configura il Profilo Aziendale e consulta il Radar dei Bandi filtrato su ATECO e sede della tua Impresa.",
     indexable: false,
   },
   "/dashboard": {
     path: "/dashboard",
-    title: "Radar dei bandi — area riservata di UEradar.com",
+    title: "Radar dei Bandi — area riservata di UEradar.com",
     description:
-      "Area riservata: feed dei bandi e degli incentivi compatibili con il profilo della tua impresa, con motivazione della compatibilità e scadenze.",
+      "Area riservata: feed dei Bandi e degli Incentivi compatibili con il Profilo Aziendale della tua Impresa, con motivazione della compatibilità e scadenze.",
     indexable: false,
   },
   "/profilo": {
     path: "/profilo",
-    title: "Profilo azienda — area riservata di UEradar.com",
+    title: "Profilo Aziendale — area riservata di UEradar.com",
     description:
-      "Area riservata: dati dell'impresa usati dal radar per filtrare bandi e incentivi su ATECO, sede, dimensione e caratteristiche dell'azienda.",
+      "Area riservata: dati dell'Impresa usati dal Radar per filtrare Bandi e Incentivi su ATECO, sede, dimensione e caratteristiche del Profilo Aziendale.",
     indexable: false,
   },
   "/bando": {
     path: "/bando",
-    title: "Dettaglio del bando — area riservata di UEradar.com",
+    title: "Dettaglio del Bando — area riservata di UEradar.com",
     description:
-      "Area riservata: dettaglio dell'opportunità, requisiti, documenti, scadenze, canale ufficiale e dossier di candidatura generato dai dati presenti dalla fonte ufficiale.",
+      "Area riservata: dettaglio dell'opportunità, requisiti, documenti, scadenze, canale ufficiale e Dossier di candidatura generato dai dati presenti dalla Fonte Ufficiale.",
     indexable: false,
   },
   "/abbonamento": {
     path: "/abbonamento",
-    title: "Abbonamento e utenti — area riservata di UEradar.com",
+    title: "Abbonamento e Utenti — area riservata di UEradar.com",
     description:
-      "Area riservata: stato della prova gratuita, piano Istruttoria, fatture, dati fiscali, disdetta online e utenti operativi della tua impresa.",
+      "Area riservata: stato della Prova Gratuita, piano Istruttoria, fatture, dati fiscali, disdetta online e Utenti operativi della tua Impresa.",
     indexable: false,
   },
 } satisfies Record<string, RouteSeo>;
@@ -133,7 +136,9 @@ export function seoHead(key: SeoKey) {
   meta.push(
     { property: "og:url", content: url },
     { property: "og:image", content: SOCIAL_IMAGE },
+    { property: "og:image:alt", content: SOCIAL_IMAGE_ALT },
     { name: "twitter:image", content: SOCIAL_IMAGE },
+    { name: "twitter:image:alt", content: SOCIAL_IMAGE_ALT },
   );
   return { meta, links: [{ rel: "canonical", href: url }] };
 }

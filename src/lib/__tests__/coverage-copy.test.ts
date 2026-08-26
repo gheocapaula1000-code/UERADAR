@@ -17,21 +17,14 @@ const DASHBOARD = readFileSync("src/routes/_authenticated/dashboard.tsx", "utf8"
 
 describe("copertura su cinque livelli", () => {
   it("dichiara esattamente i cinque livelli", () => {
-    expect(COVERAGE_LEVELS).toEqual([
-      "Locale",
-      "Provinciale",
-      "Regionale",
-      "Nazionale",
-      "Europeo",
-    ]);
-    for (const l of COVERAGE_LEVELS) expect(COVERAGE_HEADLINE.toLowerCase()).toContain(l.toLowerCase());
+    expect(COVERAGE_LEVELS).toEqual(["Locale", "Provinciale", "Regionale", "Nazionale", "Europeo"]);
+    for (const l of COVERAGE_LEVELS)
+      expect(COVERAGE_HEADLINE.toLowerCase()).toContain(l.toLowerCase());
   });
 
   it("il messaggio principale è quello approvato, con monitoraggio in tempo reale", () => {
     expect(VALUE_STATEMENT).toContain("miliardi di euro restano inutilizzati o non intercettati");
-    expect(VALUE_STATEMENT).toContain(
-      "fonti locali, provinciali, regionali, nazionali ed europee",
-    );
+    expect(VALUE_STATEMENT).toContain("fonti locali, provinciali, regionali, nazionali ed europee");
     expect(VALUE_STATEMENT).toContain("pronta per verifica e invio");
     expect(VALUE_STATEMENT).toMatch(/tempo reale/i);
   });
@@ -64,12 +57,17 @@ describe("copertura su cinque livelli", () => {
     }
     // Home ha un messaggio principale dedicato, sempre con i livelli e la prova.
     expect(HOME).toContain("UEradar scova Bandi");
-    expect(HOME).toContain("bozza di domanda da verificare e firmare");
+    expect(HOME).toContain("Bozza di domanda da verificare e firmare");
     expect(HOME).toContain("COVERAGE_LEVELS");
     expect(HOME).toContain("TRIAL_HIGHLIGHT");
     expect(HOME.match(/\{TRIAL_HIGHLIGHT\}/g) ?? []).toHaveLength(1);
     expect(HOME).not.toContain("miliardi di euro restano inutilizzati");
     expect(AUTH).toContain("TRIAL_HIGHLIGHT");
+    expect(PRICING).toContain("Piani Istruttoria: il Radar dei Bandi per la tua Impresa");
+    expect(PRICING).toContain("1 Impresa · 5 Utenti");
+    expect(HOME).toContain("1 Impresa · 5 Utenti");
+    expect(PRICING).not.toMatch(/5 imprese/i);
+    expect(HOME).not.toMatch(/5 imprese/i);
   });
 
   it("la prova gratuita resta evidente con la formula completa", () => {

@@ -28,6 +28,9 @@ export const TRIAL_OBJECTIVES = 2;
 
 export const AVAILABLE_SOURCE_TIER: keyof typeof SOURCE_TIERS = "core";
 
+/** Copy pubblico Istruttoria: 1 Impresa, 5 Utenti sulla stessa PWA/account. Mai 5 imprese. */
+export const ISTRUTTORIA_ACCESS_COPY = "1 Impresa · 5 Utenti (stessa PWA, stesso account)";
+
 export type PlanLimits = {
   /** Utenti operativi: capienza tecnica del piano. */
   seats: number;
@@ -103,7 +106,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
     },
     highlights: [
       "7 giorni gratuiti, senza carta di credito né dati bancari e senza dover dare disdetta",
-      "1 impresa",
+      "1 Impresa",
       "1 Dossier in versione filigranata",
       NO_LIMITS_NOTE,
     ],
@@ -148,8 +151,8 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       "Radar sempre acceso, anche sabato e domenica",
       "Push quando esce una novità per il tuo profilo",
       "Matching sul profilo (più ATECO)",
-      "1 impresa",
-      "3 bozze di richiesta / Dossier al mese",
+      "1 Impresa",
+      "3 Bozze di richiesta / Dossier al mese",
       "Fonti ufficiali principali (Veneto + nazionali + poche UE)",
       NO_LIMITS_NOTE,
     ],
@@ -157,7 +160,7 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
   business: {
     id: "business",
     /** Display name. Catalog id and Stripe plan codes stay `business`. */
-    name: "ISTRUTTORIA",
+    name: "Istruttoria",
     audience: "Ricerca più profonda e più bozze, senza aspettare il consulente",
     selfService: true,
     highlighted: true,
@@ -194,8 +197,8 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       "Matching sul profilo (più ATECO)",
       "Ricerca più profonda (camere, provinciali, nicchie)",
       "Priorità imprese femminili, giovanili, startup",
-      "1 impresa",
-      "10 bozze di richiesta / Dossier al mese",
+      ISTRUTTORIA_ACCESS_COPY,
+      "10 Bozze di richiesta / Dossier al mese",
       "Aggiornamento più frequente e alert prioritari",
       NO_LIMITS_NOTE,
     ],
@@ -236,8 +239,8 @@ export const CATALOG: Record<PlanId, PlanDefinition> = {
       watermarkedDossier: false,
     },
     highlights: [
-      "1 impresa",
-      "25 bozze di richiesta / Dossier al mese",
+      "1 Impresa",
+      "25 Bozze di richiesta / Dossier al mese",
       "Alta frequenza di aggiornamento del catalogo",
       "Export, condivisione e assistenza dedicata",
       NO_LIMITS_NOTE,
