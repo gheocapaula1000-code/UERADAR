@@ -6,7 +6,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 
-import { ROUTE_SEO, SITE_URL, type RouteSeo } from "@/lib/seo";
+import { PUBLIC_CONTENT_LASTMOD, ROUTE_SEO, SITE_URL, type RouteSeo } from "@/lib/seo";
 
 /** Priorità e frequenza per path pubblico; la home resta la pagina principale. */
 const HINTS: Record<string, { changefreq: string; priority: string }> = {
@@ -30,6 +30,7 @@ export function buildSitemapXml(): string {
     return [
       "  <url>",
       `    <loc>${SITE_URL}${path === "/" ? "/" : path}</loc>`,
+      `    <lastmod>${PUBLIC_CONTENT_LASTMOD}</lastmod>`,
       `    <changefreq>${hint.changefreq}</changefreq>`,
       `    <priority>${hint.priority}</priority>`,
       "  </url>",

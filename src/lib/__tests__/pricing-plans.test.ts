@@ -5,6 +5,7 @@ import {
   AVAILABLE_SOURCE_TIER,
   CATALOG,
   ENTERPRISE_FROM_CENTS,
+  ISTRUTTORIA_ACCESS_COPY,
   PRICE_ENV_NAMES,
   checkoutTarget,
   normalizePlanCode,
@@ -50,7 +51,7 @@ const UI_FILES = walk("src")
 describe("catalogo approvato", () => {
   it("espone un solo piano acquistabile online: Istruttoria, più Studio su richiesta", () => {
     expect(PUBLIC_PLANS.map((p) => p.id)).toEqual(["business"]);
-    expect(PUBLIC_PLANS.map((p) => p.name)).toEqual(["ISTRUTTORIA"]);
+    expect(PUBLIC_PLANS.map((p) => p.name)).toEqual(["Istruttoria"]);
     expect(PUBLIC_PLANS.map((p) => p.monthly?.replace(/\D/g, ""))).toEqual(["449"]);
     expect(PUBLIC_PLANS.map((p) => p.annual?.replace(/\D/g, ""))).toEqual(["4490"]);
     expect(CATALOG.professional.selfService).toBe(false);
@@ -90,13 +91,15 @@ describe("catalogo approvato", () => {
     expect(CATALOG.enterprise.limits.companies).toBe(-1);
   });
 
-  it("le card pubbliche dichiarano 1 impresa e le bozze di richiesta / Dossier al mese", () => {
+  it("le card pubbliche dichiarano 1 Impresa · 5 Utenti e le Bozze / Dossier al mese", () => {
     for (const id of ["business"] as const) {
       const plan = CATALOG[id];
       expect(plan.limits.companies).toBe(1);
-      expect(plan.highlights).toContain("1 impresa");
+      expect(plan.limits.seats).toBe(5);
+      expect(plan.highlights).toContain(ISTRUTTORIA_ACCESS_COPY);
+      expect(plan.highlights).not.toContain("1 impresa");
       expect(plan.highlights).toContain(
-        `${plan.limits.dossiersPerMonth} bozze di richiesta / Dossier al mese`,
+        `${plan.limits.dossiersPerMonth} Bozze di richiesta / Dossier al mese`,
       );
     }
     expect(CATALOG.trial.highlights).toContain("1 Dossier in versione filigranata");
@@ -156,9 +159,7 @@ describe("catalogo approvato", () => {
 describe("prova gratuita molto visibile e senza carta", () => {
   it("usa i testi obbligatori nel banner riusato da hero, prezzi e sticky bar", () => {
     expect(TRIAL_COPY.headline).toBe("7 GIORNI COMPLETAMENTE GRATUITI");
-    expect(TRIAL_COPY.noCard).toBe(
-      "SENZA CARTA DI CREDITO, NÉ DATI BANCARI E NÉ DISDETTA",
-    );
+    expect(TRIAL_COPY.noCard).toBe("SENZA CARTA DI CREDITO, NÉ DATI BANCARI E NÉ DISDETTA");
     expect(TRIAL_COPY.noCharge).toBe(
       "Al termine non partirà alcun addebito. Sarai tu a decidere se abbonarti.",
     );
@@ -181,7 +182,7 @@ describe("prova gratuita molto visibile e senza carta", () => {
     expect(t).toContain("Dossier in versione filigranata");
     expect(t).toContain("ogni 12 mesi");
     expect(terms).toContain("prova applicativa");
-    expect(terms).toMatch(/non viene creata alcuna sottoscrizione/);
+    expect(terms).toMatch(/non viene\s+creata alcuna sottoscrizione/);
     expect(CATALOG.trial.limits.watermarkedDossier).toBe(true);
     expect(Object.keys(CATALOG.trial.prices)).toHaveLength(0);
   });
@@ -230,10 +231,15 @@ describe("valore, limiti e affermazioni verificabili", () => {
   it("mantiene una FAQ coerente con il catalogo", () => {
     const faq = PRICING_FAQ.map((f) => `${f.q} ${f.a}`).join(" ");
     expect(faq).toContain("senza carta di credito");
-    expect(faq).toContain("10 bozze di richiesta / Dossier al mese");
+    expect(faq).toContain("10 Bozze di richiesta / Dossier al mese");
+    expect(faq).toContain(ISTRUTTORIA_ACCESS_COPY);
+    expect(faq).not.toMatch(/5 imprese/i);
     expect(faq).toContain("Istruttoria");
     expect(faq).toContain("non invia domande agli enti");
     expect(faq).not.toMatch(/\bPratica\b|\bPRATICA\b/);
+    expect(faq).not.toMatch(/5 imprese/i);
+    expect(landing).toContain(ISTRUTTORIA_ACCESS_COPY.split("(")[0].trim());
+    expect(pricingPage).toContain("1 Impresa · 5 Utenti");
     expect(faq).not.toMatch(/Professional|Executive/);
     expect(faq).not.toMatch(/verifiche approfondite/i);
     expect(PRICING_FAQ.length).toBeGreaterThanOrEqual(6);
@@ -245,7 +251,8 @@ describe("valore, limiti e affermazioni verificabili", () => {
       expect(src, file).not.toMatch(/\bPratica\b/);
       expect(src, file).not.toMatch(/\bPRATICA\b/);
     }
-    expect(PUBLIC_PLANS[0]?.name).toBe("ISTRUTTORIA");
+    expect(PUBLIC_PLANS[0]?.name).toBe("Istruttoria");
+    expect(PUBLIC_PLANS[0]?.name).not.toBe("ISTRUTTORIA");
     expect(CATALOG.business.prices.month?.amountCents).toBe(44900);
     expect(CATALOG.business.prices.year?.amountCents).toBe(449000);
   });

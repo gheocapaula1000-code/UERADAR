@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
-import { ROUTE_SEO, SITE_URL, type RouteSeo } from "@/lib/seo";
+import { PUBLIC_CONTENT_LASTMOD, ROUTE_SEO, SITE_URL, type RouteSeo } from "@/lib/seo";
 import { buildSitemapXml, publicSitemapPaths } from "@/routes/sitemap[.]xml";
 import {
   CONTENT_SECURITY_POLICY,
@@ -42,11 +42,13 @@ describe("sitemap.xml", () => {
       expect(xml).not.toContain(`<loc>${SITE_URL}${r.path}</loc>`);
   });
 
-  it("è XML valido con urlset e senza lastmod inventati", () => {
+  it("è XML valido con urlset e lastmod della revisione del copy pubblico", () => {
     expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>')).toBe(true);
     expect(xml).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
     expect(xml.trimEnd().endsWith("</urlset>")).toBe(true);
-    expect(xml).not.toContain("<lastmod>");
+    expect(PUBLIC_CONTENT_LASTMOD).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(xml).toContain(`<lastmod>${PUBLIC_CONTENT_LASTMOD}</lastmod>`);
+    expect((xml.match(/<lastmod>/g) ?? []).length).toBe(publicSitemapPaths().length);
     expect((xml.match(/<url>/g) ?? []).length).toBe((xml.match(/<\/url>/g) ?? []).length);
   });
 });

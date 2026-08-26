@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import {
   ORGANIZATION_JSONLD,
   PRICING_FAQ_JSONLD,
+  PUBLIC_CONTENT_LASTMOD,
   ROUTE_SEO,
   SITE_URL,
   SOFTWARE_APPLICATION_JSONLD,
@@ -51,6 +52,30 @@ const LAYOUT_FILES: Partial<Record<SeoKey, string>> = {
   "/bando": "src/components/bandocore/AppShell.tsx",
 };
 
+/** Keyword di prodotto: se compaiono nel metadata devono restare in Title Case. */
+const TITLE_CASE_KEYWORDS = [
+  "Fondo Perduto",
+  "Profilo Aziendale",
+  "Istruttoria",
+  "Incentivi",
+  "Dossier",
+  "Bozze",
+  "Bandi",
+  "Radar",
+  "P.IVA",
+  "PMI",
+  "ATECO",
+] as const;
+
+function assertTitleCaseKeywords(label: string, text: string) {
+  let rest = text.replace(/UEradar\.com/g, "").replace(/UEradar/g, "");
+  for (const k of TITLE_CASE_KEYWORDS) rest = rest.split(k).join("");
+  for (const k of TITLE_CASE_KEYWORDS) {
+    const re = new RegExp("\\b" + k.replace(/[.]/g, "\\.") + "\\b", "i");
+    if (re.test(rest)) fail(`${label}: keyword "${k}" non in Title Case`);
+  }
+}
+
 /** Claim assoluti o non verificabili vietati nel copy indicizzabile. */
 const FORBIDDEN_CLAIMS: RegExp[] = [
   /tutti i bandi/i,
@@ -73,6 +98,9 @@ for (const key of Object.keys(ROUTE_SEO) as SeoKey[]) {
   if (r.description.length < DESC_MIN || r.description.length > DESC_MAX)
     fail(`${key}: description ${r.description.length} caratteri, atteso ${DESC_MIN}-${DESC_MAX}`);
 
+  assertTitleCaseKeywords(`${key} title`, r.title);
+  assertTitleCaseKeywords(`${key} description`, r.description);
+
   for (const re of FORBIDDEN_CLAIMS) {
     if (re.test(`${r.title} ${r.description}`)) fail(`${key}: claim vietato ${re}`);
   }
@@ -84,17 +112,34 @@ for (const key of Object.keys(ROUTE_SEO) as SeoKey[]) {
       const expected = `${SITE_URL}${r.path === "/" ? "/" : r.path}`;
       if (href !== expected) fail(`${key}: canonical ${href}, atteso ${expected}`);
     }
-    for (const p of ["og:title", "og:description", "og:image", "og:url", "og:type"]) {
+    for (const p of [
+      "og:title",
+      "og:description",
+      "og:image",
+      "og:image:alt",
+      "og:url",
+      "og:type",
+    ]) {
       if (!head.meta.some((m) => m["property"] === p)) fail(`${key}: manca ${p}`);
     }
-    for (const n of ["twitter:card", "twitter:title", "twitter:description", "twitter:image"]) {
+    for (const n of [
+      "twitter:card",
+      "twitter:title",
+      "twitter:description",
+      "twitter:image",
+      "twitter:image:alt",
+    ]) {
       if (!head.meta.some((m) => m["name"] === n)) fail(`${key}: manca ${n}`);
     }
     if (head.meta.some((m) => m["name"] === "robots")) fail(`${key}: rotta pubblica con robots`);
   } else {
     const robots = head.meta.find((m) => m["name"] === "robots");
-    if (!robots || !robots["content"]!.includes("noindex"))
-      fail(`${key}: rotta privata senza noindex`);
+    if (
+      !robots ||
+      !robots["content"]!.includes("noindex") ||
+      !robots["content"]!.includes("nofollow")
+    )
+      fail(`${key}: rotta privata senza noindex,nofollow`);
     if (canonical.length) fail(`${key}: rotta privata con canonical pubblico`);
   }
 }
@@ -145,6 +190,11 @@ for (const key of Object.keys(ROUTE_FILES) as SeoKey[]) {
       const m = src.match(re);
       if (m) fail(`${file}: claim vietato "${m[0]}"`);
     }
+    const imgs = src.match(/<img\b[^>]*>/g) ?? [];
+    for (const tag of imgs) {
+      if (!/\balt=/.test(tag)) fail(`${file}: immagine pubblica senza alt`);
+    }
+    if (/5 imprese/i.test(src)) fail(`${file}: copy "5 imprese" vietato (è 1 Impresa · 5 Utenti)`);
   }
 }
 ok("semantica delle rotte verificata (H1 unico, landmark, skip link, nav etichettate)");
@@ -203,6 +253,10 @@ const sitemapSrc = readFileSync("src/routes/sitemap[.]xml.ts", "utf8");
 if (!sitemapSrc.includes('createFileRoute("/sitemap.xml")'))
   fail("sitemap: rotta /sitemap.xml non dichiarata");
 if (!sitemapSrc.includes("ROUTE_SEO")) fail("sitemap: non derivata dai metadata SEO centralizzati");
+if (!sitemapSrc.includes("PUBLIC_CONTENT_LASTMOD") || !sitemapSrc.includes("<lastmod>"))
+  fail("sitemap: manca lastmod derivato da PUBLIC_CONTENT_LASTMOD");
+if (!/^\d{4}-\d{2}-\d{2}$/.test(PUBLIC_CONTENT_LASTMOD))
+  fail(`sitemap: PUBLIC_CONTENT_LASTMOD ${PUBLIC_CONTENT_LASTMOD} non è una data ISO`);
 ok("sitemap.xml servita dalla rotta dedicata");
 
 // header di sicurezza applicati dall'entry SSR

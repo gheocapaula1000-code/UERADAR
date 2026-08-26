@@ -86,18 +86,18 @@ function Landing() {
           <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl md:text-6xl">
             I soldi ci sono già.{" "}
             <span className="bg-gradient-to-r from-primary via-warning to-accent bg-clip-text text-transparent">
-              Quasi nessuno li prende.
+              Quasi nessuno prende i Bandi per PMI.
             </span>
           </h1>
           <p className="mt-6 text-base text-foreground sm:text-lg md:text-xl">
-            Ti diciamo quali sono i tuoi, dove sono, e ti prepariamo la bozza di richiesta.
+            Ti diciamo quali sono i tuoi, dove sono, e ti prepariamo la Bozza di richiesta.
             Radar sempre acceso, anche nel weekend. Gli avvisi in-app arrivano quando il
             catalogo ufficiale ha novità compatibili.
           </p>
           <p className="mt-4 text-base text-muted-foreground sm:text-lg">
             UEradar scova Bandi, Contributi a Fondo Perduto, Finanziamenti Agevolati ed
             Incentivi ad Ogni Livello — Locale, Provinciale, Regionale, Nazionale ed
-            Europeo — e ti prepara la bozza di domanda da verificare e firmare.
+            Europeo — e ti prepara la Bozza di domanda da verificare e firmare.
           </p>
           <ul
             aria-label="Livelli coperti dalla ricerca"
@@ -177,7 +177,7 @@ function Landing() {
             {
               icon: Target,
               t: "3. Bozza da firmare",
-              d: "Ricevi la bozza già compilata con i tuoi dati. Controlli, firmi a mano e invii.",
+              d: "Ricevi la Bozza già compilata con i tuoi dati. Controlli, firmi a mano e invii.",
             },
           ].map((f) => (
             <div
@@ -243,8 +243,8 @@ function Landing() {
           </h2>
           <p className="mt-3 text-muted-foreground">
             Istruttoria è l’unico piano acquistabile online, IVA esclusa. Include matching,
-            dossier e bozza domanda: non invia nulla agli enti. Annuale con 2 mesi inclusi.
-            Studio resta su preventivo.
+            Dossier e Bozza domanda: non invia nulla agli enti. 1 Impresa · 5 Utenti
+            (stessa PWA, stesso account). Annuale con 2 mesi inclusi. Studio resta su preventivo.
           </p>
         </div>
         <div className="mx-auto mb-8 max-w-2xl">

@@ -20,9 +20,9 @@ export const TRIAL_COPY = {
  */
 export const TRIAL_SCOPE: readonly string[] = [
   "7 giorni gratuiti, senza carta di credito né dati bancari e senza dover dare disdetta",
-  "1 impresa e 1 titolare",
+  "1 Impresa e 1 titolare",
   "Massimo 2 obiettivi di investimento",
-  "1 dossier, in versione filigranata",
+  "1 Dossier, in versione filigranata",
 ];
 
 /** Una prova ogni 12 mesi per Partita IVA e per dominio aziendale. */

@@ -48,6 +48,16 @@ describe("preferenza Home catalogo / profilo", () => {
   });
 });
 
+describe("Home pubblica: gancio e keyword Title Case", () => {
+  it("l'H1 tiene il gancio e cita Bandi e PMI", () => {
+    const home = readFileSync("src/routes/index.tsx", "utf8");
+    expect(home).toContain("I soldi ci sono già");
+    expect(home).toContain("Bandi per PMI");
+    expect(home).toContain("<h1");
+    expect((home.match(/<h1[\s>]/g) ?? []).length).toBe(1);
+  });
+});
+
 describe("Home usa la preferenza persistita", () => {
   it("la dashboard legge e scrive la chiave, con default catalogo", () => {
     const dashboard = readFileSync("src/routes/_authenticated/dashboard.tsx", "utf8");
@@ -56,6 +66,6 @@ describe("Home usa la preferenza persistita", () => {
     expect(dashboard).toContain("DEFAULT_HOME_VIEW");
     expect(dashboard).toContain("Catalogo");
     expect(dashboard).toContain("Per la mia impresa");
-    expect(dashboard).toContain("homeView === \"profile\"");
+    expect(dashboard).toContain('homeView === "profile"');
   });
 });

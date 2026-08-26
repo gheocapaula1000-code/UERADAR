@@ -12,6 +12,7 @@ import {
   CATALOG,
   ENTERPRISE_FROM_CENTS,
   formatEuro,
+  ISTRUTTORIA_ACCESS_COPY,
   PLAN_IDS,
   type PlanDefinition,
   type PlanId,
@@ -49,7 +50,10 @@ function toPublic(plan: PlanDefinition): PublicPlan {
     annualNote: annual === null ? null : "/ anno + IVA — 2 mesi inclusi",
     vatNote: "/ mese + IVA (IVA esclusa)",
     seats: plan.limits.seats,
-    seatsLabel: `${plan.limits.seats} utenti operativi (capienza tecnica)`,
+    seatsLabel:
+      plan.id === "business"
+        ? `${ISTRUTTORIA_ACCESS_COPY} — capienza tecnica`
+        : `${plan.limits.seats} utenti operativi (capienza tecnica)`,
     highlighted: plan.highlighted,
     selfService: plan.selfService,
     features: plan.highlights,
@@ -101,17 +105,12 @@ export function planCompareRows(): readonly PlanCompareRow[] {
       studio: "su preventivo",
     },
     {
-      label: "Utenti operativi (capienza tecnica)",
-      istruttoria: String(CATALOG.business.limits.seats),
-      studio: "da contratto",
+      label: "Impresa e Utenti",
+      istruttoria: ISTRUTTORIA_ACCESS_COPY,
+      studio: "anche multi-impresa, da contratto",
     },
     {
-      label: "Imprese",
-      istruttoria: String(CATALOG.business.limits.companies),
-      studio: "anche multi-impresa",
-    },
-    {
-      label: "Dossier / bozze al mese",
+      label: "Dossier / Bozze al mese",
       istruttoria: String(CATALOG.business.limits.dossiersPerMonth),
       studio: "da contratto",
     },
@@ -139,7 +138,7 @@ export const VERIFIED_DEFINITION: readonly string[] = [
 /** Limiti di prodotto dichiarati senza ambiguità. */
 export const PRODUCT_BOUNDARIES: readonly string[] = [
   "Il numero di opportunità pertinenti mostrate non è mai limitato.",
-  "Il dossier prepara e precompila. L'utente verifica e presenta: non invia nulla agli enti e non garantisce l'ottenimento del contributo.",
+  "Il Dossier prepara e precompila. L'utente verifica e presenta: non invia nulla agli enti e non garantisce l'ottenimento del contributo.",
   "UEradar non sostituisce il consulente o il professionista incaricato.",
   "Gli utenti indicati nei piani sono capienza tecnica, non la leva di valore.",
 ];
@@ -149,7 +148,7 @@ export const TRIAL_TERMS: readonly string[] = [
   `${TRIAL_COPY.noCard}.`,
   TRIAL_COPY.noCharge,
   TRIAL_COPY.ctaNote,
-  "Perimetro della prova: 1 impresa e 1 Dossier in versione filigranata.",
+  "Perimetro della prova: 1 Impresa e 1 Dossier in versione filigranata.",
   "Una prova per Partita IVA e per dominio aziendale ogni 12 mesi.",
   "Cancellazione online, senza disdetta scritta e senza PEC.",
   "Tutti i prezzi sono IVA esclusa; l'annuale include 2 mesi.",
@@ -167,11 +166,11 @@ export const ARCHITECTURE_NOTES: readonly { t: string; d: string }[] = [
   },
   {
     t: "Isolamento dei dati privati",
-    d: "Profilo impresa, documenti, checklist compilate e dossier restano isolati per impresa e non sono mai condivisi con altre imprese.",
+    d: "Profilo Impresa, documenti, checklist compilate e Dossier restano isolati per Impresa e non sono mai condivisi con altre Imprese.",
   },
   {
     t: "Limiti applicati lato server",
-    d: "I dossier inclusi e i limiti del piano attivo sono applicati dal servizio, non dal browser: il browser non può ampliarli.",
+    d: "I Dossier inclusi e i limiti del piano attivo sono applicati dal servizio, non dal browser: il browser non può ampliarli.",
   },
 ];
 
@@ -182,23 +181,23 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Quante opportunità posso vedere?",
-    a: "Tutte quelle pertinenti al tuo profilo: il numero di opportunità mostrate non è mai limitato. Istruttoria include 10 bozze di richiesta / Dossier al mese e 5 utenti operativi.",
+    a: "Tutte quelle pertinenti al tuo profilo: il numero di opportunità mostrate non è mai limitato. Istruttoria include 10 Bozze di richiesta / Dossier al mese e 1 Impresa · 5 Utenti (stessa PWA, stesso account).",
   },
   {
     q: "Cosa include Istruttoria?",
-    a: "Istruttoria è l'unico piano acquistabile online: matching sul profilo, ricerca su fonti ufficiali, 10 bozze di richiesta / Dossier al mese e 5 utenti operativi, a 449 € al mese + IVA. Istruttoria prepara la bozza: non invia domande agli enti.",
+    a: "Istruttoria è l'unico piano acquistabile online: matching sul profilo, ricerca su fonti ufficiali, 10 Bozze di richiesta / Dossier al mese e 1 Impresa · 5 Utenti (stessa PWA, stesso account), a 449 € al mese + IVA. Istruttoria prepara la Bozza: non invia domande agli enti.",
   },
   {
     q: "Cosa significa l'etichetta Verificato?",
     a: "Indica soltanto che sono presenti i dati obbligatori provenienti dalla fonte ufficiale: fonte raggiungibile, data e versione, stato, scadenza, beneficiari, territorio, intensità del contributo, spese ammissibili e documenti richiesti. Se anche uno solo manca, l'etichetta non viene mostrata. Non è una garanzia assoluta di ammissibilità: la verifica finale resta sul documento dell'ente.",
   },
   {
-    q: "Il dossier invia la domanda al posto mio?",
-    a: "No. Il dossier prepara e precompila i dati per la tua revisione: non invia automaticamente nulla agli enti e non sostituisce il professionista che segue la pratica.",
+    q: "Il Dossier invia la domanda al posto mio?",
+    a: "No. Il Dossier prepara e precompila i dati per la tua revisione: non invia automaticamente nulla agli enti e non sostituisce il professionista che segue la pratica.",
   },
   {
     q: "Il numero di utenti è il valore del piano?",
-    a: "No. Gli utenti sono soltanto capienza tecnica, titolare incluso: 5 con Istruttoria. Il valore sta nella qualità della selezione e nelle bozze di richiesta preparate.",
+    a: "No. Gli Utenti sono soltanto capienza tecnica, titolare incluso: 1 Impresa · 5 Utenti (stessa PWA, stesso account) con Istruttoria. Il valore sta nella qualità della selezione e nelle Bozze di richiesta preparate.",
   },
   {
     q: "Quanto costa l'annuale?",
@@ -206,6 +205,6 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Posso gestire più imprese?",
-    a: "I piani acquistabili online coprono una sola impresa verificata. Più imprese e integrazioni su misura rientrano in Studio, da 990 € al mese + IVA su richiesta.",
+    a: "I piani acquistabili online coprono 1 Impresa · 5 Utenti (stessa PWA, stesso account). Più Imprese e integrazioni su misura rientrano in Studio, da 990 € al mese + IVA su richiesta.",
   },
 ];
