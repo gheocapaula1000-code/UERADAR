@@ -32,23 +32,29 @@ export function TrialBanner({ compact = false }: { compact?: boolean }) {
   );
 }
 
-/** Barra fissa mobile: la prova resta visibile durante lo scorrimento. */
-export function TrialStickyBar() {
+/** Barra fissa mobile: CTA sempre a portata di pollice. I fatti della prova stanno nel blocco unico in pagina. */
+export function TrialStickyBar({ facts = true }: { facts?: boolean }) {
   return (
     <div className="safe-x fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur md:hidden">
-      <p className="text-center text-xs font-bold uppercase tracking-wide text-accent">
-        {TRIAL_COPY.headline}
-      </p>
-      <p className="text-center text-[11px] uppercase text-muted-foreground">
-        {TRIAL_COPY.noCard}
-      </p>
+      {facts ? (
+        <>
+          <p className="text-center text-xs font-bold uppercase tracking-wide text-accent">
+            {TRIAL_COPY.headline}
+          </p>
+          <p className="text-center text-[11px] uppercase text-muted-foreground">
+            {TRIAL_COPY.noCard}
+          </p>
+        </>
+      ) : null}
       <Link
         to="/auth"
         className="tap mt-2 flex items-center justify-center rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground"
       >
         {TRIAL_COPY.cta}
       </Link>
-      <p className="mt-1 text-center text-[11px] text-muted-foreground">{TRIAL_COPY.ctaNote}</p>
+      {facts ? (
+        <p className="mt-1 text-center text-[11px] text-muted-foreground">{TRIAL_COPY.ctaNote}</p>
+      ) : null}
     </div>
   );
 }

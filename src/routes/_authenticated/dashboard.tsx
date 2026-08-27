@@ -15,6 +15,15 @@ import type { Bando, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
 import { CATEGORY_FILTERS, type CategoryFilterKey } from "@/lib/bando-categories";
 import { feedMarker, runBoundedRefresh } from "@/lib/feed-refresh";
 import { isActive, isFlash, compareByQualityAndGeo, isRareOrHidden } from "@/lib/bando-status";
+import { matchesSede } from "@/lib/sede";
+import { feedUpdatedIso, formatFeedUpdatedAt } from "@/lib/feed-updated";
+import {
+  RESET_FILTERS_LABEL,
+  RETRY_LABEL,
+  SHOW_CATALOG_LABEL,
+  feedListEmpty,
+  flashEmptyCopy,
+} from "@/lib/feed-empty";
 import { computeRadarStats } from "@/lib/radar-stats";
 import { splitFeedTiers } from "@/lib/feed-admission";
 import { loadOfflineFeed, saveOfflineFeed } from "@/lib/offline-feed";
@@ -189,17 +198,17 @@ function Dashboard() {
         toast.success("Risultati aggiornati");
         setRefreshNotice({
           tone: "ok",
-          text: "Ricerca completata: qui sotto trovi i Bandi aggiornati. Non devi fare altro.",
+          text: "Ricerca completata. Qui sotto trovi i Bandi aggiornati.",
         });
       } else if (result.status === "queued") {
         setRefreshNotice({
           tone: "info",
-          text: "Ricerca avviata. Tra qualche minuto i nuovi Bandi compariranno qui: puoi chiudere l'app, nessuna azione richiesta.",
+          text: "Ricerca avviata. I nuovi Bandi compariranno qui: puoi chiudere l'app, nessuna azione richiesta.",
         });
       } else if (result.status === "failed") {
         setRefreshNotice({
           tone: "error",
-          text: "Aggiornamento non riuscito. I Bandi che vedi restano validi: riprova tra qualche minuto con il pulsante Cerca nuovi Bandi.",
+          text: "Aggiornamento non riuscito. I Bandi che vedi restano validi. Riprova con Cerca nuovi Bandi.",
         });
       }
     } finally {
@@ -241,38 +250,8 @@ function Dashboard() {
   }, [query.data?.bandi]);
 
 
-  // Filtro sede: nasconde solo i bandi di territori diversi da quello del profilo.
-  const sedeOk = useMemo(() => {
-    const norm = (v?: string | null) => (typeof v === "string" ? v.trim().toLowerCase() : "");
-    return (b: Bando) => {
-      if (!profile) return true;
-      if (b.scope === "NAZIONALE" || b.scope === "EUROPEO") return true;
-      const bc = norm(b.comune);
-      const pc = norm(profile.comune);
-      const bp = norm(b.provincia);
-      const pp = norm(profile.provincia);
-      const br = norm(b.regione);
-      const pr = norm(profile.regione);
-      if (b.scope === "REGIONALE") {
-        if (!pr) return true;
-        if (!br) return false;
-        return br === pr;
-      }
-      if (b.scope === "CAMERALE") {
-        if (!pp && !pc) return true;
-        if (bp && pp) return bp === pp;
-        if (bc && pc) return bc === pc;
-        return false;
-      }
-      if (b.scope === "COMUNALE") {
-        if (!pc && !pp) return true;
-        if (bc && pc) return bc === pc;
-        if (bp && pp) return bp === pp;
-        return false;
-      }
-      return true;
-    };
-  }, [profile]);
+  // Filtro sede fail-closed: stessa regola di matchesSede (territori extra-regione esclusi).
+  const sedeOk = useMemo(() => (b: Bando) => matchesSede(b, profile), [profile]);
 
   // Stessa misura, schede diverse: una sola scheda in vetrina (nessun dato fuso o inventato).
   // Filtro settore: nasconde i bandi chiaramente fuori dal settore ATECO del profilo.
@@ -413,6 +392,16 @@ function Dashboard() {
     setHiddenOnly(false);
   };
 
+  const updatedIso = feedUpdatedIso(query.data); // generated_at ufficiale, altrimenti fetched_at
+  const updatedLabel = updatedIso ? formatFeedUpdatedAt(updatedIso) : null;
+  const listEmpty = feedListEmpty({
+    fetchFailed: Boolean(query.error),
+    lastKnownCount,
+    filteredCount: filtered.length,
+    activeFilters,
+    homeView,
+  });
+
   return (
     <AppShell>
       <RadarIntro />
@@ -425,12 +414,20 @@ function Dashboard() {
             </h1>
             <p className="mt-1 min-w-0 wrap-anywhere text-sm text-muted-foreground">
               {homeView === "catalog"
-                ? "Catalogo: tutti i bandi ufficiali aperti."
-                : "Per la mia impresa: solo i bandi che il tuo profilo può usare, se il testo ufficiale cita il tuo codice ATECO."}
-              {query.data?.fetched_at
-                ? ` · Aggiornato il ${new Date(query.data.fetched_at).toLocaleString("it-IT")}`
-                : ""}
+                ? "Catalogo: tutti i Bandi ufficiali aperti."
+                : "Per la mia impresa: solo i Bandi che il tuo profilo può usare, se il testo ufficiale cita il tuo codice ATECO."}
             </p>
+            {updatedLabel ? (
+              <p
+                className={
+                  homeView === "profile"
+                    ? "mt-2 inline-flex max-w-full wrap-anywhere items-center rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-sm font-semibold text-foreground"
+                    : "mt-1 text-sm text-muted-foreground"
+                }
+              >
+                Aggiornato il {updatedLabel}
+              </p>
+            ) : null}
           </div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             {isOffline && (
@@ -684,24 +681,27 @@ function Dashboard() {
               Array.from({ length: 3 }).map((_, i) => <BandoCardSkeleton key={i} />)
             ) : query.error ? (
               <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                <p>
-                  Non siamo riusciti a leggere l'elenco adesso.
-                  {lastKnownCount !== null
-                    ? ` Ultimo dato noto: ${lastKnownCount} bandi.`
-                    : ""}
-                </p>
+                <p>{listEmpty?.title}</p>
+                {listEmpty?.body ? <p className="mt-1">{listEmpty.body}</p> : null}
                 <button
                   type="button"
                   onClick={() => query.refetch()}
                   className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
                 >
-                  Riprova
+                  {RETRY_LABEL}
                 </button>
               </div>
-
             ) : flashBandi.length === 0 ? (
               <div className="col-span-full rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Nessuna scadenza ravvicinata tra le opportunità caricate dal catalogo ufficiale.
+                {(() => {
+                  const flash = flashEmptyCopy(filtered.length > 0);
+                  return (
+                    <>
+                      <p>{flash.title}</p>
+                      {flash.body ? <p className="mt-1">{flash.body}</p> : null}
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               flashBandi.map((b, i) => <BandoCard key={b.id} bando={b} index={i} profile={profile} />)
@@ -725,7 +725,7 @@ function Dashboard() {
                   onClick={resetFilters}
                   className="tap rounded-lg border border-border px-3 py-2 text-sm"
                 >
-                  Azzera filtri
+                  {RESET_FILTERS_LABEL}
                 </button>
               )}
               <button
@@ -828,61 +828,26 @@ function Dashboard() {
                 <BandoCardSkeleton key={i} />
               ))}
             </div>
-          ) : query.error ? (
+          ) : query.error || filtered.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              <p>
-                Non siamo riusciti a leggere il catalogo adesso.
-                {lastKnownCount !== null ? ` Ultimo dato noto: ${lastKnownCount} bandi.` : ""}
-              </p>
+              <p>{listEmpty?.title}</p>
+              {listEmpty?.body ? <p className="mt-1">{listEmpty.body}</p> : null}
               <button
                 type="button"
-                onClick={() => query.refetch()}
+                onClick={() => {
+                  if (listEmpty?.kind === "filters") resetFilters();
+                  else if (listEmpty?.kind === "profile") persistHomeView("catalog");
+                  else query.refetch();
+                }}
                 className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
               >
-                Riprova
+                {listEmpty?.kind === "profile"
+                  ? SHOW_CATALOG_LABEL
+                  : listEmpty?.kind === "filters"
+                    ? RESET_FILTERS_LABEL
+                    : RETRY_LABEL}
               </button>
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              {activeFilters > 0 ? (
-                <>
-                  <p>Nessun bando con i filtri scelti.</p>
-                  <button
-                    type="button"
-                    onClick={resetFilters}
-                    className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-                  >
-                    Azzera filtri
-                  </button>
-                </>
-              ) : homeView === "profile" ? (
-                <>
-                  <p>
-                    Nessun bando per il tuo profilo adesso. Non vuol dire che la tua impresa è
-                    esclusa: nel catalogo ci sono altri bandi aperti.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => persistHomeView("catalog")}
-                    className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-                  >
-                    Vedi tutti i bandi
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p>Nessun bando ufficiale in questo aggiornamento. Non inventiamo schede.</p>
-                  <button
-                    type="button"
-                    onClick={() => query.refetch()}
-                    className="tap mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-                  >
-                    Riprova
-                  </button>
-                </>
-              )}
-            </div>
-
           ) : (
             <div className="space-y-8">
               <div>

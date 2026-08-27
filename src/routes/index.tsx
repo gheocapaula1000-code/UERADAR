@@ -126,13 +126,11 @@ function Landing() {
               Come Funziona
             </a>
           </div>
+          <div className="mx-auto mt-6 max-w-xl text-left">
+            <TrialBanner compact />
+            <p className="mt-3 text-center text-sm text-muted-foreground">{TRIAL_HIGHLIGHT}</p>
+          </div>
         </div>
-      </section>
-
-      {/* PROVA — sezione separata e meno aggressiva */}
-      <section className="mx-auto w-full max-w-3xl px-4 pb-12 sm:px-6 sm:pb-16">
-        <TrialBanner compact />
-        <p className="mt-3 text-center text-sm text-muted-foreground">{TRIAL_HIGHLIGHT}</p>
       </section>
 
       {/* TRUST SIGNALS */}
@@ -247,9 +245,6 @@ function Landing() {
             (stessa PWA, stesso account). Annuale con 2 mesi inclusi. Studio resta su preventivo.
           </p>
         </div>
-        <div className="mx-auto mb-8 max-w-2xl">
-          <TrialBanner compact />
-        </div>
         <div className="grid gap-6 md:grid-cols-2">
           {PUBLIC_PLANS.map((plan) => (
             <div
@@ -332,7 +327,7 @@ function Landing() {
       </section>
       </main>
 
-      <TrialStickyBar />
+      <TrialStickyBar facts={false} />
       <SiteFooter>
         <BrandLockup className="mx-auto mb-5" />
       </SiteFooter>

@@ -9,6 +9,8 @@ import {
   MISSING_ON_NOTICE,
   normalizeMatchStatus,
   territoryBadge,
+  compareByQualityAndGeo,
+  geographicBoost,
 } from "../bando-status";
 
 const NOW = Date.parse("2026-08-06T10:00:00.000Z");
@@ -95,5 +97,25 @@ describe("badge territoriale", () => {
       "Comunale · Padova",
     );
     expect(territoryBadge({ scope: "REGIONALE" }).title).toBe(MISSING_ON_NOTICE);
+  });
+});
+
+describe("ranking geografico additivo (PR 20)", () => {
+  const padova = { comune: "Padova", provincia: "PD", regione: "Veneto" };
+  const now = Date.parse("2026-08-27T10:00:00.000Z");
+  const sameQuality = {
+    titolo: "Bando",
+    ente: "Ente",
+    descrizione: "D",
+    categoria: "FONDO_PERDUTO",
+    scadenza: "2099-12-31",
+    importo_max: 10000,
+  };
+
+  it("stessa provincia pesa più di un altro territorio, a parità di qualità", () => {
+    const local = { id: "pd", scope: "COMUNALE", comune: "Padova", provincia: "PD", regione: "Veneto", ...sameQuality };
+    const far = { id: "bg", scope: "COMUNALE", comune: "Bergamo", provincia: "BG", regione: "Lombardia", ...sameQuality };
+    expect(geographicBoost(local, padova)).toBeGreaterThan(geographicBoost(far, padova));
+    expect(compareByQualityAndGeo(local, far, padova, now)).toBeLessThan(0);
   });
 });

@@ -274,7 +274,7 @@ describe("P0 billing fail-closed e Portal reale", () => {
 
 describe("P1 sticky bar della prova sulla home mobile", () => {
   it("è presente e non copre il contenuto né la safe area", () => {
-    expect(landing).toContain("<TrialStickyBar />");
+    expect(landing).toContain("<TrialStickyBar facts={false} />");
     expect(landing).toContain("pb-44");
     expect(readFileSync("src/components/bandocore/TrialBanner.tsx", "utf8")).toContain(
       "env(safe-area-inset-bottom)",
