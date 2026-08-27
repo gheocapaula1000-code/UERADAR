@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { Bando } from "../bandocore-types";
 import {
   isActive,
   isExpired,
@@ -113,8 +114,8 @@ describe("ranking geografico additivo (PR 20)", () => {
   };
 
   it("stessa provincia pesa più di un altro territorio, a parità di qualità", () => {
-    const local = { id: "pd", scope: "COMUNALE", comune: "Padova", provincia: "PD", regione: "Veneto", ...sameQuality };
-    const far = { id: "bg", scope: "COMUNALE", comune: "Bergamo", provincia: "BG", regione: "Lombardia", ...sameQuality };
+    const local = { id: "pd", scope: "COMUNALE" as const, comune: "Padova", provincia: "PD", regione: "Veneto", ...sameQuality } as Bando;
+    const far = { id: "bg", scope: "COMUNALE" as const, comune: "Bergamo", provincia: "BG", regione: "Lombardia", ...sameQuality } as Bando;
     expect(geographicBoost(local, padova)).toBeGreaterThan(geographicBoost(far, padova));
     expect(compareByQualityAndGeo(local, far, padova, now)).toBeLessThan(0);
   });
