@@ -69,3 +69,14 @@ describe("Home usa la preferenza persistita", () => {
     expect(dashboard).toContain('homeView === "profile"');
   });
 });
+
+describe("Home: un solo blocco prova vicino al CTA", () => {
+  it("non ripete i banner 7 giorni / senza carta", () => {
+    const home = readFileSync("src/routes/index.tsx", "utf8");
+    expect(home.match(/<TrialBanner/g) ?? []).toHaveLength(1);
+    expect(home).toContain("TRIAL_HIGHLIGHT");
+    expect(home).toContain("<TrialStickyBar facts={false} />");
+    expect(home).toContain("pb-44");
+    expect(home).not.toMatch(/PROVA — sezione separata/);
+  });
+});

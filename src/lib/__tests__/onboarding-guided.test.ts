@@ -65,7 +65,7 @@ describe("profilo guidato", () => {
 
 describe("dashboard più semplice", () => {
   it("i filtri sono raccolti e azzerabili", () => {
-    expect(dashboard).toContain("Azzera filtri");
+    expect(dashboard).toContain("RESET_FILTERS_LABEL");
     expect(dashboard).toContain("activeFilters");
     expect(dashboard).toContain("setFiltersOpen");
   });
