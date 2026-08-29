@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   CORE_ATTESTED_SOURCE,
   CORE_OFFICIAL_DOMAINS,
   CORE_SOURCES,
+  INCOMPLETE_FIELDS_CATALOG_HEADING,
+  INCOMPLETE_FIELDS_HEADING,
   admitBando,
   admitFeed,
   feedTier,
+  incompleteFieldsHeading,
   sourceForBando,
   sourceForUrl,
   splitFeedTiers,
@@ -586,5 +590,20 @@ describe("fasce vetrina", () => {
     const { high, review } = splitFeedTiers(list, NOW);
     expect(high.map((b) => b.id)).toEqual(["a"]);
     expect(review.map((b) => b.id)).toEqual(["b"]);
+  });
+
+  it("la fascia incompleta non usa «Da verificare» su Per la mia impresa", () => {
+    expect(incompleteFieldsHeading("profile")).toBe("Scheda incompleta");
+    expect(incompleteFieldsHeading("catalog")).toBe("Da verificare");
+    expect(INCOMPLETE_FIELDS_HEADING).toBe("Scheda incompleta");
+    expect(INCOMPLETE_FIELDS_CATALOG_HEADING).toBe("Da verificare");
+    expect(INCOMPLETE_FIELDS_HEADING).not.toBe(INCOMPLETE_FIELDS_CATALOG_HEADING);
+    const dashboard = readFileSync("src/routes/_authenticated/dashboard.tsx", "utf8");
+    const card = readFileSync("src/components/bandocore/BandoCard.tsx", "utf8");
+    expect(dashboard).toContain("incompleteFieldsHeading(homeView)");
+    expect(dashboard).toContain("{reviewHeading}");
+    expect(dashboard).toContain("Scheda incompleta");
+    expect(card).toContain("INCOMPLETE_FIELDS_HEADING");
+    expect(card).not.toMatch(/<p className="font-semibold">Da verificare<\/p>/);
   });
 });
