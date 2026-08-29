@@ -66,7 +66,7 @@ const OPTIONAL_URL = ["forms_url", "application_url"] as const;
 const OPTIONAL_DATE = ["deadline_at", "opens_at", "last_verified_at", "first_seen_at"] as const;
 const OPTIONAL_NUMBER = ["max_grant_amount", "rarity_score", "min_partners", "aid_intensity_percent", "total_budget", "competition_index"] as const;
 const OPTIONAL_BOOLEAN = ["click_day", "official_source", "consortium_required"] as const;
-const OPTIONAL_STRING_ARRAY = ["requirements", "eligible_expenses", "eligible_countries", "eligible_ateco_codes"] as const;
+const OPTIONAL_STRING_ARRAY = ["requirements", "eligible_expenses", "eligible_countries", "eligible_ateco_codes", "eligible_ateco_prefixes"] as const;
 
 function nonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;

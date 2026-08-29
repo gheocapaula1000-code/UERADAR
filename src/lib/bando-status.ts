@@ -12,6 +12,9 @@ export interface MatchStatusMeta {
   textClass: string;
 }
 
+/** Vista profilo: match DA_VERIFICARE = ATECO assente sul testo ufficiale, non «Da verificare». */
+export const MATCH_UNKNOWN_PROFILE_LABEL = "ATECO non sul testo ufficiale";
+
 const META: Record<MatchStatus, MatchStatusMeta> = {
   COMPATIBILE: {
     status: "COMPATIBILE",
@@ -48,8 +51,15 @@ export function normalizeMatchStatus(value: unknown): MatchStatus {
 }
 
 /** Metadati di resa: NON_COMPATIBILE non deve mai apparire come "Da verificare". */
-export function matchStatusMeta(value: unknown): MatchStatusMeta {
-  return META[normalizeMatchStatus(value)];
+export function matchStatusMeta(
+  value: unknown,
+  view?: "catalog" | "profile",
+): MatchStatusMeta {
+  const meta = META[normalizeMatchStatus(value)];
+  if (view === "profile" && meta.status === "DA_VERIFICARE") {
+    return { ...meta, label: MATCH_UNKNOWN_PROFILE_LABEL };
+  }
+  return meta;
 }
 
 export type MatchPreview = MatchStatusMeta & {
@@ -72,9 +82,12 @@ function previewLines(value: unknown): string[] {
  * Anteprima del match per le card: usa solo stato, punteggio e motivi
  * restituiti dal feed. Nessun punteggio inventato.
  */
-export function matchPreview(match: Bando["match"] | null | undefined): MatchPreview | null {
+export function matchPreview(
+  match: Bando["match"] | null | undefined,
+  view?: "catalog" | "profile",
+): MatchPreview | null {
   if (!match) return null;
-  const meta = matchStatusMeta(match.status);
+  const meta = matchStatusMeta(match.status, view);
   const raw = match.score;
   const score =
     typeof raw === "number" && Number.isFinite(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : null;

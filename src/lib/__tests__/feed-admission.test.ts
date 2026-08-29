@@ -605,5 +605,7 @@ describe("fasce vetrina", () => {
     expect(dashboard).toContain("Scheda incompleta");
     expect(card).toContain("INCOMPLETE_FIELDS_HEADING");
     expect(card).not.toMatch(/<p className="font-semibold">Da verificare<\/p>/);
+    expect(dashboard).toContain("ATECO non sul testo ufficiale");
+    expect(card).toContain("MATCH_UNKNOWN_PROFILE_LABEL");
   });
 });

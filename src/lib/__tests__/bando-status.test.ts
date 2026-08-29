@@ -5,6 +5,7 @@ import {
   isExpired,
   isFlash,
   isRareOrHidden,
+  MATCH_UNKNOWN_PROFILE_LABEL,
   matchPreview,
   matchStatusMeta,
   MISSING_ON_NOTICE,
@@ -51,6 +52,19 @@ describe("stato di compatibilità", () => {
     expect(preview?.missing).toEqual(["Sede da confermare", "DURC"]);
     expect(matchPreview(null)).toBeNull();
     expect(matchPreview({ status: "COMPATIBILE", score: Number.NaN, confirmed: [], missing: [], blockers: [] })?.score).toBeNull();
+  });
+
+  it("sulla vista profilo il match DA_VERIFICARE è ATECO non sul testo ufficiale", () => {
+    expect(MATCH_UNKNOWN_PROFILE_LABEL).toBe("ATECO non sul testo ufficiale");
+    expect(matchStatusMeta("DA_VERIFICARE", "profile").label).toBe(MATCH_UNKNOWN_PROFILE_LABEL);
+    expect(matchStatusMeta("DA_VERIFICARE", "catalog").label).toBe("Da verificare");
+    expect(matchStatusMeta("DA_VERIFICARE").label).toBe("Da verificare");
+    expect(
+      matchPreview(
+        { status: "DA_VERIFICARE", score: 40, confirmed: [], missing: [], blockers: [] },
+        "profile",
+      )?.label,
+    ).toBe(MATCH_UNKNOWN_PROFILE_LABEL);
   });
 });
 

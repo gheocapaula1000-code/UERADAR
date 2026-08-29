@@ -19,6 +19,7 @@ import {
   isRareOrHidden,
   isSportello,
   isVerified,
+  MATCH_UNKNOWN_PROFILE_LABEL,
   matchPreview,
   officialLink,
   territoryBadge,
@@ -93,10 +94,12 @@ export function BandoCard({
   bando,
   index = 0,
   profile,
+  homeView,
 }: {
   bando: Bando;
   index?: number;
   profile?: ProfiloSportello | null;
+  homeView?: "catalog" | "profile";
 }) {
   const cat = categoryStyles[bando.categoria] ?? categoryStyles.ALTRO;
   const daysLeft = daysLeftOf(bando);
@@ -104,7 +107,7 @@ export function BandoCard({
   const flash = isFlash(bando);
   const rareOrHidden = isRareOrHidden(bando);
   const urgent = !expired && daysLeft !== null && daysLeft <= 10 && daysLeft >= 0;
-  const preview = matchPreview(bando.match);
+  const preview = matchPreview(bando.match, homeView);
   const missingOfficial = missingOfficialData(bando);
   const partial = missingOfficial.length > 0;
   const verified = isVerified(bando);
@@ -115,6 +118,10 @@ export function BandoCard({
   const parziale =
     !sportello && (Boolean(gaps?.missing_deadline || gaps?.missing_economics) || partial);
   const ufficialeHref = officialLink(bando);
+  const showUnknownAteco =
+    homeView === "profile" &&
+    !parziale &&
+    (preview == null || preview.status === "DA_VERIFICARE");
 
   return (
     <div
@@ -235,6 +242,19 @@ export function BandoCard({
               Da controllare: {preview.missing.join(" · ")}
             </p>
           ) : null}
+        </div>
+      )}
+
+      {showUnknownAteco && (
+        <div className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-2.5">
+          <p className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium text-warning">
+            <FileSearch className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {MATCH_UNKNOWN_PROFILE_LABEL}
+          </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Il testo ufficiale non elenca i codici ATECO. Non vuol dire che la tua impresa è
+            esclusa.
+          </p>
         </div>
       )}
 

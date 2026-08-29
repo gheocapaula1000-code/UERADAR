@@ -9,6 +9,7 @@ import {
   mapCoreOpportunity,
   parseGatewayEnvelope,
   parseGatewayFeed,
+  type CoreOpportunity,
 } from "../proxy-core.server";
 
 const row = {
@@ -205,5 +206,38 @@ describe("gateway isolato", () => {
     expect(src).toContain("HIDDEN_CACHE_READ_FAILED");
     expect(src.match(/\.gte\("fetched_at", cutoff\)/g)).toHaveLength(2);
     expect(src).toContain('.gte("discovered_at", cutoff)');
+  });
+});
+
+describe("ateco ufficiale dal Core", () => {
+  it("mappa eligible_ateco_prefixes su ateco_compatibili senza inventare codici", () => {
+    const prefixesOnly = mapCoreOpportunity({
+      ...row,
+      eligible_ateco_prefixes: ["62", "63"],
+    } as CoreOpportunity);
+    expect(prefixesOnly.ateco_compatibili).toEqual(["62", "63"]);
+
+    const both = mapCoreOpportunity({
+      ...row,
+      eligible_ateco_codes: ["62.01.00"],
+      eligible_ateco_prefixes: ["62", "62.01.00"],
+    } as CoreOpportunity);
+    expect(both.ateco_compatibili).toEqual(["62.01.00", "62"]);
+
+    const empty = mapCoreOpportunity(row as CoreOpportunity);
+    expect(empty.ateco_compatibili).toEqual([]);
+  });
+
+  it("il contratto conserva eligible_ateco_prefixes ufficiali", () => {
+    const result = sanitizeFeedResponse(
+      { ok: true, bandi: [{ ...row, eligible_ateco_prefixes: ["62"] }] },
+      200,
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.bandi[0]?.eligible_ateco_prefixes).toEqual(["62"]);
+      const mapped = mapCoreOpportunity(result.bandi[0] as CoreOpportunity);
+      expect(mapped.ateco_compatibili).toEqual(["62"]);
+    }
   });
 });

@@ -1,20 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { isMiaImpresaCompatibile } from "../mia-impresa";
+import { MATCH_UNKNOWN_PROFILE_LABEL, matchStatusMeta } from "../bando-status";
 
 function overlayClass(closing: boolean): string {
   return `fixed inset-0 z-[120] ${closing ? "intro-fade-out pointer-events-none" : "intro-fade-in"}`;
 }
 
-describe("filtro Per la mia impresa: solo COMPATIBILE", () => {
-  it("nasconde NON_COMPATIBILE, DA_VERIFICARE e schede senza match", () => {
+describe("filtro Per la mia impresa: nasconde solo NON_COMPATIBILE", () => {
+  it("tiene COMPATIBILE, DA_VERIFICARE e schede senza match", () => {
     const kept = [
       { id: "ok", match: { status: "COMPATIBILE" as const } },
       { id: "check", match: { status: "DA_VERIFICARE" as const } },
       { id: "bare" },
       { id: "no", match: { status: "NON_COMPATIBILE" as const } },
     ].filter(isMiaImpresaCompatibile);
-    expect(kept.map((b) => b.id)).toEqual(["ok"]);
+    expect(kept.map((b) => b.id)).toEqual(["ok", "check", "bare"]);
   });
 
   it("la dashboard usa il filtro solo sulla vista profilo, dopo sedeOk/settoreOk", () => {
@@ -35,6 +36,20 @@ describe("filtro Per la mia impresa: solo COMPATIBILE", () => {
     expect(dashboard).toMatch(
       /if \(Array\.isArray\(lista\) && lista\.length > 0\) \{[\s\S]*?return true;/,
     );
+  });
+
+  it("sulla vista profilo il match sconosciuto non si chiama Da verificare", () => {
+    expect(matchStatusMeta("DA_VERIFICARE", "profile").label).toBe(MATCH_UNKNOWN_PROFILE_LABEL);
+    expect(MATCH_UNKNOWN_PROFILE_LABEL).toBe("ATECO non sul testo ufficiale");
+    expect(matchStatusMeta("DA_VERIFICARE", "catalog").label).toBe("Da verificare");
+    const dashboard = readFileSync("src/routes/_authenticated/dashboard.tsx", "utf8");
+    const card = readFileSync("src/components/bandocore/BandoCard.tsx", "utf8");
+    expect(dashboard).toContain("ATECO non sul testo ufficiale");
+    expect(dashboard).not.toContain("Non include Da verificare né Non compatibile");
+    expect(dashboard).toContain("homeView={homeView}");
+    expect(card).toContain("MATCH_UNKNOWN_PROFILE_LABEL");
+    expect(card).toContain("showUnknownAteco");
+    expect(card).not.toMatch(/<p className="font-semibold">Da verificare<\/p>/);
   });
 });
 
