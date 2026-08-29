@@ -25,7 +25,8 @@ import {
   flashEmptyCopy,
 } from "@/lib/feed-empty";
 import { computeRadarStats } from "@/lib/radar-stats";
-import { splitFeedTiers } from "@/lib/feed-admission";
+import { incompleteFieldsHeading, splitFeedTiers } from "@/lib/feed-admission";
+import { isMiaImpresaCompatibile } from "@/lib/mia-impresa";
 import { loadOfflineFeed, saveOfflineFeed } from "@/lib/offline-feed";
 import {
   DEFAULT_HOME_VIEW,
@@ -335,11 +336,11 @@ function Dashboard() {
     return order.map((k) => best.get(k)!);
   };
 
-  // Catalogo: tutti i Bandi ufficiali aperti. Profilo: sede/settore come oggi.
+  // Catalogo: tutti i Bandi ufficiali aperti. Profilo: solo COMPATIBILE + sede/settore.
   const bandiPerProfilo = useMemo(
     () =>
       bandiAttivi.filter(
-        (b) => b.match?.status !== "NON_COMPATIBILE" && sedeOk(b) && settoreOk(b),
+        (b) => isMiaImpresaCompatibile(b) && sedeOk(b) && settoreOk(b),
       ),
     [bandiAttivi, sedeOk, settoreOk],
   );
@@ -358,7 +359,7 @@ function Dashboard() {
   const filtered = useMemo(() => {
     const base = bandi.filter((b) => {
       if (homeView === "profile") {
-        if (b.match?.status === "NON_COMPATIBILE") return false;
+        if (!isMiaImpresaCompatibile(b)) return false;
         if (!sedeOk(b)) return false;
         if (!settoreOk(b)) return false;
       }
@@ -382,8 +383,9 @@ function Dashboard() {
     (hyperlocalOnly ? 1 : 0) +
     (hiddenOnly ? 1 : 0);
 
-  // Due fasce: alta priorità e da verificare. Nessuna delle due viene nascosta.
+  // Due fasce sui campi ufficiali (data/importo), non sul match profilo.
   const tiers = useMemo(() => splitFeedTiers(filtered), [filtered]);
+  const reviewHeading = incompleteFieldsHeading(homeView);
 
   const resetFilters = () => {
     setCat("TUTTI");
@@ -492,9 +494,9 @@ function Dashboard() {
               )}
             </ul>
             <p className="mt-2 text-xs text-muted-foreground">
-              Le schede ufficiali restano visibili anche quando manca la scadenza o l'importo:
-              vengono segnalate come «Da verificare». I bandi a sportello non hanno una data di
-              chiusura e sono completi così. Nessuna data e nessun importo viene stimato.
+              {homeView === "profile"
+                ? "Le schede ufficiali restano visibili anche quando manca la scadenza o l'importo: vengono segnalate come «Scheda incompleta». I bandi a sportello non hanno una data di chiusura e sono completi così. Nessuna data e nessun importo viene stimato."
+                : "Le schede ufficiali restano visibili anche quando manca la scadenza o l'importo: vengono segnalate come «Da verificare». I bandi a sportello non hanno una data di chiusura e sono completi così. Nessuna data e nessun importo viene stimato."}
             </p>
           </section>
         )}
@@ -605,7 +607,7 @@ function Dashboard() {
               d:
                 homeView === "catalog"
                   ? "Bandi del catalogo ufficiale attualmente mostrati. Non è un conteggio di match."
-                  : "Bandi in feed per questo profilo (sede e settore). Non è un conteggio di match COMPATIBILE.",
+                  : "Solo match Compatibile, con sede e settore. Non include Da verificare né Non compatibile.",
             },
             {
               l: "In scadenza a breve",
@@ -875,7 +877,7 @@ function Dashboard() {
 
               <div>
                 <h3 className="text-base font-semibold">
-                  Da verificare{" "}
+                  {reviewHeading}{" "}
                   <span className="text-sm font-normal text-muted-foreground">
                     ({tiers.review.length})
                   </span>
@@ -887,7 +889,9 @@ function Dashboard() {
 
                 {tiers.review.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                    Nessuna scheda da verificare in questo elenco.
+                    {homeView === "profile"
+                      ? "Nessuna scheda incompleta in questo elenco."
+                      : "Nessuna scheda da verificare in questo elenco."}
                   </div>
                 ) : (
                   <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">

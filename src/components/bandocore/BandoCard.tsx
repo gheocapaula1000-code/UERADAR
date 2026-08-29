@@ -27,7 +27,12 @@ import {
 
 import { formatItalianInteger } from "@/lib/catalog";
 import { missingOfficialData } from "@/lib/dossier";
-import { admitBando, MISSING_DEADLINE_LABEL, MISSING_ECONOMICS_LABEL } from "@/lib/feed-admission";
+import {
+  admitBando,
+  INCOMPLETE_FIELDS_HEADING,
+  MISSING_DEADLINE_LABEL,
+  MISSING_ECONOMICS_LABEL,
+} from "@/lib/feed-admission";
 import { cardEnterDelayMs } from "@/lib/motion";
 import { MatchScore } from "@/components/bandocore/MatchScore";
 import { SportelloGuide } from "@/components/bandocore/SportelloGuide";
@@ -84,7 +89,6 @@ const categoryStyles: Record<Bando["categoria"], { label: string; class: string 
   ALTRO: { label: "Altro", class: "bg-muted text-muted-foreground border-border" },
 };
 
-
 export function BandoCard({
   bando,
   index = 0,
@@ -107,7 +111,7 @@ export function BandoCard({
   const verdict = admitBando(bando);
   const gaps = verdict.ok ? verdict.gaps : null;
   const sportello = isSportello(bando);
-  // A sportello non è un buco informativo: niente "Da verificare" per la data mancante.
+  // A sportello non è un buco informativo: niente «Scheda incompleta» per la data mancante.
   const parziale =
     !sportello && (Boolean(gaps?.missing_deadline || gaps?.missing_economics) || partial);
   const ufficialeHref = officialLink(bando);
@@ -276,7 +280,7 @@ export function BandoCard({
 
       {parziale && (
         <div className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
-          <p className="font-semibold">Da verificare</p>
+          <p className="font-semibold">{INCOMPLETE_FIELDS_HEADING}</p>
           <p className="mt-1 text-muted-foreground">
             Manca ancora la data (o lo sportello) oppure l'importo sul testo ufficiale. Non vuol
             dire che la tua impresa è esclusa.

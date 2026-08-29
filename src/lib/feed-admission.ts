@@ -479,14 +479,26 @@ export interface AdmissionReport {
 }
 
 /* ------------------------------------------------------------------ *
- * Vetrina: due fasce, nessuna scheda nascosta.
+ * Vetrina: due fasce sui campi ufficiali (data/importo), non sul match.
+ * FeedTier DA_VERIFICARE = scheda incompleta (manca data o importo).
+ * Non è lo stato match DA_VERIFICARE (compatibilità profilo).
  * ------------------------------------------------------------------ */
 
 export type FeedTier = "ALTA_PRIORITA" | "DA_VERIFICARE";
 
+/** Fascia campi ufficiali incompleti. Non è il match profilo. */
+export const INCOMPLETE_FIELDS_HEADING = "Scheda incompleta";
+/** Stessa fascia nel catalogo: etichetta storica, non è il match. */
+export const INCOMPLETE_FIELDS_CATALOG_HEADING = "Da verificare";
+
+/** «Per la mia impresa» non usa «Da verificare» per i campi mancanti. */
+export function incompleteFieldsHeading(homeView: "catalog" | "profile"): string {
+  return homeView === "profile" ? INCOMPLETE_FIELDS_HEADING : INCOMPLETE_FIELDS_CATALOG_HEADING;
+}
+
 /**
  * Alta priorità = (scadenza o apertura) + un dato economico.
- * Il badge match non incide: tutto il resto resta visibile in «Da verificare».
+ * Il badge match non incide: il resto va nella fascia campi incompleti.
  */
 export function feedTier(bando: Bando, now: number = Date.now()): FeedTier {
   const hasDate =

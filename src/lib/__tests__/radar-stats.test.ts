@@ -82,7 +82,7 @@ describe("Radar Bandi usa i helper come unica fonte", () => {
     expect(dashboard).toContain("In scadenza a breve");
     expect(dashboard).toContain("Fonti locali / poco diffuse");
     expect(dashboard).toContain("Con modulistica / presentazione");
-    expect(dashboard).toContain("Bandi in feed per questo profilo (sede e settore)");
+    expect(dashboard).toContain("Solo match Compatibile, con sede e settore");
     expect(dashboard).toContain("Bandi del catalogo ufficiale attualmente mostrati");
     expect(dashboard).not.toMatch(/compatibili con il profilo/);
     expect(dashboard).not.toContain("Bandi Attivi per te");
