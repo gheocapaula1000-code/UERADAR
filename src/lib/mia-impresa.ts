@@ -3,11 +3,11 @@ export type MiaImpresaMatch = {
 };
 
 /**
- * Vista «Per la mia impresa»: solo schede il cui match è COMPATIBILE.
- * Fail-closed: senza match, DA_VERIFICARE e NON_COMPATIBILE restano fuori.
- * Non inventa ATECO né compatibilità: usa solo lo status restituito dal feed.
+ * Vista «Per la mia impresa»: nasconde solo NON_COMPATIBILE.
+ * COMPATIBILE, DA_VERIFICARE e schede senza match restano visibili
+ * (ATECO assente sul testo ufficiale, non extra-regione).
  * sedeOk / settoreOk restano filtri a valle, invariati.
  */
 export function isMiaImpresaCompatibile(bando: MiaImpresaMatch): boolean {
-  return bando.match?.status === "COMPATIBILE";
+  return bando.match?.status !== "NON_COMPATIBILE";
 }

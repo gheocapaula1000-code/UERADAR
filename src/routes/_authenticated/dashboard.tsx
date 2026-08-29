@@ -336,7 +336,7 @@ function Dashboard() {
     return order.map((k) => best.get(k)!);
   };
 
-  // Catalogo: tutti i Bandi ufficiali aperti. Profilo: solo COMPATIBILE + sede/settore.
+  // Catalogo: tutti i Bandi ufficiali aperti. Profilo: nasconde solo NON_COMPATIBILE; sede/settore fail-closed.
   const bandiPerProfilo = useMemo(
     () =>
       bandiAttivi.filter(
@@ -417,7 +417,7 @@ function Dashboard() {
             <p className="mt-1 min-w-0 wrap-anywhere text-sm text-muted-foreground">
               {homeView === "catalog"
                 ? "Catalogo: tutti i Bandi ufficiali aperti."
-                : "Per la mia impresa: solo i Bandi che il tuo profilo può usare, se il testo ufficiale cita il tuo codice ATECO."}
+                : "Per la mia impresa: i Bandi della tua sede e del tuo settore. Se l'ATECO non è sul testo ufficiale, la scheda resta visibile."}
             </p>
             {updatedLabel ? (
               <p
@@ -440,18 +440,18 @@ function Dashboard() {
             <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
               <span
                 className={`text-sm ${homeView === "catalog" ? "font-semibold text-foreground" : "text-muted-foreground"}`}
-                title="Catalogo: tutti i bandi ufficiali aperti."
+                title="Catalogo: tutti i Bandi ufficiali aperti."
               >
                 Catalogo
               </span>
               <Switch
                 checked={homeView === "profile"}
                 onCheckedChange={(on) => persistHomeView(on ? "profile" : "catalog")}
-                aria-label="Per la mia impresa: solo i bandi che il tuo profilo può usare, se il testo ufficiale cita il tuo codice ATECO"
+                aria-label="Per la mia impresa: i Bandi della tua sede e del tuo settore. Se l'ATECO non è sul testo ufficiale, la scheda resta visibile"
               />
               <span
                 className={`text-sm ${homeView === "profile" ? "font-semibold text-foreground" : "text-muted-foreground"}`}
-                title="Per la mia impresa: solo i bandi che il tuo profilo può usare, se il testo ufficiale cita il tuo codice ATECO."
+                title="Per la mia impresa: i Bandi della tua sede e del tuo settore. Se l'ATECO non è sul testo ufficiale, la scheda resta visibile."
               >
                 Per la mia impresa
               </span>
@@ -607,7 +607,7 @@ function Dashboard() {
               d:
                 homeView === "catalog"
                   ? "Bandi del catalogo ufficiale attualmente mostrati. Non è un conteggio di match."
-                  : "Solo match Compatibile, con sede e settore. Non include Da verificare né Non compatibile.",
+                  : "Bandi in feed per questo profilo (sede e settore). Include Compatibile e ATECO non sul testo ufficiale. Non include Non compatibile.",
             },
             {
               l: "In scadenza a breve",
@@ -706,7 +706,7 @@ function Dashboard() {
                 })()}
               </div>
             ) : (
-              flashBandi.map((b, i) => <BandoCard key={b.id} bando={b} index={i} profile={profile} />)
+              flashBandi.map((b, i) => <BandoCard key={b.id} bando={b} index={i} profile={profile} homeView={homeView} />)
             )}
           </div>
         </section>
@@ -869,7 +869,7 @@ function Dashboard() {
                 ) : (
                   <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {tiers.high.map((b: Bando, i: number) => (
-                      <BandoCard key={b.id} bando={b} index={i} profile={profile} />
+                      <BandoCard key={b.id} bando={b} index={i} profile={profile} homeView={homeView} />
                     ))}
                   </div>
                 )}
@@ -896,7 +896,7 @@ function Dashboard() {
                 ) : (
                   <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {tiers.review.map((b: Bando, i: number) => (
-                      <BandoCard key={b.id} bando={b} index={i} profile={profile} />
+                      <BandoCard key={b.id} bando={b} index={i} profile={profile} homeView={homeView} />
                     ))}
                   </div>
                 )}

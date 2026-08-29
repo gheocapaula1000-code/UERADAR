@@ -56,6 +56,26 @@ export function parseGatewayFeed(payload: unknown): CoreOpportunity[] | null {
   return parseGatewayEnvelope(payload)?.bandi ?? null;
 }
 
+
+/** Solo codici/prefissi ufficiali dal Core. Non inventa ATECO. */
+function officialAtecoList(item: CoreOpportunity): string[] {
+  const codes = item.eligible_ateco_codes;
+  const prefixes = item.eligible_ateco_prefixes;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of [codes, prefixes]) {
+    if (!Array.isArray(raw)) continue;
+    for (const value of raw) {
+      if (typeof value !== "string") continue;
+      const trimmed = value.trim();
+      if (!trimmed || seen.has(trimmed)) continue;
+      seen.add(trimmed);
+      out.push(trimmed);
+    }
+  }
+  return out;
+}
+
 export function mapCoreOpportunity(item: CoreOpportunity): Bando {
   const scopeMap: Record<string, Bando["scope"]> = {
     EU: "EUROPEO",
@@ -100,7 +120,7 @@ export function mapCoreOpportunity(item: CoreOpportunity): Bando {
     application_url: applicationUrl,
     official_url: officialUrl,
     requisiti: (item.requirements as string[] | null | undefined) ?? [],
-    ateco_compatibili: (item.eligible_ateco_codes as string[] | null | undefined) ?? [],
+    ateco_compatibili: officialAtecoList(item),
     pdf_field_mapping:
       (item.pdf_field_mapping as Bando["pdf_field_mapping"] | undefined) ?? undefined,
     aid_intensity_percent:
