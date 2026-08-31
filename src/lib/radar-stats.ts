@@ -1,6 +1,7 @@
 import type { Bando } from "./bandocore-types";
 import { isFlash, isRareOrHidden } from "./bando-status";
 import { countRealApplyLinks } from "./official-module";
+import { coercePositiveNumber } from "./official-number";
 
 /** Conteggi UI sulla lista attualmente mostrata (catalogo o profilo). */
 export function computeRadarStats(bandiPerProfilo: Bando[]) {
@@ -18,7 +19,8 @@ export function computeRadarStats(bandiPerProfilo: Bando[]) {
     if (isFlash(b)) s.flash += 1;
     if (isRareOrHidden(b)) s.hidden += 1;
     if (b.scope === "EUROPEO" || b.pnrr_mission) s.euPnrr += 1;
-    if (b.importo_max) s.importo += b.importo_max;
+    const amount = coercePositiveNumber(b.importo_max);
+    if (amount !== undefined) s.importo += amount;
   }
   s.withModulistica = countRealApplyLinks(bandiPerProfilo).withEither;
   return s;

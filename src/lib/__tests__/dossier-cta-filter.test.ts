@@ -47,8 +47,10 @@ describe("filtro Per la mia impresa: nasconde solo NON_COMPATIBILE", () => {
     expect(dashboard).toContain("ATECO non sul testo ufficiale");
     expect(dashboard).not.toContain("Non include Da verificare né Non compatibile");
     expect(dashboard).toContain("homeView={homeView}");
-    expect(card).toContain("MATCH_UNKNOWN_PROFILE_LABEL");
-    expect(card).toContain("showUnknownAteco");
+    expect(card).toContain('preview.status === "COMPATIBILE"');
+    expect(card).not.toContain("MATCH_UNKNOWN_PROFILE_LABEL");
+    expect(card).not.toContain("showUnknownAteco");
+    expect(card).not.toContain("Scheda incompleta");
     expect(card).not.toMatch(/<p className="font-semibold">Da verificare<\/p>/);
   });
 });

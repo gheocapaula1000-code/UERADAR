@@ -51,6 +51,14 @@ describe("computeRadarStats", () => {
     expect(stats.importo).toBe(10_000);
     expect(stats.withModulistica).toBe(1);
   });
+
+  it("somma importo stringa Postgres come numero, senza concatenare", () => {
+    const stats = computeRadarStats([
+      bando({ id: "s", importo_max: "150000.00" as unknown as number }),
+      bando({ id: "n", importo_max: 10000 }),
+    ]);
+    expect(stats.importo).toBe(160000);
+  });
 });
 
 describe("Radar Bandi usa i helper come unica fonte", () => {

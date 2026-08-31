@@ -14,7 +14,13 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Bando, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
 import { CATEGORY_FILTERS, type CategoryFilterKey } from "@/lib/bando-categories";
 import { feedMarker, runBoundedRefresh } from "@/lib/feed-refresh";
-import { isActive, isFlash, compareByQualityAndGeo, isRareOrHidden } from "@/lib/bando-status";
+import {
+  isActive,
+  isFlash,
+  compareByQualityAndGeo,
+  isRareOrHidden,
+  hasEconomics,
+} from "@/lib/bando-status";
 import { matchesSede } from "@/lib/sede";
 import { feedUpdatedIso, formatFeedUpdatedAt } from "@/lib/feed-updated";
 import {
@@ -25,7 +31,6 @@ import {
   flashEmptyCopy,
 } from "@/lib/feed-empty";
 import { computeRadarStats } from "@/lib/radar-stats";
-import { incompleteFieldsHeading, splitFeedTiers } from "@/lib/feed-admission";
 import { isMiaImpresaCompatibile } from "@/lib/mia-impresa";
 import { loadOfflineFeed, saveOfflineFeed } from "@/lib/offline-feed";
 import {
@@ -315,7 +320,7 @@ function Dashboard() {
   const unaSchedaPerMisura = (lista: Bando[]): Bando[] => {
     const rank = (b: Bando) => {
       const hasDate = Boolean(b.scadenza);
-      const hasAmount = typeof b.importo_max === "number" && b.importo_max > 0;
+      const hasAmount = hasEconomics(b);
       if (hasDate && hasAmount) return 0;
       if (hasDate) return 1;
       if (hasAmount) return 2;
@@ -382,10 +387,6 @@ function Dashboard() {
     (scope !== "ALL" ? 1 : 0) +
     (hyperlocalOnly ? 1 : 0) +
     (hiddenOnly ? 1 : 0);
-
-  // Due fasce sui campi ufficiali (data/importo), non sul match profilo.
-  const tiers = useMemo(() => splitFeedTiers(filtered), [filtered]);
-  const reviewHeading = incompleteFieldsHeading(homeView);
 
   const resetFilters = () => {
     setCat("TUTTI");
@@ -494,9 +495,9 @@ function Dashboard() {
               )}
             </ul>
             <p className="mt-2 text-xs text-muted-foreground">
-              {homeView === "profile"
-                ? "Le schede ufficiali restano visibili anche quando manca la scadenza o l'importo: vengono segnalate come «Scheda incompleta». I bandi a sportello non hanno una data di chiusura e sono completi così. Nessuna data e nessun importo viene stimato."
-                : "Le schede ufficiali restano visibili anche quando manca la scadenza o l'importo: vengono segnalate come «Da verificare». I bandi a sportello non hanno una data di chiusura e sono completi così. Nessuna data e nessun importo viene stimato."}
+              Mostriamo solo i dati presenti nel testo ufficiale. Se la scadenza o l'importo non
+              c'è, quella riga resta vuota: nessuna data e nessun importo viene stimato. I Bandi a
+              sportello non hanno una data di chiusura.
             </p>
           </section>
         )}
@@ -851,56 +852,10 @@ function Dashboard() {
               </button>
             </div>
           ) : (
-            <div className="space-y-8">
-              <div>
-                <h3 className="text-base font-semibold">
-                  Alta priorità{" "}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    ({tiers.high.length})
-                  </span>
-                </h3>
-                <p className="mt-1 mb-4 text-xs text-muted-foreground">
-                  Hanno scadenza o apertura e un importo nel testo ufficiale.
-                </p>
-                {tiers.high.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                    Nessuna scheda con data e importo completi in questo elenco.
-                  </div>
-                ) : (
-                  <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {tiers.high.map((b: Bando, i: number) => (
-                      <BandoCard key={b.id} bando={b} index={i} profile={profile} homeView={homeView} />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <h3 className="text-base font-semibold">
-                  {reviewHeading}{" "}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    ({tiers.review.length})
-                  </span>
-                </h3>
-                <p className="mt-1 mb-4 text-xs text-muted-foreground">
-                  Manca ancora la data (o lo sportello) oppure l'importo sul testo ufficiale. Non
-                  vuol dire che la tua impresa è esclusa.
-                </p>
-
-                {tiers.review.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                    {homeView === "profile"
-                      ? "Nessuna scheda incompleta in questo elenco."
-                      : "Nessuna scheda da verificare in questo elenco."}
-                  </div>
-                ) : (
-                  <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {tiers.review.map((b: Bando, i: number) => (
-                      <BandoCard key={b.id} bando={b} index={i} profile={profile} homeView={homeView} />
-                    ))}
-                  </div>
-                )}
-              </div>
+            <div className="grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((b: Bando, i: number) => (
+                <BandoCard key={b.id} bando={b} index={i} profile={profile} homeView={homeView} />
+              ))}
             </div>
           )}
         </section>

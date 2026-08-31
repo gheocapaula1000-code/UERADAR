@@ -66,7 +66,6 @@ function safeOfficialHref(raw?: string | null, kind?: "platform"): string | null
   }
 }
 import {
-  hasIncompleteCoreData,
   isExpired,
   isSportello,
   isVerified,
@@ -75,6 +74,7 @@ import {
   territoryBadge,
   VERIFIED_HINT,
 } from "@/lib/bando-status";
+import { coercePositiveNumber } from "@/lib/official-number";
 
 import { SportelloGuide } from "@/components/bandocore/SportelloGuide";
 import { officialLink } from "@/lib/bando-status";
@@ -171,6 +171,9 @@ function BandoDetail() {
   }
 
   const profile = profileQ.data;
+  const importoMax = coercePositiveNumber(bando.importo_max);
+  const aidIntensity = coercePositiveNumber(bando.aid_intensity_percent);
+  const totalBudget = coercePositiveNumber(bando.total_budget);
 
   const dossier = buildDossier(bando, profile);
   // Nessun output prima del claim server: testo, TXT, PDF e clipboard
@@ -365,7 +368,7 @@ function BandoDetail() {
           to="/dashboard"
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" /> Radar bandi
+          <ArrowLeft className="h-4 w-4" /> Radar Bandi
         </Link>
 
         <div className="card-enter mt-4 grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -385,16 +388,14 @@ function BandoDetail() {
                   <Radar className="h-3 w-3" /> Fonte locale
                 </span>
               )}
-              {bando.match && (
+              {bando.match && matchStatusMeta(bando.match.status).status !== "DA_VERIFICARE" && (
                 <span
                   className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs ${matchStatusMeta(bando.match.status).badgeClass}`}
                 >
                   {matchStatusMeta(bando.match.status).tone === "positive" ? (
                     <CheckCircle2 className="h-3 w-3" />
-                  ) : matchStatusMeta(bando.match.status).tone === "negative" ? (
-                    <XCircle className="h-3 w-3" />
                   ) : (
-                    <AlertTriangle className="h-3 w-3" />
+                    <XCircle className="h-3 w-3" />
                   )}
                   {matchStatusMeta(bando.match.status).label} · {bando.match.score}%
                 </span>
@@ -410,14 +411,6 @@ function BandoDetail() {
                   title={VERIFIED_HINT}
                 >
                   <CheckCircle2 className="h-3 w-3" /> Verificato
-                </span>
-              )}
-              {!isVerified(bando) && !isSportello(bando) && hasIncompleteCoreData(bando) && (
-                <span
-                  className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
-                  title="Scadenza o importo non presenti nella fonte: da completare sulla fonte ufficiale"
-                >
-                  <AlertTriangle className="h-3 w-3" /> Dati incompleti
                 </span>
               )}
             </div>
@@ -503,21 +496,15 @@ function BandoDetail() {
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   Solo quanto è scritto sull&apos;avviso ufficiale.
                 </p>
-                {bando.importo_max ? (
+                {importoMax ? (
                   <p className="mt-3 text-sm">
-                    Fino a {new Intl.NumberFormat("it-IT").format(bando.importo_max)} €
-                    {typeof bando.aid_intensity_percent === "number"
-                      ? ` · intensità ${bando.aid_intensity_percent}%`
-                      : ""}
+                    Fino a {new Intl.NumberFormat("it-IT").format(importoMax)} €
+                    {aidIntensity ? ` · intensità ${aidIntensity}%` : ""}
                   </p>
-                ) : (
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    Importo massimo: {MISSING_ON_NOTICE}
-                  </p>
-                )}
-                {typeof bando.total_budget === "number" && bando.total_budget > 0 ? (
+                ) : null}
+                {totalBudget ? (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Dotazione complessiva {new Intl.NumberFormat("it-IT").format(bando.total_budget)} €
+                    Dotazione complessiva {new Intl.NumberFormat("it-IT").format(totalBudget)} €
                   </p>
                 ) : null}
                 {officialExpenses.length ? (

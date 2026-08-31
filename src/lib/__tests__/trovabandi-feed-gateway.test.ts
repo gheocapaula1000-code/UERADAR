@@ -68,7 +68,8 @@ describe("profilo minimizzato trovabandi-feed", () => {
       "email_referente",
       "telefono",
       "pec",
-    ]) expect(minimized).not.toHaveProperty(forbidden);
+    ])
+      expect(minimized).not.toHaveProperty(forbidden);
   });
 
   it("la Edge usa la funzione condivisa per feed e refresh", () => {
@@ -80,7 +81,7 @@ describe("profilo minimizzato trovabandi-feed", () => {
     expect(src).toContain('callCore("catalog"');
     expect(src).toContain('mode: "catalog"');
     expect(src).toContain("{ limit: CATALOG_LIMIT }");
-    expect(src).not.toContain("mode: \"catalog\", profile");
+    expect(src).not.toContain('mode: "catalog", profile');
   });
 });
 
@@ -99,7 +100,16 @@ describe("contratto upstream rigoroso", () => {
 
   it("mantiene forms_url e application_url nel contratto e non copia official_url", () => {
     const withUrls = sanitizeFeedResponse(
-      { ok: true, bandi: [{ ...row, forms_url: "https://ente.it/moduli", application_url: "https://ente.it/domanda" }] },
+      {
+        ok: true,
+        bandi: [
+          {
+            ...row,
+            forms_url: "https://ente.it/moduli",
+            application_url: "https://ente.it/domanda",
+          },
+        ],
+      },
       200,
     );
     expect(withUrls.ok).toBe(true);
@@ -108,7 +118,10 @@ describe("contratto upstream rigoroso", () => {
       expect(withUrls.bandi[0]?.application_url).toBe("https://ente.it/domanda");
     }
 
-    const blank = sanitizeFeedResponse({ ok: true, bandi: [{ ...row, forms_url: "", application_url: "  " }] }, 200);
+    const blank = sanitizeFeedResponse(
+      { ok: true, bandi: [{ ...row, forms_url: "", application_url: "  " }] },
+      200,
+    );
     expect(blank.ok).toBe(true);
     if (blank.ok) {
       expect(blank.bandi[0]).not.toHaveProperty("forms_url");
@@ -238,6 +251,48 @@ describe("ateco ufficiale dal Core", () => {
       expect(result.bandi[0]?.eligible_ateco_prefixes).toEqual(["62"]);
       const mapped = mapCoreOpportunity(result.bandi[0] as CoreOpportunity);
       expect(mapped.ateco_compatibili).toEqual(["62"]);
+    }
+  });
+});
+
+describe("coercizione importi Core", () => {
+  it("accetta max_grant_amount stringa e lo mappa a numero", () => {
+    const result = sanitizeFeedResponse(
+      {
+        ok: true,
+        bandi: [
+          {
+            ...row,
+            max_grant_amount: "150000.00",
+            aid_intensity_percent: "40",
+            total_budget: "1000000.0",
+          },
+        ],
+      },
+      200,
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.bandi[0]?.max_grant_amount).toBe(150000);
+      expect(result.bandi[0]?.aid_intensity_percent).toBe(40);
+      expect(result.bandi[0]?.total_budget).toBe(1_000_000);
+      const mapped = mapCoreOpportunity(result.bandi[0] as CoreOpportunity);
+      expect(mapped.importo_max).toBe(150000);
+      expect(mapped.aid_intensity_percent).toBe(40);
+      expect(mapped.total_budget).toBe(1_000_000);
+    }
+  });
+
+  it("mappa sportello dichiarato e non inventa l'importo assente", () => {
+    const result = sanitizeFeedResponse(
+      { ok: true, bandi: [{ ...row, sportello: true, verification_status: "SPORTELLO" }] },
+      200,
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const mapped = mapCoreOpportunity(result.bandi[0] as CoreOpportunity);
+      expect(mapped.sportello).toBe(true);
+      expect(mapped.importo_max).toBeUndefined();
     }
   });
 });

@@ -1,9 +1,11 @@
 import type { Bando } from "./bandocore-types";
 import {
+  coerceFiniteNumber,
   coerceOptionalHttpUrl,
   sanitizeFeedResponse,
   type ContractRow,
 } from "../../supabase/functions/_shared/trovabandi-contract.ts";
+import { coercePositiveNumber } from "./official-number";
 
 export type CoreOpportunity = ContractRow & {
   id: string;
@@ -56,7 +58,6 @@ export function parseGatewayFeed(payload: unknown): CoreOpportunity[] | null {
   return parseGatewayEnvelope(payload)?.bandi ?? null;
 }
 
-
 /** Solo codici/prefissi ufficiali dal Core. Non inventa ATECO. */
 function officialAtecoList(item: CoreOpportunity): string[] {
   const codes = item.eligible_ateco_codes;
@@ -93,7 +94,7 @@ export function mapCoreOpportunity(item: CoreOpportunity): Bando {
   const applicationUrl = coerceOptionalHttpUrl(item.application_url);
   const formsUrl = coerceOptionalHttpUrl(item.forms_url);
   const protocolEmail = (item.protocol_email as string | null | undefined) ?? undefined;
-  const rarity = (item.rarity_score as number | null | undefined) ?? undefined;
+  const rarity = coerceFiniteNumber(item.rarity_score);
   const sourceKind = (item.source_kind as string | null | undefined) ?? undefined;
 
   return {
@@ -107,7 +108,7 @@ export function mapCoreOpportunity(item: CoreOpportunity): Bando {
     provincia: (item.province as string | null | undefined) ?? undefined,
     comune: (item.municipality as string | null | undefined) ?? undefined,
     codice_istat: (item.municipality_istat_code as string | null | undefined) ?? undefined,
-    importo_max: (item.max_grant_amount as number | null | undefined) ?? undefined,
+    importo_max: coercePositiveNumber(item.max_grant_amount),
     scadenza: deadline,
     apertura: (item.opens_at as string | null | undefined) ?? undefined,
     click_day: item.click_day === true,
@@ -123,13 +124,15 @@ export function mapCoreOpportunity(item: CoreOpportunity): Bando {
     ateco_compatibili: officialAtecoList(item),
     pdf_field_mapping:
       (item.pdf_field_mapping as Bando["pdf_field_mapping"] | undefined) ?? undefined,
-    aid_intensity_percent:
-      (item.aid_intensity_percent as number | null | undefined) ?? undefined,
-    total_budget: (item.total_budget as number | null | undefined) ?? undefined,
-    competition_index:
-      (item.competition_index as number | null | undefined) ?? undefined,
+    aid_intensity_percent: coercePositiveNumber(item.aid_intensity_percent),
+    total_budget: coercePositiveNumber(item.total_budget),
+    competition_index: coerceFiniteNumber(item.competition_index),
     eligible_expenses: (item.eligible_expenses as string[] | null | undefined) ?? [],
     verification_status: item.verification_status as Bando["verification_status"],
+    sportello:
+      item.sportello === true ||
+      (typeof item.verification_status === "string" &&
+        item.verification_status.trim().toUpperCase() === "SPORTELLO"),
     official_source: item.official_source as boolean | undefined,
     last_verified_at: (item.last_verified_at as string | null | undefined) ?? undefined,
     first_seen_at: (item.first_seen_at as string | null | undefined) ?? undefined,
@@ -142,7 +145,7 @@ export function mapCoreOpportunity(item: CoreOpportunity): Bando {
     implementing_body: (item.implementing_body as string | null | undefined) ?? undefined,
     eligible_countries: (item.eligible_countries as string[] | null | undefined) ?? [],
     consortium_required: (item.consortium_required as boolean | null | undefined) ?? undefined,
-    min_partners: (item.min_partners as number | null | undefined) ?? undefined,
+    min_partners: coerceFiniteNumber(item.min_partners),
     evidence: (item.trovabandi_evidence as Bando["evidence"] | undefined) ?? [],
     match: item.match as Bando["match"],
     is_hidden:

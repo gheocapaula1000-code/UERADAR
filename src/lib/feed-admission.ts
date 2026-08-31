@@ -1,5 +1,6 @@
 import type { Bando, BandoScope } from "./bandocore-types";
 import { isSportello } from "./bando-status";
+import { coercePositiveNumber } from "./official-number";
 
 /**
  * Registro delle fonti core (ordine di priorità).
@@ -418,11 +419,9 @@ export function sourceForBando(bando: Pick<Bando, "official_url" | "notice_url" 
 }
 
 function hasEconomicData(bando: Bando): boolean {
-  const amount = bando.importo_max;
-  const intensity = bando.aid_intensity_percent;
+  if (coercePositiveNumber(bando.importo_max) !== undefined) return true;
+  if (coercePositiveNumber(bando.aid_intensity_percent) !== undefined) return true;
   const expenses = bando.eligible_expenses;
-  if (typeof amount === "number" && Number.isFinite(amount) && amount > 0) return true;
-  if (typeof intensity === "number" && Number.isFinite(intensity) && intensity > 0) return true;
   return Array.isArray(expenses) && expenses.length > 0;
 }
 
@@ -479,26 +478,15 @@ export interface AdmissionReport {
 }
 
 /* ------------------------------------------------------------------ *
- * Vetrina: due fasce sui campi ufficiali (data/importo), non sul match.
- * FeedTier DA_VERIFICARE = scheda incompleta (manca data o importo).
- * Non è lo stato match DA_VERIFICARE (compatibilità profilo).
+ * Ranking interno sui campi ufficiali (data/importo), non sul match.
+ * FeedTier DA_VERIFICARE = manca data o importo: non è un'etichetta UI.
  * ------------------------------------------------------------------ */
 
 export type FeedTier = "ALTA_PRIORITA" | "DA_VERIFICARE";
 
-/** Fascia campi ufficiali incompleti. Non è il match profilo. */
-export const INCOMPLETE_FIELDS_HEADING = "Scheda incompleta";
-/** Stessa fascia nel catalogo: etichetta storica, non è il match. */
-export const INCOMPLETE_FIELDS_CATALOG_HEADING = "Da verificare";
-
-/** «Per la mia impresa» non usa «Da verificare» per i campi mancanti. */
-export function incompleteFieldsHeading(homeView: "catalog" | "profile"): string {
-  return homeView === "profile" ? INCOMPLETE_FIELDS_HEADING : INCOMPLETE_FIELDS_CATALOG_HEADING;
-}
-
 /**
- * Alta priorità = (scadenza o apertura) + un dato economico.
- * Il badge match non incide: il resto va nella fascia campi incompleti.
+ * Alta priorità = (scadenza o apertura o sportello) + un dato economico.
+ * Usato solo per ordinamento interno: la UI non mostra fasce-slogan.
  */
 export function feedTier(bando: Bando, now: number = Date.now()): FeedTier {
   const hasDate =
