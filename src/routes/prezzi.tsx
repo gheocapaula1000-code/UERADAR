@@ -88,9 +88,9 @@ function Pricing() {
             ))}
           </ul>
           <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            Un piano acquistabile online: Istruttoria, 449 €/mese + IVA — 1 Impresa · 5 Utenti
-            (stessa PWA, stesso account; 10 Dossier/Bozze). Non invia nulla agli enti. Studio resta su preventivo da 990 €/mese
-            + IVA. Il numero di opportunità pertinenti mostrate non è mai limitato. L'annuale include 2 mesi.
+            Un piano acquistabile online: Istruttoria, 449 €/mese — 1 Impresa · 5 Utenti
+            (stessa PWA, stesso account; 10 Dossier/Bozze). Non invia nulla agli enti. Studio resta su preventivo da 990 €/mese.
+            IVA non applicabile (regime forfettario). Il numero di opportunità pertinenti mostrate non è mai limitato. L'annuale include 2 mesi.
           </p>
         </div>
 
@@ -192,7 +192,7 @@ function Pricing() {
         <section aria-label="Confronto Istruttoria e Studio" className="mt-10 overflow-x-auto rounded-2xl border border-border bg-card">
           <h2 className="px-6 pt-6 text-xl font-semibold sm:px-8">Istruttoria e Studio a confronto</h2>
           <p className="px-6 pt-2 text-sm text-muted-foreground sm:px-8">
-            Tutti i prezzi sono IVA esclusa. Istruttoria 449 €/mese è l’unico piano a checkout.
+            IVA non applicabile (regime forfettario). Istruttoria 449 €/mese è l’unico piano a checkout.
             Studio da 990 €/mese su richiesta, senza acquisto online. Istruttoria è una Bozza di
             Dossier: non invia domande agli enti.
           </p>

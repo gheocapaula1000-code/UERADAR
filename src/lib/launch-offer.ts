@@ -16,8 +16,8 @@ export const LAUNCH_OFFER = {
   priceLabel: "99 €",
   /** Listino pubblico, mostrato barrato. */
   listLabel: "249 €",
-  vatNote: "/ mese + IVA (IVA esclusa)",
-  note: "Offerta lancio fino al 30 nov 2026. Prezzo bloccato 12 mesi, poi 249 €/mese + IVA.",
+  vatNote: "/ mese",
+  note: "Offerta lancio fino al 30 nov 2026. Prezzo bloccato 12 mesi, poi 249 €/mese.",
 } as const;
 
 export function launchOfferActive(now: Date = new Date()): boolean {

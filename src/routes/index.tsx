@@ -240,7 +240,7 @@ function Landing() {
             Un piano a checkout: Istruttoria.
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Istruttoria è l’unico piano acquistabile online, IVA esclusa. Include matching,
+            Istruttoria è l’unico piano acquistabile online. Include matching,
             Dossier e Bozza domanda: non invia nulla agli enti. 1 Impresa · 5 Utenti
             (stessa PWA, stesso account). Annuale con 2 mesi inclusi. Studio resta su preventivo.
           </p>

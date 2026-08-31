@@ -4,7 +4,7 @@
  * prezzi o limiti. Nessun Price ID è hardcoded: le env LIVE sono derivate
  * meccanicamente dalle omologhe TEST e non esiste fallback tra modalità.
  *
- * Tutti gli importi sono IVA esclusa. L'annuale include 2 mesi (10 x mensile).
+ * Importi come pagati: IVA non applicabile (regime forfettario). L'annuale include 2 mesi (10 x mensile).
  * Il numero di utenti è solo capienza tecnica, non la leva di valore.
  */
 export type PlanId = "trial" | "professional" | "business" | "executive" | "enterprise";
@@ -365,7 +365,7 @@ export function formatItalianInteger(value: number): string {
   return value < 0 ? `-${grouped}` : grouped;
 }
 
-/** Formattazione italiana degli importi, sempre IVA esclusa. */
+/** Formattazione italiana degli importi (IVA non applicabile). */
 export function formatEuro(amountCents: number): string {
   const negative = amountCents < 0;
   const abs = Math.abs(Math.round(amountCents));
