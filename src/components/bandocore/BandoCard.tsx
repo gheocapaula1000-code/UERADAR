@@ -19,7 +19,6 @@ import {
   isRareOrHidden,
   isSportello,
   isVerified,
-  MATCH_UNKNOWN_PROFILE_LABEL,
   matchPreview,
   officialLink,
   territoryBadge,
@@ -27,13 +26,8 @@ import {
 } from "@/lib/bando-status";
 
 import { formatItalianInteger } from "@/lib/catalog";
-import { missingOfficialData } from "@/lib/dossier";
-import {
-  admitBando,
-  INCOMPLETE_FIELDS_HEADING,
-  MISSING_DEADLINE_LABEL,
-  MISSING_ECONOMICS_LABEL,
-} from "@/lib/feed-admission";
+import { coercePositiveNumber } from "@/lib/official-number";
+import { admitBando } from "@/lib/feed-admission";
 import { cardEnterDelayMs } from "@/lib/motion";
 import { MatchScore } from "@/components/bandocore/MatchScore";
 import { SportelloGuide } from "@/components/bandocore/SportelloGuide";
@@ -108,20 +102,13 @@ export function BandoCard({
   const rareOrHidden = isRareOrHidden(bando);
   const urgent = !expired && daysLeft !== null && daysLeft <= 10 && daysLeft >= 0;
   const preview = matchPreview(bando.match, homeView);
-  const missingOfficial = missingOfficialData(bando);
-  const partial = missingOfficial.length > 0;
   const verified = isVerified(bando);
   const verdict = admitBando(bando);
   const gaps = verdict.ok ? verdict.gaps : null;
   const sportello = isSportello(bando);
-  // A sportello non è un buco informativo: niente «Scheda incompleta» per la data mancante.
-  const parziale =
-    !sportello && (Boolean(gaps?.missing_deadline || gaps?.missing_economics) || partial);
+  const parziale = !sportello && Boolean(gaps?.missing_deadline || gaps?.missing_economics);
   const ufficialeHref = officialLink(bando);
-  const showUnknownAteco =
-    homeView === "profile" &&
-    !parziale &&
-    (preview == null || preview.status === "DA_VERIFICARE");
+  const importoMax = coercePositiveNumber(bando.importo_max);
 
   return (
     <div
@@ -245,19 +232,6 @@ export function BandoCard({
         </div>
       )}
 
-      {showUnknownAteco && (
-        <div className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-2.5">
-          <p className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs font-medium text-warning">
-            <FileSearch className="h-4 w-4 shrink-0" aria-hidden="true" />
-            {MATCH_UNKNOWN_PROFILE_LABEL}
-          </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Il testo ufficiale non elenca i codici ATECO. Non vuol dire che la tua impresa è
-            esclusa.
-          </p>
-        </div>
-      )}
-
       <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 text-xs">
         <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
           <MapPin className="h-3.5 w-3.5 shrink-0" />
@@ -265,11 +239,11 @@ export function BandoCard({
             {territoryBadge(bando).label}
           </span>
         </div>
-        {bando.importo_max ? (
+        {importoMax ? (
           <div className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
             <Euro className="h-3.5 w-3.5 shrink-0" />
             <span className="min-w-0 wrap-anywhere">
-              fino a {formatItalianInteger(bando.importo_max)} €
+              fino a {formatItalianInteger(importoMax)} €
             </span>
           </div>
         ) : null}
@@ -295,29 +269,6 @@ export function BandoCard({
       {sportello && (
         <div className="mt-4">
           <SportelloGuide bando={bando} compact profile={profile} />
-        </div>
-      )}
-
-      {parziale && (
-        <div className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-2 text-[11px] text-warning">
-          <p className="font-semibold">{INCOMPLETE_FIELDS_HEADING}</p>
-          <p className="mt-1 text-muted-foreground">
-            Manca ancora la data (o lo sportello) oppure l'importo sul testo ufficiale. Non vuol
-            dire che la tua impresa è esclusa.
-          </p>
-          <ul className="mt-1.5 space-y-1 text-muted-foreground">
-            {gaps?.missing_deadline && (
-              <li className="flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5" /> {MISSING_DEADLINE_LABEL}
-              </li>
-            )}
-            {gaps?.missing_economics && (
-              <li className="flex items-center gap-1.5">
-                <Euro className="h-3.5 w-3.5" /> {MISSING_ECONOMICS_LABEL}
-              </li>
-            )}
-            {partial && <li>Dati ufficiali mancanti: {missingOfficial.join(", ")}.</li>}
-          </ul>
         </div>
       )}
 

@@ -3,6 +3,7 @@ import {
   compareByQuality,
   hasEconomics,
   hasIncompleteCoreData,
+  isSportello,
   isVerified,
   qualityRank,
 } from "@/lib/bando-status";
@@ -65,7 +66,10 @@ describe("isVerified (fail-closed)", () => {
   it("evidenza documentale al posto dei requisiti => true", () => {
     expect(
       isVerified(
-        bando({ requisiti: [], evidence: [{ source_url: "https://esempio.it/pdf" }] as Bando["evidence"] }),
+        bando({
+          requisiti: [],
+          evidence: [{ source_url: "https://esempio.it/pdf" }] as Bando["evidence"],
+        }),
         NOW,
       ),
     ).toBe(true);
@@ -133,5 +137,41 @@ describe("bandi a sportello", () => {
 
   it("senza data e senza sportello resta incompleto", () => {
     expect(hasIncompleteCoreData(bando({ scadenza: undefined }))).toBe(true);
+  });
+
+  it("sportello:true o testo ufficiale «a sportello» completa lo stato-data", () => {
+    expect(isSportello(bando({ scadenza: undefined, sportello: true }))).toBe(true);
+    expect(hasIncompleteCoreData(bando({ scadenza: undefined, sportello: true }))).toBe(false);
+    expect(
+      isSportello(
+        bando({
+          scadenza: undefined,
+          verification_status: "PARZIALE",
+          titolo: "Voucher digitale a sportello",
+        }),
+      ),
+    ).toBe(true);
+    expect(isSportello(bando({ scadenza: undefined, titolo: "Bando ordinario PMI" }))).toBe(false);
+  });
+
+  it("importo stringa Postgres conta come dato economico", () => {
+    expect(hasEconomics(bando({ importo_max: "150000.00" as unknown as number }))).toBe(true);
+    expect(
+      hasEconomics(
+        bando({
+          importo_max: undefined,
+          aid_intensity_percent: "40" as unknown as number,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      hasEconomics(
+        bando({
+          importo_max: "no" as unknown as number,
+          aid_intensity_percent: undefined,
+          eligible_expenses: [],
+        }),
+      ),
+    ).toBe(false);
   });
 });

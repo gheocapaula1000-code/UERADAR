@@ -4,12 +4,9 @@ import {
   CORE_ATTESTED_SOURCE,
   CORE_OFFICIAL_DOMAINS,
   CORE_SOURCES,
-  INCOMPLETE_FIELDS_CATALOG_HEADING,
-  INCOMPLETE_FIELDS_HEADING,
   admitBando,
   admitFeed,
   feedTier,
-  incompleteFieldsHeading,
   sourceForBando,
   sourceForUrl,
   splitFeedTiers,
@@ -592,20 +589,52 @@ describe("fasce vetrina", () => {
     expect(review.map((b) => b.id)).toEqual(["b"]);
   });
 
-  it("la fascia incompleta non usa «Da verificare» su Per la mia impresa", () => {
-    expect(incompleteFieldsHeading("profile")).toBe("Scheda incompleta");
-    expect(incompleteFieldsHeading("catalog")).toBe("Da verificare");
-    expect(INCOMPLETE_FIELDS_HEADING).toBe("Scheda incompleta");
-    expect(INCOMPLETE_FIELDS_CATALOG_HEADING).toBe("Da verificare");
-    expect(INCOMPLETE_FIELDS_HEADING).not.toBe(INCOMPLETE_FIELDS_CATALOG_HEADING);
+  it("importo Postgres stringa conta come dato economico, senza inventare", () => {
+    expect(
+      feedTier(bando({ importo_max: "150000.00" as unknown as number }), NOW),
+    ).toBe("ALTA_PRIORITA");
+    expect(feedTier(bando({ importo_max: "no" as unknown as number, eligible_expenses: [] }), NOW)).toBe(
+      "DA_VERIFICARE",
+    );
+  });
+
+  it("sportello senza scadenza non è un buco di data", () => {
+    expect(
+      feedTier(
+        bando({ scadenza: undefined, apertura: undefined, verification_status: "SPORTELLO" }),
+        NOW,
+      ),
+    ).toBe("ALTA_PRIORITA");
+    expect(
+      feedTier(
+        bando({
+          scadenza: undefined,
+          apertura: undefined,
+          sportello: true,
+          titolo: "Contributo a sportello PMI",
+        }),
+        NOW,
+      ),
+    ).toBe("ALTA_PRIORITA");
+  });
+
+  it("la UI non usa slogan Scheda incompleta / Da verificare come fascia", () => {
     const dashboard = readFileSync("src/routes/_authenticated/dashboard.tsx", "utf8");
     const card = readFileSync("src/components/bandocore/BandoCard.tsx", "utf8");
-    expect(dashboard).toContain("incompleteFieldsHeading(homeView)");
-    expect(dashboard).toContain("{reviewHeading}");
-    expect(dashboard).toContain("Scheda incompleta");
-    expect(card).toContain("INCOMPLETE_FIELDS_HEADING");
+    const scheda = readFileSync("src/routes/_authenticated/bando.$id.tsx", "utf8");
+    expect(dashboard).not.toContain("Scheda incompleta");
+    expect(dashboard).not.toContain("incompleteFieldsHeading");
+    expect(dashboard).not.toContain("{reviewHeading}");
+    expect(dashboard).not.toContain("Nessuna scheda incompleta");
+    expect(dashboard).not.toContain("Nessuna scheda da verificare");
+    expect(dashboard).not.toMatch(/segnalate come «Da verificare»/);
+    expect(card).not.toContain("INCOMPLETE_FIELDS_HEADING");
+    expect(card).not.toContain("Scheda incompleta");
     expect(card).not.toMatch(/<p className="font-semibold">Da verificare<\/p>/);
-    expect(dashboard).toContain("ATECO non sul testo ufficiale");
-    expect(card).toContain("MATCH_UNKNOWN_PROFILE_LABEL");
+    expect(card).not.toContain("MATCH_UNKNOWN_PROFILE_LABEL");
+    expect(card).not.toContain("showUnknownAteco");
+    expect(scheda).not.toContain("Dati incompleti");
+    expect(scheda).not.toContain("Scheda incompleta");
+    expect(dashboard).toContain("nessuna data e nessun importo viene stimato");
   });
 });

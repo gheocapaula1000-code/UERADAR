@@ -1,4 +1,5 @@
 import type { Bando } from "./bandocore-types";
+import { coercePositiveNumber } from "./official-number";
 
 export type MatchStatus = NonNullable<Bando["match"]>["status"];
 
@@ -155,9 +156,17 @@ function nonEmpty(value: unknown): boolean {
  * dato completo, non un buco. Nessuna data viene inventata.
  */
 export function isSportello(
-  bando: Pick<Bando, "verification_status" | "sportello">,
+  bando: Pick<Bando, "verification_status" | "sportello"> &
+    Partial<Pick<Bando, "titolo" | "descrizione">>,
 ): boolean {
-  return bando.sportello === true || bando.verification_status === "SPORTELLO";
+  if (bando.sportello === true) return true;
+  const status =
+    typeof bando.verification_status === "string"
+      ? bando.verification_status.trim().toUpperCase()
+      : "";
+  if (status === "SPORTELLO") return true;
+  const text = `${bando.titolo ?? ""} ${bando.descrizione ?? ""}`.toLowerCase();
+  return /\ba sportello\b/.test(text);
 }
 
 /** Lo stato "data" è completo con una scadenza ufficiale oppure con lo sportello. */
@@ -169,9 +178,8 @@ export function hasDateState(
 
 /** Almeno un dato economico utilizzabile (importo, intensità o spese ammissibili). */
 export function hasEconomics(bando: Bando): boolean {
-  if (typeof bando.importo_max === "number" && bando.importo_max > 0) return true;
-  if (typeof bando.aid_intensity_percent === "number" && bando.aid_intensity_percent > 0)
-    return true;
+  if (coercePositiveNumber(bando.importo_max) !== undefined) return true;
+  if (coercePositiveNumber(bando.aid_intensity_percent) !== undefined) return true;
   return (bando.eligible_expenses ?? []).some((e) => nonEmpty(e));
 }
 

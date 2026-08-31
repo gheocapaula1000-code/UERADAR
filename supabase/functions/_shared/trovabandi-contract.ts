@@ -65,7 +65,12 @@ const OPTIONAL_TEXT = [
 const OPTIONAL_URL = ["forms_url", "application_url"] as const;
 const OPTIONAL_DATE = ["deadline_at", "opens_at", "last_verified_at", "first_seen_at"] as const;
 const OPTIONAL_NUMBER = ["max_grant_amount", "rarity_score", "min_partners", "aid_intensity_percent", "total_budget", "competition_index"] as const;
-const OPTIONAL_BOOLEAN = ["click_day", "official_source", "consortium_required"] as const;
+const OPTIONAL_BOOLEAN = [
+  "click_day",
+  "official_source",
+  "consortium_required",
+  "sportello",
+] as const;
 const OPTIONAL_STRING_ARRAY = ["requirements", "eligible_expenses", "eligible_countries", "eligible_ateco_codes", "eligible_ateco_prefixes"] as const;
 
 function nonEmptyString(value: unknown): value is string {
@@ -76,8 +81,22 @@ function optionalString(value: unknown): value is string | null | undefined {
   return value == null || typeof value === "string";
 }
 
-function optionalFiniteNumber(value: unknown): value is number | null | undefined {
-  return value == null || (typeof value === "number" && Number.isFinite(value));
+/** Postgres numeric arriva spesso come stringa JSON ("150000.00"). */
+export function coerceFiniteNumber(value: unknown): number | undefined {
+  if (value == null || value === "") return undefined;
+  if (typeof value === "boolean") return undefined;
+  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+function optionalFiniteNumber(value: unknown): boolean {
+  return value == null || coerceFiniteNumber(value) !== undefined;
 }
 
 function optionalBoolean(value: unknown): value is boolean | null | undefined {
@@ -224,6 +243,11 @@ function sanitizeOpportunity(row: ContractRow): ContractRow {
       continue;
     }
     if (typeof value === "string" && value.trim() === "") continue;
+    if ((OPTIONAL_NUMBER as readonly string[]).includes(field)) {
+      const parsed = coerceFiniteNumber(value);
+      if (parsed !== undefined) clean[field] = parsed;
+      continue;
+    }
     clean[field] = value;
   }
   return clean;
