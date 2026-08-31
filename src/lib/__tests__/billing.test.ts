@@ -58,7 +58,7 @@ function selfServicePriceMap(overrides: Record<string, string> = {}): Record<str
 }
 
 describe("catalogo piani UEradar", () => {
-  it("espone il catalogo approvato con prezzi IVA esclusa e annuale = 10 mensilità", () => {
+  it("espone il catalogo approvato con annuale = 10 mensilità", () => {
     expect(CATALOG.professional.prices.month?.amountCents).toBe(24900);
     expect(CATALOG.professional.prices.year?.amountCents).toBe(249000);
     expect(CATALOG.business.prices.month?.amountCents).toBe(44900);
@@ -70,6 +70,13 @@ describe("catalogo piani UEradar", () => {
     expect(CATALOG.enterprise.selfService).toBe(false);
     expect(Object.keys(CATALOG.enterprise.prices)).toHaveLength(0);
   });
+
+  it("non abilita automatic_tax Stripe (regime forfettario, IVA non applicabile)", () => {
+    const src = readFileSync("src/lib/billing.functions.ts", "utf8");
+    expect(src).toContain('"automatic_tax[enabled]": "false"');
+    expect(src).not.toContain('"automatic_tax[enabled]": "true"');
+  });
+
 
   it("accetta esclusivamente chiavi e prezzi in modalità test", () => {
     expect(isTestSecretKey("sk_test_abc123")).toBe(true);

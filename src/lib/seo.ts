@@ -34,9 +34,9 @@ export const ROUTE_SEO = {
   },
   "/prezzi": {
     path: "/prezzi",
-    title: "Prezzi UEradar.com — Istruttoria 449 €/mese + IVA",
+    title: "Prezzi UEradar.com — Istruttoria 449 €/mese",
     description:
-      "Istruttoria 449 €/mese + IVA: matching, Dossier e Bozza domanda. Non invia nulla agli enti. Studio su preventivo da 990 €/mese + IVA. 7 giorni gratis, senza carta.",
+      "Istruttoria 449 €/mese: matching, Dossier e Bozza domanda. Non invia nulla agli enti. Studio su preventivo da 990 €/mese. 7 giorni gratis, senza carta. IVA non applicabile.",
     indexable: true,
     ogType: "website",
   },
@@ -52,7 +52,7 @@ export const ROUTE_SEO = {
     path: "/termini",
     title: "Termini e Condizioni del Servizio — UEradar.com",
     description:
-      "Termini d'uso di UEradar.com: servizio riservato a Partite IVA e Imprese, Piani e prezzi IVA esclusa, Prova Gratuita di 7 giorni e cancellazione online.",
+      "Termini d'uso di UEradar.com: servizio riservato a Partite IVA e Imprese, prezzi senza IVA (regime forfettario), Prova Gratuita di 7 giorni e cancellazione online.",
     indexable: true,
     ogType: "article",
   },

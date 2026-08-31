@@ -392,8 +392,8 @@ export const createPaymentSession = createServerFn({ method: "POST" })
         customer: customerId,
         "line_items[0][price]": priceId,
         "line_items[0][quantity]": "1",
-        // Prezzi IVA esclusa: l'imposta è calcolata dal provider.
-        "automatic_tax[enabled]": "true",
+        // Regime forfettario: il prezzo mostrato è quello pagato. No VAT from Stripe.
+        "automatic_tax[enabled]": "false",
         "customer_update[address]": "auto",
         "customer_update[name]": "auto",
         "tax_id_collection[enabled]": "true",

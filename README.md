@@ -15,11 +15,11 @@ Non è un prodotto nuovo e non è Civiko: è il frontend sottile di UERADAR.
 2. Vedere i bandi ufficiali abbinati al profilo (`COMPATIBILE` / `DA_VERIFICARE` / `NON_COMPATIBILE`).
 3. Generare un dossier / bozza da verificare. UEradar **non** invia domande agli enti.
 4. Registrare le preferenze di avviso e, quando il digest produce righe, vederle in-app.
-5. Capire i prezzi: Istruttoria a checkout, Studio su preventivo (IVA esclusa).
+5. Capire i prezzi: Istruttoria a checkout, Studio su preventivo (IVA non applicabile).
 
 ## Prezzi (listino pubblico)
 
-| Piano | Mensile (IVA esclusa) | Note |
+| Piano | Mensile | Note |
 | --- | --- | --- |
 | Istruttoria | 449 € | unico piano a checkout; 5 utenti, 10 dossier/mese; bozza, non invia agli enti |
 | Studio | da 990 € | su richiesta, nessun checkout pubblico |

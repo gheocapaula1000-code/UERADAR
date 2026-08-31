@@ -47,8 +47,8 @@ function toPublic(plan: PlanDefinition): PublicPlan {
     audience: plan.audience,
     monthly: monthly === null ? null : formatEuro(monthly),
     annual: annual === null ? null : formatEuro(annual),
-    annualNote: annual === null ? null : "/ anno + IVA — 2 mesi inclusi",
-    vatNote: "/ mese + IVA (IVA esclusa)",
+    annualNote: annual === null ? null : "/ anno — 2 mesi inclusi",
+    vatNote: "/ mese",
     seats: plan.limits.seats,
     seatsLabel:
       plan.id === "business"
@@ -69,7 +69,7 @@ export const ENTERPRISE_PLAN = {
   name: CATALOG.enterprise.name,
   headline: "su richiesta",
   price: `da ${formatEuro(ENTERPRISE_FROM_CENTS)}`,
-  vatNote: "/ mese + IVA — nessun acquisto online",
+  vatNote: "/ mese — nessun acquisto online",
   cta: "Contattaci",
   contact: "info@pigiservice.com",
   description:
@@ -95,12 +95,12 @@ export function planCompareRows(): readonly PlanCompareRow[] {
   const istruttoriaAnnual = CATALOG.business.prices.year?.amountCents ?? 449000;
   return [
     {
-      label: "Prezzo mensile (IVA esclusa)",
+      label: "Prezzo mensile",
       istruttoria: `${formatEuro(istruttoriaMonth)} / mese`,
       studio: `da ${formatEuro(ENTERPRISE_FROM_CENTS)} / mese`,
     },
     {
-      label: "Prezzo annuale (2 mesi inclusi, IVA esclusa)",
+      label: "Prezzo annuale (2 mesi inclusi)",
       istruttoria: `${formatEuro(istruttoriaAnnual)} / anno`,
       studio: "su preventivo",
     },
@@ -151,7 +151,7 @@ export const TRIAL_TERMS: readonly string[] = [
   "Perimetro della prova: 1 Impresa e 1 Dossier in versione filigranata.",
   "Una prova per Partita IVA e per dominio aziendale ogni 12 mesi.",
   "Cancellazione online, senza disdetta scritta e senza PEC.",
-  "Tutti i prezzi sono IVA esclusa; l'annuale include 2 mesi.",
+  "IVA non applicabile (regime forfettario); l'annuale include 2 mesi.",
 ];
 
 /** Note descrittive sull'architettura del motore lato server. */
@@ -185,7 +185,7 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Cosa include Istruttoria?",
-    a: "Istruttoria è l'unico piano acquistabile online: matching sul profilo, ricerca su fonti ufficiali, 10 Bozze di richiesta / Dossier al mese e 1 Impresa · 5 Utenti (stessa PWA, stesso account), a 449 € al mese + IVA. Istruttoria prepara la Bozza: non invia domande agli enti.",
+    a: "Istruttoria è l'unico piano acquistabile online: matching sul profilo, ricerca su fonti ufficiali, 10 Bozze di richiesta / Dossier al mese e 1 Impresa · 5 Utenti (stessa PWA, stesso account), a 449 € al mese. Istruttoria prepara la Bozza: non invia domande agli enti.",
   },
   {
     q: "Cosa significa l'etichetta Verificato?",
@@ -201,10 +201,10 @@ export const PRICING_FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: "Quanto costa l'annuale?",
-    a: "L'annuale Istruttoria include 2 mesi: 4.490 €, sempre IVA esclusa.",
+    a: "L'annuale Istruttoria include 2 mesi: 4.490 €. IVA non applicabile (regime forfettario).",
   },
   {
     q: "Posso gestire più imprese?",
-    a: "I piani acquistabili online coprono 1 Impresa · 5 Utenti (stessa PWA, stesso account). Più Imprese e integrazioni su misura rientrano in Studio, da 990 € al mese + IVA su richiesta.",
+    a: "I piani acquistabili online coprono 1 Impresa · 5 Utenti (stessa PWA, stesso account). Più Imprese e integrazioni su misura rientrano in Studio, da 990 € al mese su richiesta.",
   },
 ];
