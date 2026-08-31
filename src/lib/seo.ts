@@ -34,9 +34,9 @@ export const ROUTE_SEO = {
   },
   "/prezzi": {
     path: "/prezzi",
-    title: "Prezzi UEradar.com — Istruttoria 449 €/mese",
+    title: "Prezzi UEradar.com — Piano Istruttoria 449 €/mese",
     description:
-      "Istruttoria 449 €/mese: matching, Dossier e Bozza domanda. Non invia nulla agli enti. Studio su preventivo da 990 €/mese. 7 giorni gratis, senza carta. IVA non applicabile.",
+      "Istruttoria 449 €/mese: matching, Dossier e Bozza domanda. Non invia nulla agli enti. Studio da 990 €/mese. 7 giorni gratis, senza carta. IVA non applicabile.",
     indexable: true,
     ogType: "website",
   },
