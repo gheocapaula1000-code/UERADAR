@@ -31,7 +31,7 @@ import {
   flashEmptyCopy,
 } from "@/lib/feed-empty";
 import { computeRadarStats } from "@/lib/radar-stats";
-import { isMiaImpresaCompatibile } from "@/lib/mia-impresa";
+import { isMiaImpresaCompatibile, isRealOpenAvviso } from "@/lib/mia-impresa";
 import { loadOfflineFeed, saveOfflineFeed } from "@/lib/offline-feed";
 import {
   DEFAULT_HOME_VIEW,
@@ -345,7 +345,7 @@ function Dashboard() {
   const bandiPerProfilo = useMemo(
     () =>
       bandiAttivi.filter(
-        (b) => isMiaImpresaCompatibile(b) && sedeOk(b) && settoreOk(b),
+        (b) => isMiaImpresaCompatibile(b) && isRealOpenAvviso(b) && sedeOk(b) && settoreOk(b),
       ),
     [bandiAttivi, sedeOk, settoreOk],
   );
@@ -365,6 +365,7 @@ function Dashboard() {
     const base = bandi.filter((b) => {
       if (homeView === "profile") {
         if (!isMiaImpresaCompatibile(b)) return false;
+        if (!isRealOpenAvviso(b)) return false;
         if (!sedeOk(b)) return false;
         if (!settoreOk(b)) return false;
       }
@@ -603,7 +604,9 @@ function Dashboard() {
                 ? lastKnownCount !== null
                   ? `${lastKnownCount} (ultimo dato)`
                   : "—"
-                : stats.totale,
+                : homeView === "profile"
+                  ? filtered.length
+                  : stats.totale,
               c: "text-primary",
               d:
                 homeView === "catalog"
