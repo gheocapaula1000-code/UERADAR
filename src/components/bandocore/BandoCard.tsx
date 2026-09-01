@@ -32,6 +32,7 @@ import { cardEnterDelayMs } from "@/lib/motion";
 import { MatchScore } from "@/components/bandocore/MatchScore";
 import { SportelloGuide } from "@/components/bandocore/SportelloGuide";
 import { SPORTELLO_BADGE, type ProfiloSportello } from "@/lib/sportello";
+import { isGraduatoria } from "@/lib/mia-impresa";
 
 const categoryStyles: Record<Bando["categoria"], { label: string; class: string }> = {
   FONDO_PERDUTO: { label: "Fondo Perduto", class: "bg-primary/15 text-primary border-primary/30" },
@@ -106,6 +107,8 @@ export function BandoCard({
   const verdict = admitBando(bando);
   const gaps = verdict.ok ? verdict.gaps : null;
   const sportello = isSportello(bando);
+  // Graduatorie ed esiti: nessun dossier, solo il testo ufficiale.
+  const esito = isGraduatoria(bando);
   const parziale = !sportello && Boolean(gaps?.missing_deadline || gaps?.missing_economics);
   const ufficialeHref = officialLink(bando);
   const importoMax = coercePositiveNumber(bando.importo_max);
@@ -272,7 +275,7 @@ export function BandoCard({
         </div>
       )}
 
-      {!sportello && parziale && ufficialeHref ? (
+      {!sportello && (esito || parziale) && ufficialeHref ? (
         <a
           href={ufficialeHref}
           target="_blank"
@@ -283,14 +286,14 @@ export function BandoCard({
         </a>
       ) : null}
 
-      {!sportello && (
+      {!sportello && !esito && (
         <Link
           to="/bando/$id"
           params={{ id: bando.id }}
           aria-label={`Genera dossier candidatura per ${bando.titolo} — bozza informativa da verificare`}
           title="Genera un dossier di candidatura in bozza: contenuto informativo da verificare, nessuna domanda viene inviata"
           className={
-            parziale && ufficialeHref
+            (esito || parziale) && ufficialeHref
               ? "tap mt-2 inline-flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-semibold hover:border-primary/50"
               : "cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
           }
