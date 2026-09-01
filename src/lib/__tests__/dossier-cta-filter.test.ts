@@ -26,7 +26,7 @@ describe("filtro Per la mia impresa: nasconde solo NON_COMPATIBILE", () => {
     expect(dashboard).toContain("if (!isMiaImpresaCompatibile(b)) return false");
     expect(dashboard).toContain("if (!sedeOk(b)) return false");
     expect(dashboard).toContain("if (!settoreOk(b)) return false");
-    expect(dashboard).toContain("isMiaImpresaCompatibile(b) && sedeOk(b) && settoreOk(b)");
+    expect(dashboard).toContain("isMiaImpresaCompatibile(b) && isRealOpenAvviso(b) && sedeOk(b) && settoreOk(b)");
     expect(dashboard).toContain("matchesSede");
     // Catalogo: il filtro match non si applica. settoreOk resta fail-open se ATECO ufficiale è vuoto.
     expect(dashboard).toContain(
