@@ -246,7 +246,12 @@ function Dashboard() {
   }, [query.error, navigate]);
 
   const bandi = useMemo(() => query.data?.bandi ?? [], [query.data?.bandi]);
-  const bandiAttivi = useMemo(() => bandi.filter((b) => isActive(b)), [bandi]);
+  // Regola generale (tutte le viste): solo veri avvisi aperti.
+  // Mai home/indici/FAQ/SSO/nav-scrape/graduatorie come scheda Bando, né in Catalogo né nel profilo.
+  const bandiAttivi = useMemo(
+    () => bandi.filter((b) => isActive(b) && isRealOpenAvviso(b)),
+    [bandi],
+  );
   const isOffline = query.data?.source === "cache";
   // Un errore di rete non deve diventare uno zero: mostriamo «—» e l'ultimo conteggio noto.
   const dataUnavailable = query.isLoading || Boolean(query.error);
@@ -363,9 +368,10 @@ function Dashboard() {
 
   const filtered = useMemo(() => {
     const base = bandi.filter((b) => {
+      // Junk (home, indice, FAQ, SSO, graduatorie) non appare in nessuna vista.
+      if (!isRealOpenAvviso(b)) return false;
       if (homeView === "profile") {
         if (!isMiaImpresaCompatibile(b)) return false;
-        if (!isRealOpenAvviso(b)) return false;
         if (!sedeOk(b)) return false;
         if (!settoreOk(b)) return false;
       }
