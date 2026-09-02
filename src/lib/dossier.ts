@@ -171,13 +171,16 @@ export function buildTimeline(bando: Bando, now = Date.now()): DossierTimelineSt
   const left = daysLeftOf(bando, now);
   if (apertura) steps.push({ label: "Apertura sportello", date: apertura, note: "Data indicata dalla fonte" });
   steps.push({
-    label: "Verifica requisiti sulla fonte ufficiale",
-    note: "Da fare prima di ogni altra attività",
+    label: "Lettura del bando ufficiale",
+    note: "Primo passo prima di ogni altra attività",
   });
-  steps.push({ label: "Raccolta documenti della checklist", note: "Tempi variabili (DURC, visura, preventivi)" });
+  steps.push({
+    label: "Raccolta degli allegati richiesti dal bando",
+    note: "Tempi variabili in base alla documentazione richiesta",
+  });
   steps.push({
     label: "Compilazione della modulistica ufficiale",
-    note: bando.modulistica_url ? "Usa i moduli pubblicati dall'ente" : "Moduli da reperire sulla fonte ufficiale",
+    note: bando.modulistica_url ? "Usa i moduli pubblicati dall'ente" : "Moduli sulla fonte ufficiale",
   });
   if (bando.click_day) {
     steps.push({ label: "Preparazione al click day", note: "Procedura a sportello: prepara tutto in anticipo" });
@@ -192,9 +195,8 @@ export function buildTimeline(bando: Bando, now = Date.now()): DossierTimelineSt
           ? `${left} giorni residui`
           : "Termine indicato dalla fonte",
     });
-  } else {
-    steps.push({ label: "Scadenza presentazione", note: "Non disponibile: verificare sulla fonte ufficiale" });
   }
+
   return steps;
 }
 
