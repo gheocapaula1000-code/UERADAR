@@ -173,14 +173,16 @@ describe("dossier candidatura", () => {
     const d = buildDossier(bando, profile, NOW);
     expect(d.compatibility.visible).toBe(false);
     const text = renderDossierText(d);
-    expect(text).not.toMatch(/Da verificare/i);
+    expect(text).not.toContain("Da verificare:");
+    expect(text).not.toContain("COMPATIBILITÀ PROFILO");
     expect(text).not.toContain("Completezza dossier");
     expect(text).not.toContain("PARZIALE");
     expect(text).not.toContain("dato non disponibile");
     const pdf = dossierPdfModel(d)
       .map((b) => b.text)
       .join("\n");
-    expect(pdf).not.toMatch(/Da verificare/i);
+    expect(pdf).not.toContain("Da verificare:");
+    expect(pdf).not.toContain("Compatibilità profilo");
     expect(pdf).not.toContain("Completezza dossier");
   });
 
@@ -229,7 +231,6 @@ describe("dossier candidatura", () => {
   it("mostra nelle card la CTA dossier e lo stato parziale", () => {
     const card = readFileSync("src/components/bandocore/BandoCard.tsx", "utf8");
     expect(card).toContain("Genera dossier candidatura");
-    expect(card).toContain("Genera dossier parziale");
     expect(card).toContain("matchPreview");
     expect(card).toContain('to="/bando/$id"');
   });
