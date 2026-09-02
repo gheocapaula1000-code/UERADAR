@@ -77,12 +77,6 @@ export function dossierPdfModel(d: Dossier, watermarked = false): PdfBlock[] {
   blocks.push({ kind: "heading", text: "Testo istanza / lettera di accompagnamento" });
   for (const line of d.cover_letter.split("\n")) blocks.push({ kind: "text", text: line });
 
-  blocks.push({ kind: "heading", text: "Dati mancanti prima dell'uso" });
-  if (d.missing_before_use.length) {
-    for (const m of d.missing_before_use) blocks.push({ kind: "text", text: `• ${m}` });
-  } else {
-    blocks.push({ kind: "text", text: "Nessun dato mancante rilevato automaticamente." });
-  }
 
   blocks.push({ kind: "note", text: DOSSIER_DISCLAIMER });
   if (watermarked) blocks.push({ kind: "note", text: TRIAL_WATERMARK });
