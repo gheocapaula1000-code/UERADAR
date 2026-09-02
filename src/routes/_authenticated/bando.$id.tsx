@@ -650,62 +650,58 @@ function BandoDetail() {
                     <FieldGrid fields={dossier.cover} />
                   </DossierBlock>
 
-                  <DossierBlock icon={<Euro className="h-4 w-4" />} title="Sintesi economica">
-                    <FieldGrid fields={dossier.economics} />
-                  </DossierBlock>
+                  {dossier.economics.length ? (
+                    <DossierBlock icon={<Euro className="h-4 w-4" />} title="Sintesi economica">
+                      <FieldGrid fields={dossier.economics} />
+                    </DossierBlock>
+                  ) : null}
 
-                  <DossierBlock
-                    icon={<CheckCircle2 className="h-4 w-4" />}
-                    title={`Compatibilità profilo — ${dossier.compatibility.label}${
-                      dossier.compatibility.score !== null
-                        ? ` · ${dossier.compatibility.score}%`
-                        : ""
-                    }`}
-                  >
-                    <ListSection
-                      label="Requisiti confermati"
-                      items={dossier.compatibility.confirmed}
-                    />
-                    <ListSection label="Blocker" items={dossier.compatibility.blockers} />
-                    <ListSection
-                      label="Campi da verificare"
-                      items={dossier.compatibility.to_check}
-                    />
-                  </DossierBlock>
+                  {dossier.compatibility.visible ? (
+                    <DossierBlock
+                      icon={<CheckCircle2 className="h-4 w-4" />}
+                      title={`Compatibilità profilo — ${dossier.compatibility.label}${
+                        dossier.compatibility.score !== null
+                          ? ` · ${dossier.compatibility.score}%`
+                          : ""
+                      }`}
+                    >
+                      <ListSection
+                        label="Requisiti confermati"
+                        items={dossier.compatibility.confirmed}
+                      />
+                      <ListSection label="Blocker" items={dossier.compatibility.blockers} />
+                    </DossierBlock>
+                  ) : null}
 
-                  <DossierBlock
-                    icon={<ListChecks className="h-4 w-4" />}
-                    title="Checklist requisiti"
-                  >
-                    {dossier.requirements.length ? (
+                  {dossier.requirements.length ? (
+                    <DossierBlock
+                      icon={<ListChecks className="h-4 w-4" />}
+                      title="Checklist requisiti"
+                    >
                       <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
                         {dossier.requirements.map((r, i) => (
                           <li key={i}>{r}</li>
                         ))}
                       </ol>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Requisiti non disponibili: verificali sulla fonte ufficiale.
-                      </p>
-                    )}
-                  </DossierBlock>
+                    </DossierBlock>
+                  ) : null}
 
-                  <DossierBlock
-                    icon={<ListChecks className="h-4 w-4" />}
-                    title="Checklist documenti (suggerita / da verificare)"
-                  >
-                    <p className="mb-2 text-[11px] text-muted-foreground">
-                      Elenco suggerito sulla base dei dati disponibili: non sostituisce l'elenco
-                      ufficiale del bando.
-                    </p>
-                    <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
-                      {dossier.documents.map((doc) => (
-                        <li key={doc.label}>
-                          <span className="text-foreground">{doc.label}</span> — {doc.reason}
-                        </li>
-                      ))}
-                    </ol>
-                  </DossierBlock>
+                  {/* Solo allegati citati dal testo ufficiale: nessun documento inventato. */}
+                  {dossier.documents.length ? (
+                    <DossierBlock
+                      icon={<ListChecks className="h-4 w-4" />}
+                      title="Allegati ufficiali del bando"
+                    >
+                      <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+                        {dossier.documents.map((doc) => (
+                          <li key={doc.label}>
+                            <span className="text-foreground">{doc.label}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </DossierBlock>
+                  ) : null}
+
 
                   <DossierBlock
                     icon={<CalendarClock className="h-4 w-4" />}
