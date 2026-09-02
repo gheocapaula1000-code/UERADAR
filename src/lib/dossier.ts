@@ -130,58 +130,39 @@ export function officialUrl(bando: Bando): string | undefined {
   return bando.official_url || bando.notice_url || undefined;
 }
 
-function field(label: string, value: string | undefined): DossierField {
-  return value ? { label, value } : { label, value: "— dato non disponibile", missing: true };
+/** Una riga esiste solo se il dato ufficiale esiste: niente «dato non disponibile». */
+function field(label: string, value: string | undefined): DossierField | null {
+  return value && value.trim() ? { label, value: value.trim() } : null;
 }
 
-/** Documenti tipicamente richiesti: elenco suggerito, mai presentato come obbligatorio. */
-export function buildDocumentChecklist(bando: Bando, profile: AllowedProfile): DossierDocument[] {
-  const docs: DossierDocument[] = [
-    { label: "Visura camerale aggiornata", reason: "Prova dei dati d'impresa dichiarati" },
-    {
-      label: "Documento d'identità del legale rappresentante in corso di validità",
-      reason: "Normalmente allegato alle istanze verso la PA",
-    },
-    { label: "DURC in corso di validità", reason: "Regolarità contributiva spesso richiesta" },
-  ];
-  if (bando.categoria === "FONDO_PERDUTO" || bando.scope === "EUROPEO") {
-    docs.push({
-      label: "Dichiarazione de minimis / aiuti di Stato ricevuti",
-      reason: "Contributi a fondo perduto e programmi UE valutano il massimale aiuti",
-    });
-  }
-  if (bando.eligible_expenses?.length || bando.importo_max) {
-    docs.push({
-      label: "Preventivi di spesa e descrizione del progetto",
-      reason: "Le spese ammissibili indicate vanno documentate",
-    });
-  }
-  if ((profile.fatturato_annuo ?? 0) > 0 || (profile.numero_dipendenti ?? 0) > 0) {
-    docs.push({
-      label: "Ultimi bilanci o dichiarazioni fiscali",
-      reason: "Dati economici e dimensionali dichiarati nel profilo",
-    });
-  }
-  if (bando.consortium_required) {
-    docs.push({
-      label: "Lettere d'intenti dei partner di consorzio",
-      reason: `Il bando indica una partecipazione in consorzio${bando.min_partners ? ` (min ${bando.min_partners})` : ""}`,
-    });
-  }
-  if (profile.imprenditoria_femminile || bando.categoria === "IMPRENDITORIA_FEMMINILE") {
-    docs.push({
-      label: "Documentazione su compagine e governance",
-      reason: "Verifica dei requisiti di imprenditoria femminile",
-    });
-  }
-  if (bando.modulistica_url) {
-    docs.push({
-      label: "Modulistica ufficiale compilata",
-      reason: "Il bando pubblica moduli propri da utilizzare",
-    });
+function fields(...items: Array<DossierField | null>): DossierField[] {
+  return items.filter((f): f is DossierField => f !== null);
+}
+
+/** Un requisito è un allegato quando il testo ufficiale nomina un documento. */
+const ATTACHMENT_HINT =
+  /\b(allegat|modulo|modulistica|modello|dichiarazione|documento|documentazione|scheda|format|relazione|prospetto|preventiv|business plan|formulario|domanda\s+di)/i;
+
+/**
+ * Solo allegati realmente presenti nel testo ufficiale del bando.
+ * Nessun documento inventato (visura, DURC, de minimis, carta d'identità).
+ */
+export function officialAttachments(bando: Bando): DossierDocument[] {
+  const items = (bando.requisiti ?? [])
+    .filter((r): r is string => typeof r === "string" && r.trim().length > 0)
+    .map((r) => r.trim())
+    .filter((r) => ATTACHMENT_HINT.test(r));
+  const seen = new Set<string>();
+  const docs: DossierDocument[] = [];
+  for (const item of items) {
+    const key = item.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    docs.push({ label: item, reason: "Indicato nel testo ufficiale del bando" });
   }
   return docs;
 }
+
 
 export function buildTimeline(bando: Bando, now = Date.now()): DossierTimelineStep[] {
   const steps: DossierTimelineStep[] = [];
