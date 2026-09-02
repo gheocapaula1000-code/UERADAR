@@ -579,21 +579,12 @@ function BandoDetail() {
                 <div className="flex items-center gap-2">
                   <ListChecks className="h-4 w-4 text-primary" />
                   <h2 className="font-semibold">Dossier candidatura</h2>
-                  <span
-                    className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
-                      dossier.readiness === "COMPLETO"
-                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-                        : dossier.readiness === "SCADUTO"
-                          ? "border-destructive/40 bg-destructive/10 text-destructive"
-                          : "border-warning/40 bg-warning/10 text-warning"
-                    }`}
-                  >
-                    {dossier.readiness === "COMPLETO"
-                      ? "Dossier completo"
-                      : dossier.readiness === "SCADUTO"
-                        ? "Termine superato"
-                        : "Dossier parziale"}
-                  </span>
+                  {dossier.readiness === "SCADUTO" ? (
+                    <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive">
+                      Termine superato
+                    </span>
+                  ) : null}
+
                 </div>
                 {!dossierOpen && (
                   <div className="flex flex-col items-start gap-2">
