@@ -717,9 +717,11 @@ function BandoDetail() {
                     </ul>
                   </DossierBlock>
 
-                  <DossierBlock icon={<Mail className="h-4 w-4" />} title="Canale ufficiale">
-                    <FieldGrid fields={dossier.channel} />
-                  </DossierBlock>
+                  {dossier.channel.length ? (
+                    <DossierBlock icon={<Mail className="h-4 w-4" />} title="Canale ufficiale">
+                      <FieldGrid fields={dossier.channel} />
+                    </DossierBlock>
+                  ) : null}
 
                   {dossier.rarity.poco_diffusa && (
                     <DossierBlock icon={<Radar className="h-4 w-4" />} title="Fonte poco diffusa">
@@ -742,22 +744,7 @@ function BandoDetail() {
                     </pre>
                   </DossierBlock>
 
-                  <DossierBlock
-                    icon={<AlertTriangle className="h-4 w-4" />}
-                    title="Dati mancanti prima dell'uso"
-                  >
-                    {dossier.missing_before_use.length ? (
-                      <ul className="space-y-1 text-xs text-muted-foreground">
-                        {dossier.missing_before_use.map((m) => (
-                          <li key={m}>• {m}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Nessun dato mancante rilevato automaticamente.
-                      </p>
-                    )}
-                  </DossierBlock>
+
 
                   <div className="flex flex-wrap gap-2">
                     <button
