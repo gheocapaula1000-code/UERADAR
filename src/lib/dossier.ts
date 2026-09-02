@@ -339,7 +339,8 @@ export function buildDossier(
 }
 
 function block(title: string, lines: string[]): string {
-  return [`── ${title} ──`, ...(lines.length ? lines : ["— nessun dato disponibile"]), ""].join("\n");
+  if (!lines.length) return "";
+  return [`── ${title} ──`, ...lines, ""].join("\n");
 }
 
 /** Resa testuale del dossier: usata sia per la copia sia per il download TXT. */
@@ -357,7 +358,6 @@ export function renderDossierText(d: Dossier, options: DossierRenderOptions = {}
     DOSSIER_DISCLAIMER,
     "",
     `Riferimento interno: ${d.bando_id}`,
-    `Completezza dossier: ${d.readiness}`,
     "",
     block(
       "COPERTINA",
@@ -367,20 +367,21 @@ export function renderDossierText(d: Dossier, options: DossierRenderOptions = {}
       "SINTESI ECONOMICA",
       d.economics.map((f) => `${f.label}: ${f.value}`),
     ),
-    block("COMPATIBILITÀ PROFILO", [
-      `Stato: ${d.compatibility.label}${d.compatibility.score !== null ? ` (${d.compatibility.score}%)` : ""}`,
-      ...d.compatibility.confirmed.map((x) => `Confermato: ${x}`),
-      ...d.compatibility.blockers.map((x) => `Blocker: ${x}`),
-      ...d.compatibility.to_check.map((x) => `Da verificare: ${x}`),
-    ]),
+    d.compatibility.visible
+      ? block("COMPATIBILITÀ PROFILO", [
+          `Stato: ${d.compatibility.label}${d.compatibility.score !== null ? ` (${d.compatibility.score}%)` : ""}`,
+          ...d.compatibility.confirmed.map((x) => `Confermato: ${x}`),
+          ...d.compatibility.blockers.map((x) => `Blocker: ${x}`),
+        ])
+      : "",
     block(
       "CHECKLIST REQUISITI",
       d.requirements.map((r, i) => `${i + 1}. ${r}`),
     ),
-    block("CHECKLIST DOCUMENTI (suggerita / da verificare)", [
-      "Elenco suggerito sulla base dei dati disponibili: non sostituisce l'elenco ufficiale del bando.",
-      ...d.documents.map((doc, i) => `${i + 1}. ${doc.label} — ${doc.reason}`),
-    ]),
+    block(
+      "ALLEGATI UFFICIALI DEL BANDO",
+      d.documents.map((doc, i) => `${i + 1}. ${doc.label}`),
+    ),
     block(
       "TIMELINE OPERATIVA",
       d.timeline.map((s) => `${s.date ? `${s.date} — ` : ""}${s.label}: ${s.note}`),
@@ -403,10 +404,7 @@ export function renderDossierText(d: Dossier, options: DossierRenderOptions = {}
         )
       : "",
     block("TESTO ISTANZA / LETTERA DI ACCOMPAGNAMENTO", [d.cover_letter]),
-    block(
-      "DATI MANCANTI PRIMA DELL'USO",
-      d.missing_before_use.length ? d.missing_before_use : ["Nessun dato mancante rilevato automaticamente."],
-    ),
+
     DOSSIER_DISCLAIMER,
     mark,
   ]
