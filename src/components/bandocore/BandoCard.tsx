@@ -298,7 +298,7 @@ export function BandoCard({
               : "cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
           }
         >
-          {parziale ? "Genera dossier parziale" : "Genera dossier candidatura"}{" "}
+          Genera dossier candidatura{" "}
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
       )}
