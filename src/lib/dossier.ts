@@ -76,12 +76,15 @@ export interface Dossier {
   economics: DossierField[];
   compatibility: {
     status: "COMPATIBILE" | "DA_VERIFICARE" | "NON_COMPATIBILE";
+    /** Vero solo quando il testo ufficiale consente un giudizio: mai «Da verificare». */
+    visible: boolean;
     label: string;
     score: number | null;
     confirmed: string[];
     blockers: string[];
     to_check: string[];
   };
+
   requirements: string[];
   documents: DossierDocument[];
   timeline: DossierTimelineStep[];
