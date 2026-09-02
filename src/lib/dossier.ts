@@ -258,10 +258,9 @@ export function buildDossier(
   const expired = expiredNow;
   const meta = matchStatusMeta(bando.match?.status);
 
-  const cover: DossierField[] = [
+  const cover: DossierField[] = fields(
     field("Titolo", bando.titolo),
     field("Ente erogatore", bando.ente),
-    field("Stato verifica", bando.verification_status),
     field("Ultima verifica", date(bando.last_verified_at)),
     field("URL ufficiale", officialUrl(bando)),
     field("Riferimento / programme code", bando.programme_code ?? bando.programme_name ?? bando.id),
@@ -271,9 +270,9 @@ export function buildDossier(
       "Giorni residui",
       expired ? "Termine superato" : left !== null ? `${left} giorni` : undefined,
     ),
-  ];
+  );
 
-  const economics: DossierField[] = [
+  const economics: DossierField[] = fields(
     field("Importo massimo", typeof bando.importo_max === "number" ? `€ ${it(bando.importo_max)}` : undefined),
     field(
       "Intensità aiuto",
@@ -281,19 +280,19 @@ export function buildDossier(
     ),
     field("Budget totale", typeof bando.total_budget === "number" ? `€ ${it(bando.total_budget)}` : undefined),
     field("Spese ammissibili", bando.eligible_expenses?.length ? bando.eligible_expenses.join("; ") : undefined),
-  ];
+  );
 
-  const channel: DossierField[] = [
+  // Modulistica ufficiale: stampiamo l'URL solo se il bando lo pubblica davvero.
+  const channel: DossierField[] = fields(
     field("Piattaforma di presentazione", bando.piattaforma_url),
     field("Modulistica ufficiale", bando.modulistica_url),
     field("PEC ufficio protocollo", bando.ufficio_protocollo_pec ?? bando.pec),
     field("Ente attuatore", bando.implementing_body),
-  ];
+  );
 
   const missing_before_use = [
     ...missing_official.map((m) => `Dato ufficiale mancante: ${m}`),
     ...missing_profile.map((m) => `Dato di profilo mancante: ${m}`),
-    ...(bando.match?.missing ?? []).map((m) => `Da verificare sulla fonte: ${m}`),
   ];
 
   return {
@@ -310,14 +309,17 @@ export function buildDossier(
     economics,
     compatibility: {
       status: meta.status,
-      label: meta.label,
-      score: bando.match?.score ?? null,
-      confirmed: bando.match?.confirmed ?? [],
+      // Senza ATECO nel testo ufficiale non esprimiamo un giudizio: nessuna etichetta.
+      visible: meta.status !== "DA_VERIFICARE",
+      label: meta.status === "DA_VERIFICARE" ? "" : meta.label,
+      score: meta.status === "DA_VERIFICARE" ? null : (bando.match?.score ?? null),
+      confirmed: meta.status === "DA_VERIFICARE" ? [] : (bando.match?.confirmed ?? []),
       blockers: bando.match?.blockers ?? [],
-      to_check: bando.match?.missing ?? [],
+      to_check: [],
     },
     requirements: bando.requisiti ?? [],
-    documents: buildDocumentChecklist(bando, profile),
+    documents: officialAttachments(bando),
+
     timeline: buildTimeline(bando, now),
     channel,
     rarity: {
