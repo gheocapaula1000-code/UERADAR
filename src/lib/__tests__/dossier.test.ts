@@ -145,17 +145,58 @@ describe("dossier candidatura", () => {
     expect(d.missing_before_use.join(" ")).toContain("Termine di presentazione già superato");
   });
 
-  it("genera una checklist documenti marcata come suggerita", () => {
-    const d = buildDossier(bando, profile, NOW);
+  it("elenca solo allegati citati dal testo ufficiale, senza inventarli", () => {
+    const conAllegati = {
+      ...bando,
+      requisiti: [
+        "Sede operativa in provincia",
+        "Allegato A - domanda di contributo",
+        "Modulo dichiarazione spese",
+      ],
+    } as unknown as Bando;
+    const d = buildDossier(conAllegati, profile, NOW);
     const labels = d.documents.map((doc) => doc.label);
-    expect(labels).toContain("Visura camerale aggiornata");
-    expect(labels).toContain("DURC in corso di validità");
-    expect(labels).toContain("Dichiarazione de minimis / aiuti di Stato ricevuti");
-    expect(labels).toContain("Modulistica ufficiale compilata");
+    expect(labels).toEqual(["Allegato A - domanda di contributo", "Modulo dichiarazione spese"]);
     const text = renderDossierText(d);
-    expect(text).toContain("CHECKLIST DOCUMENTI (suggerita / da verificare)");
-    expect(text).toContain("non sostituisce l'elenco ufficiale del bando");
+    expect(text).not.toMatch(/Visura camerale|DURC|de minimis|documento d'identità/i);
+    expect(text).not.toContain("suggerita / da verificare");
+    expect(text).toContain("ALLEGATI UFFICIALI DEL BANDO");
   });
+
+  it("omette del tutto la checklist documenti quando il bando non pubblica allegati", () => {
+    const d = buildDossier(bando, profile, NOW);
+    expect(d.documents).toHaveLength(0);
+    expect(renderDossierText(d)).not.toContain("ALLEGATI UFFICIALI DEL BANDO");
+  });
+
+  it("non mostra «Da verificare» né la completezza del dossier", () => {
+    const d = buildDossier(bando, profile, NOW);
+    expect(d.compatibility.visible).toBe(false);
+    const text = renderDossierText(d);
+    expect(text).not.toContain("Da verificare:");
+    expect(text).not.toContain("COMPATIBILITÀ PROFILO");
+    expect(text).not.toContain("Completezza dossier");
+    expect(text).not.toContain("PARZIALE");
+    expect(text).not.toContain("dato non disponibile");
+    const pdf = dossierPdfModel(d)
+      .map((b) => b.text)
+      .join("\n");
+    expect(pdf).not.toContain("Da verificare:");
+    expect(pdf).not.toContain("Compatibilità profilo");
+    expect(pdf).not.toContain("Completezza dossier");
+  });
+
+  it("stampa la modulistica ufficiale solo se il bando pubblica un URL", () => {
+    const con = buildDossier(bando, profile, NOW);
+    expect(renderDossierText(con)).toContain("Modulistica ufficiale: https://esempio.it/moduli");
+    const senza = buildDossier(
+      { ...bando, modulistica_url: undefined } as unknown as Bando,
+      profile,
+      NOW,
+    );
+    expect(renderDossierText(senza)).not.toContain("Modulistica ufficiale");
+  });
+
 
   it("costruisce una timeline che arriva alla scadenza", () => {
     const d = buildDossier(bando, profile, NOW);
@@ -190,7 +231,6 @@ describe("dossier candidatura", () => {
   it("mostra nelle card la CTA dossier e lo stato parziale", () => {
     const card = readFileSync("src/components/bandocore/BandoCard.tsx", "utf8");
     expect(card).toContain("Genera dossier candidatura");
-    expect(card).toContain("Genera dossier parziale");
     expect(card).toContain("matchPreview");
     expect(card).toContain('to="/bando/$id"');
   });

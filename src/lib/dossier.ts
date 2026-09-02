@@ -76,12 +76,15 @@ export interface Dossier {
   economics: DossierField[];
   compatibility: {
     status: "COMPATIBILE" | "DA_VERIFICARE" | "NON_COMPATIBILE";
+    /** Vero solo quando il testo ufficiale consente un giudizio: mai «Da verificare». */
+    visible: boolean;
     label: string;
     score: number | null;
     confirmed: string[];
     blockers: string[];
     to_check: string[];
   };
+
   requirements: string[];
   documents: DossierDocument[];
   timeline: DossierTimelineStep[];
@@ -127,58 +130,39 @@ export function officialUrl(bando: Bando): string | undefined {
   return bando.official_url || bando.notice_url || undefined;
 }
 
-function field(label: string, value: string | undefined): DossierField {
-  return value ? { label, value } : { label, value: "— dato non disponibile", missing: true };
+/** Una riga esiste solo se il dato ufficiale esiste: niente «dato non disponibile». */
+function field(label: string, value: string | undefined): DossierField | null {
+  return value && value.trim() ? { label, value: value.trim() } : null;
 }
 
-/** Documenti tipicamente richiesti: elenco suggerito, mai presentato come obbligatorio. */
-export function buildDocumentChecklist(bando: Bando, profile: AllowedProfile): DossierDocument[] {
-  const docs: DossierDocument[] = [
-    { label: "Visura camerale aggiornata", reason: "Prova dei dati d'impresa dichiarati" },
-    {
-      label: "Documento d'identità del legale rappresentante in corso di validità",
-      reason: "Normalmente allegato alle istanze verso la PA",
-    },
-    { label: "DURC in corso di validità", reason: "Regolarità contributiva spesso richiesta" },
-  ];
-  if (bando.categoria === "FONDO_PERDUTO" || bando.scope === "EUROPEO") {
-    docs.push({
-      label: "Dichiarazione de minimis / aiuti di Stato ricevuti",
-      reason: "Contributi a fondo perduto e programmi UE valutano il massimale aiuti",
-    });
-  }
-  if (bando.eligible_expenses?.length || bando.importo_max) {
-    docs.push({
-      label: "Preventivi di spesa e descrizione del progetto",
-      reason: "Le spese ammissibili indicate vanno documentate",
-    });
-  }
-  if ((profile.fatturato_annuo ?? 0) > 0 || (profile.numero_dipendenti ?? 0) > 0) {
-    docs.push({
-      label: "Ultimi bilanci o dichiarazioni fiscali",
-      reason: "Dati economici e dimensionali dichiarati nel profilo",
-    });
-  }
-  if (bando.consortium_required) {
-    docs.push({
-      label: "Lettere d'intenti dei partner di consorzio",
-      reason: `Il bando indica una partecipazione in consorzio${bando.min_partners ? ` (min ${bando.min_partners})` : ""}`,
-    });
-  }
-  if (profile.imprenditoria_femminile || bando.categoria === "IMPRENDITORIA_FEMMINILE") {
-    docs.push({
-      label: "Documentazione su compagine e governance",
-      reason: "Verifica dei requisiti di imprenditoria femminile",
-    });
-  }
-  if (bando.modulistica_url) {
-    docs.push({
-      label: "Modulistica ufficiale compilata",
-      reason: "Il bando pubblica moduli propri da utilizzare",
-    });
+function fields(...items: Array<DossierField | null>): DossierField[] {
+  return items.filter((f): f is DossierField => f !== null);
+}
+
+/** Un requisito è un allegato quando il testo ufficiale nomina un documento. */
+const ATTACHMENT_HINT =
+  /\b(allegat|modulo|modulistica|modello|dichiarazione|documento|documentazione|scheda|format|relazione|prospetto|preventiv|business plan|formulario|domanda\s+di)/i;
+
+/**
+ * Solo allegati realmente presenti nel testo ufficiale del bando.
+ * Nessun documento inventato (visura, DURC, de minimis, carta d'identità).
+ */
+export function officialAttachments(bando: Bando): DossierDocument[] {
+  const items = (bando.requisiti ?? [])
+    .filter((r): r is string => typeof r === "string" && r.trim().length > 0)
+    .map((r) => r.trim())
+    .filter((r) => ATTACHMENT_HINT.test(r));
+  const seen = new Set<string>();
+  const docs: DossierDocument[] = [];
+  for (const item of items) {
+    const key = item.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    docs.push({ label: item, reason: "Indicato nel testo ufficiale del bando" });
   }
   return docs;
 }
+
 
 export function buildTimeline(bando: Bando, now = Date.now()): DossierTimelineStep[] {
   const steps: DossierTimelineStep[] = [];
@@ -187,13 +171,16 @@ export function buildTimeline(bando: Bando, now = Date.now()): DossierTimelineSt
   const left = daysLeftOf(bando, now);
   if (apertura) steps.push({ label: "Apertura sportello", date: apertura, note: "Data indicata dalla fonte" });
   steps.push({
-    label: "Verifica requisiti sulla fonte ufficiale",
-    note: "Da fare prima di ogni altra attività",
+    label: "Lettura del bando ufficiale",
+    note: "Primo passo prima di ogni altra attività",
   });
-  steps.push({ label: "Raccolta documenti della checklist", note: "Tempi variabili (DURC, visura, preventivi)" });
+  steps.push({
+    label: "Raccolta degli allegati richiesti dal bando",
+    note: "Tempi variabili in base alla documentazione richiesta",
+  });
   steps.push({
     label: "Compilazione della modulistica ufficiale",
-    note: bando.modulistica_url ? "Usa i moduli pubblicati dall'ente" : "Moduli da reperire sulla fonte ufficiale",
+    note: bando.modulistica_url ? "Usa i moduli pubblicati dall'ente" : "Moduli sulla fonte ufficiale",
   });
   if (bando.click_day) {
     steps.push({ label: "Preparazione al click day", note: "Procedura a sportello: prepara tutto in anticipo" });
@@ -208,9 +195,8 @@ export function buildTimeline(bando: Bando, now = Date.now()): DossierTimelineSt
           ? `${left} giorni residui`
           : "Termine indicato dalla fonte",
     });
-  } else {
-    steps.push({ label: "Scadenza presentazione", note: "Non disponibile: verificare sulla fonte ufficiale" });
   }
+
   return steps;
 }
 
@@ -274,10 +260,9 @@ export function buildDossier(
   const expired = expiredNow;
   const meta = matchStatusMeta(bando.match?.status);
 
-  const cover: DossierField[] = [
+  const cover: DossierField[] = fields(
     field("Titolo", bando.titolo),
     field("Ente erogatore", bando.ente),
-    field("Stato verifica", bando.verification_status),
     field("Ultima verifica", date(bando.last_verified_at)),
     field("URL ufficiale", officialUrl(bando)),
     field("Riferimento / programme code", bando.programme_code ?? bando.programme_name ?? bando.id),
@@ -287,9 +272,9 @@ export function buildDossier(
       "Giorni residui",
       expired ? "Termine superato" : left !== null ? `${left} giorni` : undefined,
     ),
-  ];
+  );
 
-  const economics: DossierField[] = [
+  const economics: DossierField[] = fields(
     field("Importo massimo", typeof bando.importo_max === "number" ? `€ ${it(bando.importo_max)}` : undefined),
     field(
       "Intensità aiuto",
@@ -297,19 +282,19 @@ export function buildDossier(
     ),
     field("Budget totale", typeof bando.total_budget === "number" ? `€ ${it(bando.total_budget)}` : undefined),
     field("Spese ammissibili", bando.eligible_expenses?.length ? bando.eligible_expenses.join("; ") : undefined),
-  ];
+  );
 
-  const channel: DossierField[] = [
+  // Modulistica ufficiale: stampiamo l'URL solo se il bando lo pubblica davvero.
+  const channel: DossierField[] = fields(
     field("Piattaforma di presentazione", bando.piattaforma_url),
     field("Modulistica ufficiale", bando.modulistica_url),
     field("PEC ufficio protocollo", bando.ufficio_protocollo_pec ?? bando.pec),
     field("Ente attuatore", bando.implementing_body),
-  ];
+  );
 
   const missing_before_use = [
     ...missing_official.map((m) => `Dato ufficiale mancante: ${m}`),
     ...missing_profile.map((m) => `Dato di profilo mancante: ${m}`),
-    ...(bando.match?.missing ?? []).map((m) => `Da verificare sulla fonte: ${m}`),
   ];
 
   return {
@@ -326,14 +311,17 @@ export function buildDossier(
     economics,
     compatibility: {
       status: meta.status,
-      label: meta.label,
-      score: bando.match?.score ?? null,
-      confirmed: bando.match?.confirmed ?? [],
+      // Senza ATECO nel testo ufficiale non esprimiamo un giudizio: nessuna etichetta.
+      visible: meta.status !== "DA_VERIFICARE",
+      label: meta.status === "DA_VERIFICARE" ? "" : meta.label,
+      score: meta.status === "DA_VERIFICARE" ? null : (bando.match?.score ?? null),
+      confirmed: meta.status === "DA_VERIFICARE" ? [] : (bando.match?.confirmed ?? []),
       blockers: bando.match?.blockers ?? [],
-      to_check: bando.match?.missing ?? [],
+      to_check: [],
     },
     requirements: bando.requisiti ?? [],
-    documents: buildDocumentChecklist(bando, profile),
+    documents: officialAttachments(bando),
+
     timeline: buildTimeline(bando, now),
     channel,
     rarity: {
@@ -353,7 +341,8 @@ export function buildDossier(
 }
 
 function block(title: string, lines: string[]): string {
-  return [`── ${title} ──`, ...(lines.length ? lines : ["— nessun dato disponibile"]), ""].join("\n");
+  if (!lines.length) return "";
+  return [`── ${title} ──`, ...lines, ""].join("\n");
 }
 
 /** Resa testuale del dossier: usata sia per la copia sia per il download TXT. */
@@ -371,7 +360,6 @@ export function renderDossierText(d: Dossier, options: DossierRenderOptions = {}
     DOSSIER_DISCLAIMER,
     "",
     `Riferimento interno: ${d.bando_id}`,
-    `Completezza dossier: ${d.readiness}`,
     "",
     block(
       "COPERTINA",
@@ -381,20 +369,21 @@ export function renderDossierText(d: Dossier, options: DossierRenderOptions = {}
       "SINTESI ECONOMICA",
       d.economics.map((f) => `${f.label}: ${f.value}`),
     ),
-    block("COMPATIBILITÀ PROFILO", [
-      `Stato: ${d.compatibility.label}${d.compatibility.score !== null ? ` (${d.compatibility.score}%)` : ""}`,
-      ...d.compatibility.confirmed.map((x) => `Confermato: ${x}`),
-      ...d.compatibility.blockers.map((x) => `Blocker: ${x}`),
-      ...d.compatibility.to_check.map((x) => `Da verificare: ${x}`),
-    ]),
+    d.compatibility.visible
+      ? block("COMPATIBILITÀ PROFILO", [
+          `Stato: ${d.compatibility.label}${d.compatibility.score !== null ? ` (${d.compatibility.score}%)` : ""}`,
+          ...d.compatibility.confirmed.map((x) => `Confermato: ${x}`),
+          ...d.compatibility.blockers.map((x) => `Blocker: ${x}`),
+        ])
+      : "",
     block(
       "CHECKLIST REQUISITI",
       d.requirements.map((r, i) => `${i + 1}. ${r}`),
     ),
-    block("CHECKLIST DOCUMENTI (suggerita / da verificare)", [
-      "Elenco suggerito sulla base dei dati disponibili: non sostituisce l'elenco ufficiale del bando.",
-      ...d.documents.map((doc, i) => `${i + 1}. ${doc.label} — ${doc.reason}`),
-    ]),
+    block(
+      "ALLEGATI UFFICIALI DEL BANDO",
+      d.documents.map((doc, i) => `${i + 1}. ${doc.label}`),
+    ),
     block(
       "TIMELINE OPERATIVA",
       d.timeline.map((s) => `${s.date ? `${s.date} — ` : ""}${s.label}: ${s.note}`),
@@ -417,10 +406,7 @@ export function renderDossierText(d: Dossier, options: DossierRenderOptions = {}
         )
       : "",
     block("TESTO ISTANZA / LETTERA DI ACCOMPAGNAMENTO", [d.cover_letter]),
-    block(
-      "DATI MANCANTI PRIMA DELL'USO",
-      d.missing_before_use.length ? d.missing_before_use : ["Nessun dato mancante rilevato automaticamente."],
-    ),
+
     DOSSIER_DISCLAIMER,
     mark,
   ]

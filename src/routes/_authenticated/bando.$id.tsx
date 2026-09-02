@@ -579,21 +579,12 @@ function BandoDetail() {
                 <div className="flex items-center gap-2">
                   <ListChecks className="h-4 w-4 text-primary" />
                   <h2 className="font-semibold">Dossier candidatura</h2>
-                  <span
-                    className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
-                      dossier.readiness === "COMPLETO"
-                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-                        : dossier.readiness === "SCADUTO"
-                          ? "border-destructive/40 bg-destructive/10 text-destructive"
-                          : "border-warning/40 bg-warning/10 text-warning"
-                    }`}
-                  >
-                    {dossier.readiness === "COMPLETO"
-                      ? "Dossier completo"
-                      : dossier.readiness === "SCADUTO"
-                        ? "Termine superato"
-                        : "Dossier parziale"}
-                  </span>
+                  {dossier.readiness === "SCADUTO" ? (
+                    <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive">
+                      Termine superato
+                    </span>
+                  ) : null}
+
                 </div>
                 {!dossierOpen && (
                   <div className="flex flex-col items-start gap-2">
@@ -659,62 +650,58 @@ function BandoDetail() {
                     <FieldGrid fields={dossier.cover} />
                   </DossierBlock>
 
-                  <DossierBlock icon={<Euro className="h-4 w-4" />} title="Sintesi economica">
-                    <FieldGrid fields={dossier.economics} />
-                  </DossierBlock>
+                  {dossier.economics.length ? (
+                    <DossierBlock icon={<Euro className="h-4 w-4" />} title="Sintesi economica">
+                      <FieldGrid fields={dossier.economics} />
+                    </DossierBlock>
+                  ) : null}
 
-                  <DossierBlock
-                    icon={<CheckCircle2 className="h-4 w-4" />}
-                    title={`Compatibilità profilo — ${dossier.compatibility.label}${
-                      dossier.compatibility.score !== null
-                        ? ` · ${dossier.compatibility.score}%`
-                        : ""
-                    }`}
-                  >
-                    <ListSection
-                      label="Requisiti confermati"
-                      items={dossier.compatibility.confirmed}
-                    />
-                    <ListSection label="Blocker" items={dossier.compatibility.blockers} />
-                    <ListSection
-                      label="Campi da verificare"
-                      items={dossier.compatibility.to_check}
-                    />
-                  </DossierBlock>
+                  {dossier.compatibility.visible ? (
+                    <DossierBlock
+                      icon={<CheckCircle2 className="h-4 w-4" />}
+                      title={`Compatibilità profilo — ${dossier.compatibility.label}${
+                        dossier.compatibility.score !== null
+                          ? ` · ${dossier.compatibility.score}%`
+                          : ""
+                      }`}
+                    >
+                      <ListSection
+                        label="Requisiti confermati"
+                        items={dossier.compatibility.confirmed}
+                      />
+                      <ListSection label="Blocker" items={dossier.compatibility.blockers} />
+                    </DossierBlock>
+                  ) : null}
 
-                  <DossierBlock
-                    icon={<ListChecks className="h-4 w-4" />}
-                    title="Checklist requisiti"
-                  >
-                    {dossier.requirements.length ? (
+                  {dossier.requirements.length ? (
+                    <DossierBlock
+                      icon={<ListChecks className="h-4 w-4" />}
+                      title="Checklist requisiti"
+                    >
                       <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
                         {dossier.requirements.map((r, i) => (
                           <li key={i}>{r}</li>
                         ))}
                       </ol>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Requisiti non disponibili: verificali sulla fonte ufficiale.
-                      </p>
-                    )}
-                  </DossierBlock>
+                    </DossierBlock>
+                  ) : null}
 
-                  <DossierBlock
-                    icon={<ListChecks className="h-4 w-4" />}
-                    title="Checklist documenti (suggerita / da verificare)"
-                  >
-                    <p className="mb-2 text-[11px] text-muted-foreground">
-                      Elenco suggerito sulla base dei dati disponibili: non sostituisce l'elenco
-                      ufficiale del bando.
-                    </p>
-                    <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
-                      {dossier.documents.map((doc) => (
-                        <li key={doc.label}>
-                          <span className="text-foreground">{doc.label}</span> — {doc.reason}
-                        </li>
-                      ))}
-                    </ol>
-                  </DossierBlock>
+                  {/* Solo allegati citati dal testo ufficiale: nessun documento inventato. */}
+                  {dossier.documents.length ? (
+                    <DossierBlock
+                      icon={<ListChecks className="h-4 w-4" />}
+                      title="Allegati ufficiali del bando"
+                    >
+                      <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+                        {dossier.documents.map((doc) => (
+                          <li key={doc.label}>
+                            <span className="text-foreground">{doc.label}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </DossierBlock>
+                  ) : null}
+
 
                   <DossierBlock
                     icon={<CalendarClock className="h-4 w-4" />}
@@ -730,9 +717,11 @@ function BandoDetail() {
                     </ul>
                   </DossierBlock>
 
-                  <DossierBlock icon={<Mail className="h-4 w-4" />} title="Canale ufficiale">
-                    <FieldGrid fields={dossier.channel} />
-                  </DossierBlock>
+                  {dossier.channel.length ? (
+                    <DossierBlock icon={<Mail className="h-4 w-4" />} title="Canale ufficiale">
+                      <FieldGrid fields={dossier.channel} />
+                    </DossierBlock>
+                  ) : null}
 
                   {dossier.rarity.poco_diffusa && (
                     <DossierBlock icon={<Radar className="h-4 w-4" />} title="Fonte poco diffusa">
@@ -755,22 +744,7 @@ function BandoDetail() {
                     </pre>
                   </DossierBlock>
 
-                  <DossierBlock
-                    icon={<AlertTriangle className="h-4 w-4" />}
-                    title="Dati mancanti prima dell'uso"
-                  >
-                    {dossier.missing_before_use.length ? (
-                      <ul className="space-y-1 text-xs text-muted-foreground">
-                        {dossier.missing_before_use.map((m) => (
-                          <li key={m}>• {m}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Nessun dato mancante rilevato automaticamente.
-                      </p>
-                    )}
-                  </DossierBlock>
+
 
                   <div className="flex flex-wrap gap-2">
                     <button

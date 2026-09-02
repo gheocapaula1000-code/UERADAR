@@ -12,37 +12,51 @@ export function dossierPdfModel(d: Dossier, watermarked = false): PdfBlock[] {
     { kind: "title", text: "Dossier candidatura (bozza) — UEradar.com" },
     { kind: "note", text: DOSSIER_DISCLAIMER },
     { kind: "text", text: `Riferimento interno: ${d.bando_id}` },
-    { kind: "text", text: `Completezza dossier: ${d.readiness}` },
     { kind: "heading", text: "Copertina" },
     ...d.cover.map((f) => ({ kind: "text" as const, text: `${f.label}: ${f.value}` })),
-    { kind: "heading", text: "Sintesi economica" },
-    ...d.economics.map((f) => ({ kind: "text" as const, text: `${f.label}: ${f.value}` })),
-    { kind: "heading", text: "Compatibilità profilo" },
-    {
-      kind: "text",
-      text: `Stato: ${d.compatibility.label}${d.compatibility.score !== null ? ` (${d.compatibility.score}%)` : ""}`,
-    },
-    ...d.compatibility.confirmed.map((x) => ({ kind: "text" as const, text: `Confermato: ${x}` })),
-    ...d.compatibility.blockers.map((x) => ({ kind: "text" as const, text: `Blocker: ${x}` })),
-    ...d.compatibility.to_check.map((x) => ({ kind: "text" as const, text: `Da verificare: ${x}` })),
-    { kind: "heading", text: "Checklist requisiti" },
+    ...(d.economics.length
+      ? [
+          { kind: "heading" as const, text: "Sintesi economica" },
+          ...d.economics.map((f) => ({ kind: "text" as const, text: `${f.label}: ${f.value}` })),
+        ]
+      : []),
+    ...(d.compatibility.visible
+      ? [
+          { kind: "heading" as const, text: "Compatibilità profilo" },
+          {
+            kind: "text" as const,
+            text: `Stato: ${d.compatibility.label}${d.compatibility.score !== null ? ` (${d.compatibility.score}%)` : ""}`,
+          },
+          ...d.compatibility.confirmed.map((x) => ({ kind: "text" as const, text: `Confermato: ${x}` })),
+          ...d.compatibility.blockers.map((x) => ({ kind: "text" as const, text: `Blocker: ${x}` })),
+        ]
+      : []),
     ...(d.requirements.length
-      ? d.requirements.map((r, i) => ({ kind: "text" as const, text: `${i + 1}. ${r}` }))
-      : [{ kind: "text" as const, text: "Requisiti non disponibili: verificare sulla fonte ufficiale." }]),
-    { kind: "heading", text: "Checklist documenti (suggerita / da verificare)" },
-    {
-      kind: "note",
-      text: "Elenco suggerito sulla base dei dati disponibili: non sostituisce l'elenco ufficiale del bando.",
-    },
-    ...d.documents.map((doc, i) => ({ kind: "text" as const, text: `${i + 1}. ${doc.label} — ${doc.reason}` })),
+      ? [
+          { kind: "heading" as const, text: "Checklist requisiti" },
+          ...d.requirements.map((r, i) => ({ kind: "text" as const, text: `${i + 1}. ${r}` })),
+        ]
+      : []),
+    // Solo allegati realmente citati dal bando: nessun documento inventato.
+    ...(d.documents.length
+      ? [
+          { kind: "heading" as const, text: "Allegati ufficiali del bando" },
+          ...d.documents.map((doc, i) => ({ kind: "text" as const, text: `${i + 1}. ${doc.label}` })),
+        ]
+      : []),
     { kind: "heading", text: "Timeline operativa" },
     ...d.timeline.map((s) => ({
       kind: "text" as const,
       text: `${s.date ? `${s.date} — ` : ""}${s.label}: ${s.note}`,
     })),
-    { kind: "heading", text: "Canale ufficiale" },
-    ...d.channel.map((f) => ({ kind: "text" as const, text: `${f.label}: ${f.value}` })),
+    ...(d.channel.length
+      ? [
+          { kind: "heading" as const, text: "Canale ufficiale" },
+          ...d.channel.map((f) => ({ kind: "text" as const, text: `${f.label}: ${f.value}` })),
+        ]
+      : []),
   ];
+
 
   if (d.rarity.poco_diffusa) {
     blocks.push({ kind: "heading", text: "Fonte poco diffusa" });
@@ -63,12 +77,6 @@ export function dossierPdfModel(d: Dossier, watermarked = false): PdfBlock[] {
   blocks.push({ kind: "heading", text: "Testo istanza / lettera di accompagnamento" });
   for (const line of d.cover_letter.split("\n")) blocks.push({ kind: "text", text: line });
 
-  blocks.push({ kind: "heading", text: "Dati mancanti prima dell'uso" });
-  if (d.missing_before_use.length) {
-    for (const m of d.missing_before_use) blocks.push({ kind: "text", text: `• ${m}` });
-  } else {
-    blocks.push({ kind: "text", text: "Nessun dato mancante rilevato automaticamente." });
-  }
 
   blocks.push({ kind: "note", text: DOSSIER_DISCLAIMER });
   if (watermarked) blocks.push({ kind: "note", text: TRIAL_WATERMARK });
