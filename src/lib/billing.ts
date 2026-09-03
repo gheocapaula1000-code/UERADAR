@@ -455,7 +455,10 @@ export function canStartNewSubscription(
   ];
   if (!TERMINAL.includes(status))
     return { allowed: false, reason: "SUBSCRIPTION_ALREADY_ACTIVE" };
-  return { allowed: true, reason: "PREVIOUS_SUBSCRIPTION_INACTIVE" };
+  // Il binding provider è immutabile. Finché non esiste un flusso esplicito
+  // di re-subscribe con storico separato, aprire una nuova Session creerebbe
+  // un abbonamento fatturabile ma non collegabile dal webhook.
+  return { allowed: false, reason: "RESUBSCRIBE_FLOW_REQUIRED" };
 }
 
 /**
@@ -781,7 +784,7 @@ export function orderingDecision(input: {
  * creata presso il provider condividono lo stesso TTL, così un completamento
  * fuori finestra non può mai legare il primo abbonamento.
  */
-export const CHECKOUT_TTL_SECONDS = 1800;
+export const CHECKOUT_TTL_SECONDS = 1860;
 
 /** Scadenza assoluta (Unix epoch) della sessione, allineata al TTL dell'intento. */
 export function checkoutSessionExpiresAt(nowMs: number): number {
