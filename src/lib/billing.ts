@@ -444,9 +444,11 @@ export function canStartNewSubscription(
 ): { allowed: boolean; reason: string } {
   const subscriptionId = row?.provider_subscription_id ?? null;
   if (!subscriptionId) return { allowed: true, reason: "NO_PROVIDER_SUBSCRIPTION" };
+  // L'identificativo abbonamento è immutabile lato database: una volta legato,
+  // un nuovo checkout addebiterebbe la carta e poi verrebbe rifiutato dall'apply
+  // con SUBSCRIPTION_REASSIGNMENT_BLOCKED. Meglio bloccare prima del pagamento,
+  // anche quando lo stato è canceled o scaduto.
   const status = normalizeStatus(row?.status);
-  // Solo gli stati terminali consentono di ripartire: tutto il resto va gestito
-  // dal portale cliente, altrimenti si creerebbe una seconda sottoscrizione.
   const TERMINAL: readonly SubscriptionState[] = [
     "canceled",
     "expired",
@@ -455,8 +457,9 @@ export function canStartNewSubscription(
   ];
   if (!TERMINAL.includes(status))
     return { allowed: false, reason: "SUBSCRIPTION_ALREADY_ACTIVE" };
-  return { allowed: true, reason: "PREVIOUS_SUBSCRIPTION_INACTIVE" };
+  return { allowed: false, reason: "SUBSCRIPTION_ALREADY_BOUND" };
 }
+
 
 /**
  * Ordinamento eventi: un evento più vecchio di quello già applicato non deve
