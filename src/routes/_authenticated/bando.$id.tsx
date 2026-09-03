@@ -40,6 +40,7 @@ import {
   Euro,
   FileDown,
 } from "lucide-react";
+import { isRealOpenAvviso } from "@/lib/mia-impresa";
 import { toast } from "sonner";
 
 /** Normalizza un URL ufficiale: forza https e corregge invitalia.it senza www. */
@@ -163,7 +164,8 @@ function BandoDetail() {
       <AppShell>
         <div className="p-8 text-center">
           <p className="text-muted-foreground">
-            Bando non trovato o non più in cache. Torna al radar.
+            Questa scheda non è un bando aperto: può essere una pagina del portale, una
+            graduatoria o un avviso non più in elenco. Torna al Radar Bandi.
           </p>
           <button
             onClick={() => navigate({ to: "/dashboard" })}
