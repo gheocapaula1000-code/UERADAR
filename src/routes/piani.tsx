@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/piani")({
   beforeLoad: () => {
-    throw redirect({ to: "/prezzi", replace: true });
+    throw redirect({ to: "/prezzi", statusCode: 301 });
   },
 });
+
