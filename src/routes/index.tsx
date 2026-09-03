@@ -310,8 +310,65 @@ function Landing() {
         </div>
       </section>
 
+      {/* SICUREZZA / TRUST */}
+      <section id="sicurezza" className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto mb-10 max-w-2xl text-center">
+          <div className="text-xs uppercase tracking-widest text-accent font-semibold">
+            Sicurezza
+          </div>
+          <h2 className="mt-2 text-3xl font-bold md:text-4xl">
+            I tuoi dati servono solo al matching.
+          </h2>
+          <p className="mt-3 text-muted-foreground">
+            UEradar è costruita per imprese e professionisti: nessuna sorpresa, nessuna pratica inviata per conto tuo.
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[
+            {
+              icon: ShieldCheck,
+              t: "Prova senza carta",
+              d: "7 giorni gratuiti, senza carta di credito né dati bancari. Nessun addebito automatico.",
+            },
+            {
+              icon: Building2,
+              t: "Tu firmi, non inviamo noi",
+              d: "La Bozza di domanda resta tua. UEradar non spedisce pratiche agli enti: controlli, firmi e presenti tu.",
+            },
+            {
+              icon: Target,
+              t: "Profilo e dati rimangono tuoi",
+              d: "Partita IVA, ATECO e sede servono solo per trovare i Bandi compatibili. Non li vendiamo né li condividiamo.",
+            },
+            {
+              icon: Globe,
+              t: "Trasparenza e privacy",
+              d: "Cookie e privacy gestiti in modo chiaro. Leggi i dettagli nelle pagine Privacy e Cookie.",
+            },
+          ].map((item) => (
+            <div
+              key={item.t}
+              className="rounded-2xl border border-border bg-card p-6 shadow-sm transition hover:border-primary/30"
+            >
+              <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
+                <item.icon className="h-5 w-5" />
+              </div>
+              <h3 className="mt-4 text-lg font-semibold">{item.t}</h3>
+              <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+                {item.d}
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
+          <Link to="/privacy" className="underline hover:text-foreground">Privacy</Link>
+          <Link to="/cookie" className="underline hover:text-foreground">Cookie</Link>
+          <Link to="/termini" className="underline hover:text-foreground">Termini</Link>
+        </div>
+      </section>
+
       {/* CTA */}
-      <section id="sicurezza" className="mx-auto w-full max-w-6xl px-4 py-20 text-center sm:px-6 sm:py-24">
+      <section id="attiva" className="mx-auto w-full max-w-6xl px-4 py-20 text-center sm:px-6 sm:py-24">
         <h2 className="mx-auto max-w-2xl text-3xl font-bold md:text-4xl">
           Tieni sotto controllo i Bandi aperti.
         </h2>
