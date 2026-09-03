@@ -262,8 +262,12 @@ function BandoDetail() {
 
   const copyInstance = async () => {
     if (!dossierOpen) return;
-    await navigator.clipboard.writeText(instanceText);
-    toast.success("Testo copiato negli appunti");
+    try {
+      await navigator.clipboard.writeText(instanceText);
+      toast.success("Testo copiato negli appunti");
+    } catch {
+      toast.error("Copia non riuscita: il browser non ci dà accesso agli appunti. Scarica il TXT.");
+    }
   };
 
   const downloadTxt = () => {
@@ -402,8 +406,12 @@ function BandoDetail() {
 
   const copyPec = async (value: string | undefined) => {
     if (!value) return;
-    await navigator.clipboard.writeText(value);
-    toast.success("PEC copiata");
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success("PEC copiata");
+    } catch {
+      toast.error("Copia non riuscita: il browser non ci dà accesso agli appunti.");
+    }
   };
 
   return (
