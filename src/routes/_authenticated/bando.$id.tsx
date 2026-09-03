@@ -139,7 +139,13 @@ function BandoDetail() {
     },
   });
 
-  const bando = useMemo(() => feedQ.data?.bandi.find((b) => b.id === id), [feedQ.data, id]);
+  // Stessa porta della dashboard: una pagina di portale, una FAQ o una
+  // graduatoria non diventa una scheda Bando neppure da link diretto.
+  const bando = useMemo(() => {
+    const found = feedQ.data?.bandi.find((b) => b.id === id);
+    return found && isRealOpenAvviso(found) ? found : undefined;
+  }, [feedQ.data, id]);
+
 
   if (feedQ.isLoading || profileQ.isLoading) {
     return (
