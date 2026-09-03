@@ -13,6 +13,7 @@ import { Route as TerminiRouteImport } from './routes/termini'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PrezziRouteImport } from './routes/prezzi'
+import { Route as PianiRouteImport } from './routes/piani'
 import { Route as CookieRouteImport } from './routes/cookie'
 import { Route as ContattiRouteImport } from './routes/contatti'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -42,6 +43,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const PrezziRoute = PrezziRouteImport.update({
   id: '/prezzi',
   path: '/prezzi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PianiRoute = PianiRouteImport.update({
+  id: '/piani',
+  path: '/piani',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CookieRoute = CookieRouteImport.update({
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/contatti': typeof ContattiRoute
   '/cookie': typeof CookieRoute
+  '/piani': typeof PianiRoute
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/contatti': typeof ContattiRoute
   '/cookie': typeof CookieRoute
+  '/piani': typeof PianiRoute
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/contatti': typeof ContattiRoute
   '/cookie': typeof CookieRoute
+  '/piani': typeof PianiRoute
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contatti'
     | '/cookie'
+    | '/piani'
     | '/prezzi'
     | '/privacy'
     | '/sitemap.xml'
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contatti'
     | '/cookie'
+    | '/piani'
     | '/prezzi'
     | '/privacy'
     | '/sitemap.xml'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contatti'
     | '/cookie'
+    | '/piani'
     | '/prezzi'
     | '/privacy'
     | '/sitemap.xml'
@@ -197,6 +209,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ContattiRoute: typeof ContattiRoute
   CookieRoute: typeof CookieRoute
+  PianiRoute: typeof PianiRoute
   PrezziRoute: typeof PrezziRoute
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -232,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/prezzi'
       fullPath: '/prezzi'
       preLoaderRoute: typeof PrezziRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/piani': {
+      id: '/piani'
+      path: '/piani'
+      fullPath: '/piani'
+      preLoaderRoute: typeof PianiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cookie': {
@@ -330,6 +350,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ContattiRoute: ContattiRoute,
   CookieRoute: CookieRoute,
+  PianiRoute: PianiRoute,
   PrezziRoute: PrezziRoute,
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
