@@ -1,18 +1,18 @@
 # UEradar roadmap
 
-## In progress
-- [ ] Fix homepage #sicurezza UX: add real trust section, move CTA to #attiva (src/routes/index.tsx)
+## Fatto (passata di completamento produzione)
+- [x] Homepage: sezione reale #sicurezza, CTA finale su #attiva
+- [x] Webhook checkout: fallback `client_reference_id` per legare la sessione all'utente
+- [x] EntitlementGate: ramo errore di rete distinto, con Riprova
+- [x] `isRealOpenAvviso` anche sul dettaglio bando (link diretto)
+- [x] Dossier: timeout con messaggio chiaro + riallineamento contatore quota
+- [x] Errori PDF/modulistica distinti (offline vs file non leggibile)
+- [x] Requisiti vuoti filtrati nel dossier; URL lunghi spezzati nel PDF
+- [x] Posti esauriti: modulo invito chiuso con spiegazione
 
-## Backlog (audit findings)
-- [ ] Apply `isRealOpenAvviso` guard on bando detail route
-- [ ] Add invite email delivery and `/invito` acceptance route
-- [ ] EntitlementGate: distinguish network errors from no subscription
-- [ ] Dossier timeout: invalidate usage summary on timeout branch
-- [ ] Align offline feed cache max age with server cache (7 days)
-- [ ] Filter empty requisiti rows in dossier
-- [ ] Truncate long URLs in generated PDF
-- [ ] Distinguish PDF/modulistica error messages
-- [ ] Clear React Query cache on sign-out
-- [ ] Verify removeCompanyMember hard-deletes member row for re-invite
-- [ ] Alert on unhandled Stripe webhook event types
-- [ ] Log/alert when feed admits via CORE_ATTESTED_SOURCE
+## Backlog
+- [ ] Email di invito + rotta pubblica `/invito`
+- [ ] Allineare cache offline (30 gg) alla policy feed (7 gg)
+- [ ] Svuotare la cache React Query al logout
+- [ ] Verificare reinvito dopo rimozione membro
+- [ ] Segnale per eventi Stripe non gestiti e per fonti attestate dal Core

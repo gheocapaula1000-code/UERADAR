@@ -25,7 +25,35 @@ export function EntitlementGate({ children }: { children: ReactNode }) {
     );
   }
 
+  // Errore di rete o server: non è un abbonamento mancante. Resta fail-closed
+  // (il contenuto non si apre) ma con un messaggio onesto e un pulsante Riprova.
+  if (billing.isError || !billing.data) {
+    return (
+      <div className="mx-auto max-w-2xl p-6">
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <AlertTriangle aria-hidden="true" className="h-5 w-5 text-accent" />
+            Non riusciamo a controllare il tuo accesso
+          </h2>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Sembra un problema di connessione, non del tuo abbonamento. Riprova tra qualche
+            secondo: non è stato modificato nulla.
+          </p>
+          <button
+            type="button"
+            onClick={() => void billing.refetch()}
+            className="tap mt-6 inline-flex rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground"
+          >
+            Riprova
+          </button>
+          <HelpLine />
+        </div>
+      </div>
+    );
+  }
+
   if (billing.data?.entitlement.entitled) return <>{children}</>;
+
 
   const state = billing.data?.entitlement.state ?? "NONE";
   // Prova mai avviata: la strada è il profilo, non l'abbonamento.

@@ -206,7 +206,11 @@ function Abbonamento() {
     ? seatUsage(data?.members_count ?? 0, entitlement)
     : { used: 0, seats: 0, unlimited: false, remaining: 0, label: "—" };
   const used = usage.used;
+  // Posti esauriti: l'invito viene rifiutato dal server, quindi qui il modulo
+  // resta chiuso con una spiegazione, non con un errore dopo il clic.
+  const seatsFull = !usage.unlimited && usage.seats > 0 && usage.remaining <= 0;
   const canInvite =
+    !seatsFull &&
     form.first_name.trim().length >= 2 &&
     form.last_name.trim().length >= 2 &&
     /.+@.+\..+/.test(form.email.trim()) &&
@@ -445,7 +449,16 @@ function Abbonamento() {
             </div>
           ) : null}
 
-          {isMember ? null : (
+          {isMember ? null : seatsFull ? (
+            <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4 text-sm">
+              <p className="font-medium">Tutti i posti del piano sono occupati</p>
+              <p className="mt-1 text-muted-foreground">
+                Stai usando {usage.used} posti su {usage.seats}. Per aggiungere una persona,
+                rimuovi prima un utente dall'elenco qui sotto oppure passa a un piano con più
+                utenti.
+              </p>
+            </div>
+          ) : (
             <>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <div>
