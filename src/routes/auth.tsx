@@ -46,8 +46,27 @@ function AuthPage() {
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Validazione in italiano prima di chiamare il provider: mai un invio muto.
+    const emailTrim = email.trim();
+    if (!emailTrim) {
+      toast.error("Inserisci la tua email.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailTrim)) {
+      toast.error("L'indirizzo email non sembra valido.");
+      return;
+    }
+    if (!password) {
+      toast.error("Inserisci la password.");
+      return;
+    }
+    if (mode === "signup" && password.length < 8) {
+      toast.error("La password deve avere almeno 8 caratteri.");
+      return;
+    }
     setLoading(true);
     try {
+
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email,
