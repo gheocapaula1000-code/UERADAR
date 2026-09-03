@@ -13,15 +13,16 @@ describe("completamento frontend UEradar.com", () => {
     }
   });
 
-  it("dichiara trial di 7 giorni senza carta, dati bancari né disdetta e addebiti disabilitati", () => {
+  it("dichiara trial di 7 giorni senza carta, dati bancari né disdetta", () => {
     const pricing = readFileSync("src/routes/prezzi.tsx", "utf8");
     expect(pricing).toContain("TRIAL_HIGHLIGHT");
     expect(TRIAL_HIGHLIGHT).toContain("7 giorni");
     expect(TRIAL_HIGHLIGHT).toContain("senza carta");
     expect(TRIAL_HIGHLIGHT).toContain("dati bancari");
     expect(TRIAL_HIGHLIGHT).toContain("disdetta");
-    expect(pricing).toContain('VITE_BILLING_ENABLED === "true"');
-    expect(pricing).toContain("Gli addebiti sono disabilitati");
+    expect(pricing).not.toContain("Gli addebiti sono disabilitati");
+    expect(pricing).toContain("Nessun addebito durante i 7 giorni di prova");
+    expect(pricing).toContain("449");
   });
 
   it("protegge la tabella abbonamenti con RLS e scritture service-role", () => {
@@ -55,11 +56,11 @@ describe("completamento frontend UEradar.com", () => {
     expect(dashboard).not.toMatch(/notifiche automatiche/i);
   });
 
-  it("non reindirizza a Payment Link live e dichiara addebiti disabilitati", () => {
+  it("non reindirizza a Payment Link statici e non dichiara addebiti disabilitati", () => {
     const billing = readFileSync("src/routes/_authenticated/abbonamento.tsx", "utf8");
     expect(billing).not.toContain("buy.stripe.com");
     expect(billing).not.toContain("PAYMENT_LINK");
-    expect(billing).toContain("Gli addebiti sono disabilitati");
+    expect(billing).not.toContain("Gli addebiti sono disabilitati");
   });
 
   it("confronta solo Istruttoria e Studio, senza Radar in listino", () => {
@@ -92,6 +93,7 @@ describe("completamento frontend UEradar.com", () => {
     expect(readme).toContain("https://ueradar.lovable.app");
     expect(readme).not.toContain("fund-finder-pro-21");
     expect(readme).toContain("CORE_ALLOWED_ORIGINS");
-    expect(readme).toContain("test-only");
+    expect(readme).not.toContain("test-only");
+    expect(readme).toContain("Fatturazione **live attiva**");
   });
 });
