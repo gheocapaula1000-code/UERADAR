@@ -37,15 +37,33 @@ function offlineNoticePage(path) {
 
 async function warmShell() {
   const cache = await caches.open(CACHE);
+  const assets = new Set();
   // Nessun addAll: un singolo URL non disponibile farebbe fallire l'intera
   // install e lascerebbe la PWA senza shell offline.
   await Promise.allSettled(
     SHELL.map(async (url) => {
       const response = await fetch(url, { cache: "reload", credentials: "same-origin" });
+      if (!response || !response.ok) return;
+      await cache.put(url, response.clone());
+      const type = response.headers.get("content-type") || "";
+      if (!type.includes("text/html")) return;
+      // Anche gli asset referenziati dalla pagina, altrimenti offline resta il
+      // solo HTML senza stile né interattività.
+      const html = await response.clone().text();
+      const re = /(?:src|href)="(\/[^"]+\.(?:js|css|woff2?|png|svg|ico))"/g;
+      let m;
+      while ((m = re.exec(html)) !== null) assets.add(m[1]);
+    }),
+  );
+  await Promise.allSettled(
+    [...assets].map(async (url) => {
+      if (await cache.match(url)) return;
+      const response = await fetch(url, { credentials: "same-origin" });
       if (response && response.ok) await cache.put(url, response.clone());
     }),
   );
 }
+
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
