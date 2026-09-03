@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/bandocore/SiteFooter";
 import { seoHead } from "@/lib/seo";
 import { TRIAL_HIGHLIGHT } from "@/lib/coverage";
 import { toast } from "sonner";
+import { authErrorMessage } from "@/lib/auth-errors";
 
 export const Route = createFileRoute("/auth")({
   head: () => seoHead("/auth"),
@@ -69,7 +70,7 @@ function AuthPage() {
       const { data } = await supabase.auth.getSession();
       if (data.session) navigate({ to: "/dashboard" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Errore di autenticazione");
+      toast.error(authErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -90,7 +91,7 @@ function AuthPage() {
       if (error) throw error;
       toast.success("Se l'account esiste, riceverai una email per reimpostare la password");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Recupero password non riuscito");
+      toast.error(authErrorMessage(err, "Recupero password non riuscito. Riprova tra poco."));
     } finally {
       setLoading(false);
     }
