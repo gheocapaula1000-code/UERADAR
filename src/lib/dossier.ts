@@ -319,7 +319,10 @@ export function buildDossier(
       blockers: bando.match?.blockers ?? [],
       to_check: [],
     },
-    requirements: bando.requisiti ?? [],
+    requirements: (bando.requisiti ?? [])
+      .filter((r): r is string => typeof r === "string" && r.trim().length > 0)
+      .map((r) => r.trim()),
+
     documents: officialAttachments(bando),
 
     timeline: buildTimeline(bando, now),
