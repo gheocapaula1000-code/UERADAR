@@ -784,7 +784,7 @@ export function orderingDecision(input: {
  * creata presso il provider condividono lo stesso TTL, così un completamento
  * fuori finestra non può mai legare il primo abbonamento.
  */
-export const CHECKOUT_TTL_SECONDS = 1800;
+export const CHECKOUT_TTL_SECONDS = 1860;
 
 /** Scadenza assoluta (Unix epoch) della sessione, allineata al TTL dell'intento. */
 export function checkoutSessionExpiresAt(nowMs: number): number {
