@@ -26,7 +26,7 @@ Non è un prodotto nuovo e non è Civiko: è il frontend sottile di UERADAR.
 
 Prova: **7 giorni**, senza carta, senza dati bancari, senza disdetta. 1 impresa, 1 dossier filigranato.
 
-La fatturazione live **non è attiva**: il checkout è test-only. Non usare Payment Link statici.
+Fatturazione **live attiva** (Stripe LIVE): il checkout Istruttoria addebita realmente quando l'utente conferma. Non usare Payment Link statici: l'unico percorso valido è il checkout server-side legato all'utente UERADAR.
 
 ## Cosa significa «Verificato»
 
@@ -55,4 +55,4 @@ npm test
 
 - Secret di produzione (Core API key, cron digest, Resend).
 - `CORE_ALLOWED_ORIGINS` e release gate del digest.
-- Billing live (Stripe LIVE + checkout pubblico). Oggi gli addebiti restano disabilitati.
+- Configurazione operativa Stripe LIVE (price ID Istruttoria mensile e annuale, webhook secret): se mancano, il billing resta fail-closed. I price Radar/Studio sono opzionali e non bloccano nulla.

@@ -35,11 +35,6 @@ export const Route = createFileRoute("/prezzi")({
 });
 
 function Pricing() {
-  // VITE_BILLING_ENABLED è una variabile di sola presentazione: va impostata a
-  // "true" solo negli ambienti di deploy TEST (QA). In produzione LIVE resta
-  // assente/false. Il checkout reale è comunque gated lato server da
-  // UERADAR_BILLING_MODE=test + UERADAR_CHECKOUT_QA_ENABLED + allowlist email.
-  const billingEnabled = import.meta.env.VITE_BILLING_ENABLED === "true";
   const [interval, setInterval] = useState<"month" | "year">("month");
 
   return (
@@ -181,9 +176,8 @@ function Pricing() {
                 {TRIAL_COPY.ctaNote}
               </p>
               <p className="mt-1 text-center text-sm text-muted-foreground">
-                {billingEnabled
-                  ? "L'abbonamento si attiva solo con conferma esplicita."
-                  : "Gli addebiti sono disabilitati: la prova non richiede pagamento."}
+                Nessun addebito durante i 7 giorni di prova: l’abbonamento si attiva solo con
+                conferma esplicita al checkout.
               </p>
             </div>
           ))}

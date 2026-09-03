@@ -215,7 +215,7 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
             expectedCustomerId: customerId,
             linkedCustomerId: record?.provider_customer_id ?? null,
             priceMap: env.priceMap,
-            expectedLivemode: env.expectedLivemode ?? undefined,
+            expectedLivemode: env.expectedLivemode === true,
           });
           if (!guard.ok) return { ok: false, code: guard.code, skippable: false };
 

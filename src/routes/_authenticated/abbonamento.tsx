@@ -43,7 +43,7 @@ const CHECKOUT_BLOCK_LABEL: Record<string, string> = {
   BILLING_KEY_MODE_MISMATCH:
     "La configurazione di pagamento non corrisponde alla modalità attiva dell'ambiente.",
   BILLING_MODE_INVALID: "La modalità di pagamento dell'ambiente non consente l'attivazione online.",
-  LIVE_MODE_DISABLED: "Gli addebiti reali sono disattivati su questo ambiente.",
+  LIVE_MODE_DISABLED: "Attivazione a pagamento momentaneamente non disponibile. Riprova più tardi.",
   PRICES_NOT_CONFIGURED: "I piani non sono ancora collegati ai listini di pagamento.",
   PRICE_IDS_NOT_UNIQUE: "I listini di pagamento risultano duplicati: configurazione da correggere.",
   PUBLIC_CHECKOUT_DISABLED: "L'attivazione online è temporaneamente chiusa al pubblico.",
@@ -291,8 +291,8 @@ function Abbonamento() {
           {data && !data.checkout_available ? (
             <p className="mt-4 flex items-start gap-2 rounded-lg border border-border bg-muted p-3 text-sm">
               <ShieldCheck aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
-              Gli addebiti sono disabilitati su questo ambiente. La prova non richiede pagamento.
-              L'attivazione a pagamento resta riservata ai test.
+              Attivazione a pagamento non disponibile in questo momento. La prova di 7 giorni resta
+              attiva e non richiede carta: riprova più tardi o scrivici per attivare l’Istruttoria.
             </p>
           ) : null}
 
@@ -386,7 +386,7 @@ function Abbonamento() {
                   toast.error("Attivazione non disponibile", {
                     description:
                       disabledReason ??
-                      "Gli addebiti sono disabilitati: nessun pagamento live da questa pagina.",
+                      "Attivazione a pagamento non disponibile in questo momento. Riprova più tardi.",
                   });
                 }}
                 disabled={payMutation.isPending || Boolean(disabledReason) || !data?.checkout_available}
