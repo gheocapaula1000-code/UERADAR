@@ -193,7 +193,7 @@ function AuthPage() {
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <form onSubmit={handleEmail} className="space-y-4">
+          <form onSubmit={handleEmail} noValidate className="space-y-4">
             <div>
               <label htmlFor="email" className="text-xs font-medium text-muted-foreground">Email</label>
               <div className="mt-1 relative">
