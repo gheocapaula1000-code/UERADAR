@@ -9,7 +9,7 @@ export const LEGAL = {
   brand: "UEradar.com",
   owner: "Pi.Gi Service di Gheoca Paula",
   address: {
-    street: "Via Guidi Reni, 8",
+    street: "Via Guido Reni, 8",
     postalCode: "35133",
     city: "Padova",
     province: "PD",
