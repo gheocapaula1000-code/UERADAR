@@ -69,7 +69,7 @@ function AuthPage() {
 
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
-          email,
+          email: emailTrim,
           password,
           options: {
             emailRedirectTo: window.location.origin + "/auth",
@@ -83,7 +83,7 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Registrazione completata. Verifica la mail se richiesto.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email: emailTrim, password });
         if (error) throw error;
       }
       const { data } = await supabase.auth.getSession();
