@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { seoHead } from "@/lib/seo";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/bandocore/AppShell";
 import { fetchFeedFromProxyCore, loadCachedFeed } from "@/lib/proxy-core.functions";
@@ -111,6 +111,7 @@ function BandoDetail() {
   const claimDossier = useServerFn(consumeDossier);
   const loadOfficialModulistica = useServerFn(fetchOfficialModulistica);
   const loadUsage = useServerFn(getUsageSummary);
+  const queryClient = useQueryClient();
   const usageQ = useQuery({
     queryKey: ["usage-summary"],
     queryFn: () => loadUsage(),
@@ -215,7 +216,11 @@ function BandoDetail() {
       await downloadDossierPdf(dossier, `dossier-${bando.id}.pdf`, watermarked);
       toast.success("PDF generato nel browser");
     } catch {
-      toast.error("Generazione PDF non riuscita");
+      toast.error(
+        navigator.onLine === false
+          ? "Sei offline: il PDF si genera sul tuo dispositivo, riprova quando torni online"
+          : "Generazione PDF non riuscita. Puoi scaricare il dossier in formato testo",
+      );
     } finally {
       setPdfBusy(false);
     }
@@ -314,7 +319,9 @@ function BandoDetail() {
       );
     } catch {
       setModuleNote(
-        "Download del documento ufficiale non riuscito. Apri il link oppure seleziona un PDF già scaricato.",
+        navigator.onLine === false
+          ? "Sei offline: non possiamo scaricare il documento ufficiale. Riprova quando torni online."
+          : "Download del documento ufficiale non riuscito. Apri il link oppure seleziona un PDF già scaricato.",
       );
     } finally {
       setModuleBusy(false);
@@ -328,7 +335,9 @@ function BandoDetail() {
     try {
       await applyOfficialPdfBytes(new Uint8Array(await file.arrayBuffer()));
     } catch {
-      setModuleNote("Lettura del PDF non riuscita. Il file resta invariato.");
+      setModuleNote(
+        "Lettura del PDF non riuscita: il file potrebbe essere protetto o danneggiato. Il file resta invariato.",
+      );
     } finally {
       setModuleBusy(false);
     }
@@ -355,9 +364,19 @@ function BandoDetail() {
       }
       setWatermarked(res.watermarked === true);
       setDossierOpen(true);
-    } catch {
-      setDossierError("Dossier non disponibile in questo momento");
-      toast.error("Dossier non disponibile in questo momento");
+      void queryClient.invalidateQueries({ queryKey: ["usage-summary"] });
+    } catch (err) {
+      // Il timeout non annulla la chiamata al server: la quota può essere già
+      // stata registrata, quindi il contatore va comunque riallineato.
+      const timedOut = err instanceof Error && err.message === "TIMEOUT";
+      void queryClient.invalidateQueries({ queryKey: ["usage-summary"] });
+      const msg = timedOut
+        ? "Il dossier ci sta mettendo troppo. Ricarica la pagina tra un minuto: se era già pronto lo trovi qui"
+        : navigator.onLine === false
+          ? "Sei offline: il dossier si prepara sul server, riprova quando torni online"
+          : "Dossier non disponibile in questo momento";
+      setDossierError(msg);
+      toast.error(msg);
     } finally {
       setDossierBusy(false);
     }
