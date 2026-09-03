@@ -307,8 +307,20 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
         }
 
         if (eventType === "checkout.session.completed") {
-          const lookup = await resolveUserId(asObj(object["metadata"]));
+          // Il legame con l'utente UERADAR viene dai metadata; `client_reference_id`
+          // è la stessa identità impostata alla creazione della sessione e serve
+          // da rete di sicurezza se i metadata mancano.
+          const sessionMeta = asObj(object["metadata"]);
+          const reference = str(object["client_reference_id"]);
+          const identity: Obj | null =
+            sessionMeta?.["supabase_user_id"]
+              ? sessionMeta
+              : reference
+                ? { ...(sessionMeta ?? {}), supabase_user_id: reference }
+                : sessionMeta;
+          const lookup = await resolveUserId(identity);
           if (!lookup.ok) return settle("USER_LOOKUP_FAILED", false);
+
           const userId = lookup.userId;
           const subscriptionId = str(object["subscription"]);
           if (!subscriptionId) return settle("SESSION_WITHOUT_SUBSCRIPTION", true);
