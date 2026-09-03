@@ -370,11 +370,16 @@ function BandoDetail() {
             ? "Hai esaurito i dossier inclusi in questo mese"
             : res.code === "EXPORT_NOT_INCLUDED"
               ? "Dossier non disponibile con il piano attivo"
-              : "Dossier non disponibile in questo momento";
+              : res.code === "USAGE_UNAVAILABLE"
+                ? "Non riusciamo a leggere il tuo contatore dossier: riprova tra qualche secondo"
+                : res.code === "RATE_LIMITED"
+                  ? "Troppe richieste ravvicinate: attendi un minuto e riprova"
+                  : "Dossier non disponibile in questo momento";
         setDossierError(msg);
         toast.error(msg);
         return;
       }
+
       setWatermarked(res.watermarked === true);
       setDossierOpen(true);
       void queryClient.invalidateQueries({ queryKey: ["usage-summary"] });
