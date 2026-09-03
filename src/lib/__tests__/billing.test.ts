@@ -304,9 +304,14 @@ describe("gate di review Stripe TEST", () => {
     expect(
       canStartNewSubscription({ status: "trialing", provider_subscription_id: "sub_1" }).reason,
     ).toBe("SUBSCRIPTION_ALREADY_ACTIVE");
+    // Anche da canceled: l'ID abbonamento è immutabile, un nuovo checkout
+    // addebiterebbe la carta senza poter essere collegato.
     expect(
       canStartNewSubscription({ status: "canceled", provider_subscription_id: "sub_1" }).allowed,
-    ).toBe(true);
+    ).toBe(false);
+    expect(
+      canStartNewSubscription({ status: "canceled", provider_subscription_id: "sub_1" }).reason,
+    ).toBe("SUBSCRIPTION_ALREADY_BOUND");
     // Prova senza sottoscrizione presso il provider: il checkout resta possibile.
     expect(
       canStartNewSubscription({ status: "trialing", provider_subscription_id: null }).allowed,

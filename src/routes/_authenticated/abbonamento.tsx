@@ -53,6 +53,10 @@ const CHECKOUT_BLOCK_LABEL: Record<string, string> = {
   CHECKOUT_QA_NOT_ALLOWED: "Questo account non è abilitato all'attivazione online in questa fase.",
   SUBSCRIPTION_LOOKUP_FAILED: "Non riusciamo a leggere lo stato del tuo abbonamento.",
   MEMBERS_LOOKUP_FAILED: "Non riusciamo a leggere gli utenti della tua impresa.",
+  SUBSCRIPTION_ALREADY_ACTIVE:
+    "Risulta già un abbonamento su questo account: gestiscilo dal portale clienti.",
+  SUBSCRIPTION_ALREADY_BOUND:
+    "Questo account è già collegato a un abbonamento. Per riattivarlo apri il portale clienti: un nuovo acquisto verrebbe addebitato ma non collegato.",
 };
 
 function checkoutBlockText(code: string | null | undefined) {

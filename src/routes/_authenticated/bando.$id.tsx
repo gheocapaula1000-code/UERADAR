@@ -194,8 +194,12 @@ function BandoDetail() {
 
   const copyDossier = async () => {
     if (!dossierOpen) return;
-    await navigator.clipboard.writeText(dossierText);
-    toast.success("Dossier copiato negli appunti");
+    try {
+      await navigator.clipboard.writeText(dossierText);
+      toast.success("Dossier copiato negli appunti");
+    } catch {
+      toast.error("Copia non riuscita: il browser non ci dà accesso agli appunti. Scarica il TXT.");
+    }
   };
 
   const downloadDossierTxt = () => {
@@ -216,15 +220,24 @@ function BandoDetail() {
       await downloadDossierPdf(dossier, `dossier-${bando.id}.pdf`, watermarked);
       toast.success("PDF generato nel browser");
     } catch {
-      toast.error(
-        navigator.onLine === false
-          ? "Sei offline: il PDF si genera sul tuo dispositivo, riprova quando torni online"
-          : "Generazione PDF non riuscita. Puoi scaricare il dossier in formato testo",
-      );
+      // Nessun vicolo cieco: se il PDF non si genera, scarichiamo subito il TXT.
+      if (navigator.onLine === false) {
+        toast.error(
+          "Sei offline: il PDF si genera sul tuo dispositivo, riprova quando torni online",
+        );
+      } else {
+        try {
+          downloadDossierTxt();
+          toast.error("PDF non riuscito: abbiamo scaricato il dossier in formato testo (TXT).");
+        } catch {
+          toast.error("Generazione PDF non riuscita. Riprova o copia il testo del dossier.");
+        }
+      }
     } finally {
       setPdfBusy(false);
     }
   };
+
 
   // La bozza del modulo ufficiale segue lo stesso claim del dossier: senza
   // quota non esiste testo da copiare, scaricare o un PDF precompilato.
@@ -249,8 +262,12 @@ function BandoDetail() {
 
   const copyInstance = async () => {
     if (!dossierOpen) return;
-    await navigator.clipboard.writeText(instanceText);
-    toast.success("Testo copiato negli appunti");
+    try {
+      await navigator.clipboard.writeText(instanceText);
+      toast.success("Testo copiato negli appunti");
+    } catch {
+      toast.error("Copia non riuscita: il browser non ci dà accesso agli appunti. Scarica il TXT.");
+    }
   };
 
   const downloadTxt = () => {
@@ -357,11 +374,16 @@ function BandoDetail() {
             ? "Hai esaurito i dossier inclusi in questo mese"
             : res.code === "EXPORT_NOT_INCLUDED"
               ? "Dossier non disponibile con il piano attivo"
-              : "Dossier non disponibile in questo momento";
+              : res.code === "USAGE_UNAVAILABLE"
+                ? "Non riusciamo a leggere il tuo contatore dossier: riprova tra qualche secondo"
+                : res.code === "RATE_LIMITED"
+                  ? "Troppe richieste ravvicinate: attendi un minuto e riprova"
+                  : "Dossier non disponibile in questo momento";
         setDossierError(msg);
         toast.error(msg);
         return;
       }
+
       setWatermarked(res.watermarked === true);
       setDossierOpen(true);
       void queryClient.invalidateQueries({ queryKey: ["usage-summary"] });
@@ -384,8 +406,12 @@ function BandoDetail() {
 
   const copyPec = async (value: string | undefined) => {
     if (!value) return;
-    await navigator.clipboard.writeText(value);
-    toast.success("PEC copiata");
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success("PEC copiata");
+    } catch {
+      toast.error("Copia non riuscita: il browser non ci dà accesso agli appunti.");
+    }
   };
 
   return (
