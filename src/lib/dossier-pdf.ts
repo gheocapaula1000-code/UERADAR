@@ -123,7 +123,15 @@ export async function downloadDossierPdf(
       doc.setFontSize(10);
     }
     const lineHeight = b.kind === "title" ? 8 : b.kind === "heading" ? 6 : 5;
-    const lines: string[] = doc.splitTextToSize(b.text || " ", width);
+    // `splitTextToSize` non spezza i token senza spazi: gli URL lunghi
+    // uscirebbero dal margine. Li tagliamo prima in pezzi stampabili.
+    const wrappable = (b.text || " ").replace(/\S{60,}/g, (token) =>
+      (token.match(/.{1,60}/g) ?? [token]).join("\u200b "),
+    );
+    const lines: string[] = doc
+      .splitTextToSize(wrappable, width)
+      .map((l: string) => l.replace(/\u200b\s?/g, ""));
+
     for (const line of lines) {
       ensure(lineHeight);
       doc.text(line, marginX, y);
