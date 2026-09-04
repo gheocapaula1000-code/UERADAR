@@ -376,7 +376,7 @@ export function renderDossierText(d: Dossier, options: DossierRenderOptions = {}
       ? block("COMPATIBILITÀ PROFILO", [
           `Stato: ${d.compatibility.label}${d.compatibility.score !== null ? ` (${d.compatibility.score}%)` : ""}`,
           ...d.compatibility.confirmed.map((x) => `Confermato: ${x}`),
-          ...d.compatibility.blockers.map((x) => `Blocker: ${x}`),
+          ...d.compatibility.blockers.map((x) => `Ostacolo: ${x}`),
         ])
       : "",
     block(

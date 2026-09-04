@@ -28,7 +28,7 @@ export function dossierPdfModel(d: Dossier, watermarked = false): PdfBlock[] {
             text: `Stato: ${d.compatibility.label}${d.compatibility.score !== null ? ` (${d.compatibility.score}%)` : ""}`,
           },
           ...d.compatibility.confirmed.map((x) => ({ kind: "text" as const, text: `Confermato: ${x}` })),
-          ...d.compatibility.blockers.map((x) => ({ kind: "text" as const, text: `Blocker: ${x}` })),
+          ...d.compatibility.blockers.map((x) => ({ kind: "text" as const, text: `Ostacolo: ${x}` })),
         ]
       : []),
     ...(d.requirements.length
