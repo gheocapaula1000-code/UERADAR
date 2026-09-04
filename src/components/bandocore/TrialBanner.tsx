@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { TRIAL_COPY } from "@/lib/trial";
+import { CONSENT_CHANGE_EVENT, needsPrompt, readConsent } from "@/lib/consent";
 
 /**
  * Blocco prova gratuita: testo obbligatorio, identico in hero, pagina prezzi,
@@ -34,6 +36,15 @@ export function TrialBanner({ compact = false }: { compact?: boolean }) {
 
 /** Barra fissa mobile: CTA sempre a portata di pollice. I fatti della prova stanno nel blocco unico in pagina. */
 export function TrialStickyBar({ facts = true }: { facts?: boolean }) {
+  // Finché il banner cookie è visibile la barra sparisce: il dialog ha la precedenza sui tocchi.
+  const [consentOpen, setConsentOpen] = useState(false);
+  useEffect(() => {
+    const sync = () => setConsentOpen(needsPrompt(readConsent(window.localStorage)));
+    sync();
+    window.addEventListener(CONSENT_CHANGE_EVENT, sync);
+    return () => window.removeEventListener(CONSENT_CHANGE_EVENT, sync);
+  }, []);
+  if (consentOpen) return null;
   return (
     <div className="safe-x fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur md:hidden">
       {facts ? (
