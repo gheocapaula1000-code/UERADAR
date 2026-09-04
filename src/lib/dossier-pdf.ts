@@ -1,4 +1,9 @@
-import { DOSSIER_DISCLAIMER, TRIAL_WATERMARK, type Dossier } from "./dossier";
+import {
+  DOSSIER_DISCLAIMER,
+  MISSING_BEFORE_USE_TITLE,
+  TRIAL_WATERMARK,
+  type Dossier,
+} from "./dossier";
 
 export interface PdfBlock {
   kind: "title" | "heading" | "note" | "text";
@@ -76,6 +81,13 @@ export function dossierPdfModel(d: Dossier, watermarked = false): PdfBlock[] {
 
   blocks.push({ kind: "heading", text: "Testo istanza / lettera di accompagnamento" });
   for (const line of d.cover_letter.split("\n")) blocks.push({ kind: "text", text: line });
+
+  if (d.missing_before_use.length) {
+    blocks.push({ kind: "heading", text: MISSING_BEFORE_USE_TITLE });
+    d.missing_before_use.forEach((m, i) =>
+      blocks.push({ kind: "text", text: `${i + 1}. ${m}` }),
+    );
+  }
 
 
   blocks.push({ kind: "note", text: DOSSIER_DISCLAIMER });

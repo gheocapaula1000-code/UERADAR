@@ -18,6 +18,9 @@ export type OfficialModulisticaFetch =
 /**
  * Scarica la sola modulistica ufficiale già presente nel feed in cache.
  * Non accetta URL arbitrari e non riceve dati di profilo.
+ * Fail-closed come il dossier: servono entitlement, export inclusi e una
+ * rivendicazione di quota andata a buon fine per la stessa opportunità
+ * (idempotente: un dossier già rivendicato non consuma una seconda volta).
  */
 export const fetchOfficialModulistica = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -26,11 +29,24 @@ export const fetchOfficialModulistica = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }): Promise<OfficialModulisticaFetch> => {
     const { resolveTenantContext } = await import("./tenant.server");
-    const { entitlementForTenant } = await import("./usage.server");
+    const { tenantUsageContext, consumeQuotaOnce } = await import("./usage.server");
     const { cacheClient } = await import("./cache.server");
     const tenant = await resolveTenantContext(context.supabase, context.userId);
-    const entitlement = await entitlementForTenant(context.supabase, tenant.tenant_owner_id);
-    if (!entitlement.entitled) return { kind: "error", reason: "NOT_ENTITLED" };
+    const { entitlement, period } = await tenantUsageContext(
+      context.supabase,
+      tenant.tenant_owner_id,
+    );
+    if (!entitlement.entitled) return { kind: "error", reason: entitlement.reason };
+    if (!entitlement.limits.exportsEnabled)
+      return { kind: "error", reason: "EXPORT_NOT_INCLUDED" };
+    const claim = await consumeQuotaOnce({
+      tenantId: tenant.tenant_owner_id,
+      kind: "dossiers",
+      opportunityId: data.opportunity_id,
+      limit: entitlement.limits.dossiersPerMonth,
+      period,
+    });
+    if (!claim.allowed) return { kind: "error", reason: claim.code };
 
     const cache = cacheClient();
     const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();

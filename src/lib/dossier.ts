@@ -276,7 +276,7 @@ export function buildDossier(
     field("Ente erogatore", bando.ente),
     field("Ultima verifica", date(bando.last_verified_at)),
     field("URL ufficiale", officialUrl(bando)),
-    field("Riferimento / programme code", bando.programme_code ?? bando.programme_name ?? bando.id),
+    field("Riferimento / codice programma", bando.programme_code ?? bando.programme_name ?? bando.id),
     field("Apertura", date(bando.apertura)),
     field("Scadenza", date(bando.scadenza)),
     field(
@@ -344,11 +344,14 @@ export function buildDossier(
       rarity_score: bando.rarity_score,
       note: bando.fonte_extratestuale,
     },
-    evidence: (bando.evidence ?? []).map((e) => ({
-      title: e.source_title || "Documento ufficiale",
-      url: e.source_url,
-      type: e.evidence_type,
-    })),
+    // Igiene fonti: mai stampare una riga senza URL reale.
+    evidence: (bando.evidence ?? [])
+      .filter((e) => typeof e?.source_url === "string" && e.source_url.trim().length > 0)
+      .map((e) => ({
+        title: e.source_title || "Documento ufficiale",
+        url: e.source_url.trim(),
+        type: e.evidence_type,
+      })),
     cover_letter: buildCoverLetter(bando, profile),
     missing_before_use,
   };
@@ -358,6 +361,9 @@ function block(title: string, lines: string[]): string {
   if (!lines.length) return "";
   return [`── ${title} ──`, ...lines, ""].join("\n");
 }
+
+/** Titolo unico (schermo, TXT, PDF) dell'elenco dei dati ancora da completare. */
+export const MISSING_BEFORE_USE_TITLE = "Da completare prima dell'uso";
 
 /** Resa testuale del dossier: usata sia per la copia sia per il download TXT. */
 export type DossierRenderOptions = { watermarked?: boolean };
@@ -420,6 +426,10 @@ export function renderDossierText(d: Dossier, options: DossierRenderOptions = {}
         )
       : "",
     block("TESTO ISTANZA / LETTERA DI ACCOMPAGNAMENTO", [d.cover_letter]),
+    block(
+      MISSING_BEFORE_USE_TITLE.toUpperCase(),
+      d.missing_before_use.map((m, i) => `${i + 1}. ${m}`),
+    ),
 
     DOSSIER_DISCLAIMER,
     mark,

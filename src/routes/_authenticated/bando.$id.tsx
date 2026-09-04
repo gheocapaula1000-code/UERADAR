@@ -7,7 +7,7 @@ import { AppShell } from "@/components/bandocore/AppShell";
 import { fetchFeedFromProxyCore, loadCachedFeed } from "@/lib/proxy-core.functions";
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanyProfile } from "@/lib/bandocore-types";
-import { buildDossier, renderDossierText } from "@/lib/dossier";
+import { MISSING_BEFORE_USE_TITLE, buildDossier, renderDossierText } from "@/lib/dossier";
 import { consumeDossier, getUsageSummary } from "@/lib/usage.functions";
 import type { DossierField } from "@/lib/dossier";
 import { downloadDossierPdf } from "@/lib/dossier-pdf";
@@ -186,6 +186,9 @@ function BandoDetail() {
   const totalBudget = coercePositiveNumber(bando.total_budget);
 
   const dossier = buildDossier(bando, profile);
+  // Contesto prova: il periodo di consumo della prova ha chiave «trial-…».
+  const trialPeriod =
+    usageQ.data?.period?.startsWith("trial-") === true || usageQ.data?.watermarked === true;
   // Nessun output prima del claim server: testo, TXT, PDF e clipboard
   // esistono solo dopo `dossierOpen`, e portano la filigrana se in prova.
   // prettier-ignore
@@ -221,18 +224,18 @@ function BandoDetail() {
       await downloadDossierPdf(dossier, `dossier-${bando.id}.pdf`, watermarked);
       toast.success("PDF generato nel browser");
     } catch {
-      // Nessun vicolo cieco: se il PDF non si genera, scarichiamo subito il TXT.
-      if (navigator.onLine === false) {
+      // Nessun vicolo cieco: qualunque errore del PDF (anche offline) scarica
+      // comunque subito il dossier in formato testo.
+      const offline = navigator.onLine === false;
+      try {
+        downloadDossierTxt();
         toast.error(
-          "Sei offline: il PDF si genera sul tuo dispositivo, riprova quando torni online",
+          offline
+            ? "PDF non disponibile: abbiamo scaricato il dossier in formato testo (TXT). Sei offline, riprova il PDF quando torni online."
+            : "PDF non riuscito: abbiamo scaricato il dossier in formato testo (TXT).",
         );
-      } else {
-        try {
-          downloadDossierTxt();
-          toast.error("PDF non riuscito: abbiamo scaricato il dossier in formato testo (TXT).");
-        } catch {
-          toast.error("Generazione PDF non riuscita. Riprova o copia il testo del dossier.");
-        }
+      } catch {
+        toast.error("Generazione PDF non riuscita. Riprova o copia il testo del dossier.");
       }
     } finally {
       setPdfBusy(false);
@@ -370,15 +373,23 @@ function BandoDetail() {
   const openDossier = async () => {
     setDossierBusy(true);
     setDossierError(null);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const claim = claimDossier({ data: { opportunity_id: bando.id } });
+    // Se il timeout vince, la promessa in volo non deve restare "unhandled".
+    claim.catch(() => {});
     try {
       const res = await Promise.race([
-        claimDossier({ data: { opportunity_id: bando.id } }),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), 12_000)),
+        claim,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error("TIMEOUT")), 12_000);
+        }),
       ]);
       if (!res.allowed) {
         const msg =
           res.code === "QUOTA_EXCEEDED"
-            ? "Hai esaurito i dossier inclusi in questo mese"
+            ? trialPeriod
+              ? "Hai esaurito i dossier inclusi nella prova gratuita"
+              : "Hai esaurito i dossier inclusi in questo mese"
             : res.code === "EXPORT_NOT_INCLUDED"
               ? "Dossier non disponibile con il piano attivo"
               : res.code === "USAGE_UNAVAILABLE"
@@ -407,7 +418,21 @@ function BandoDetail() {
           : "Dossier non disponibile in questo momento";
       setDossierError(msg);
       toast.error(msg);
+      if (timedOut) {
+        // La chiamata è ancora in volo: se arriva e la quota è concessa,
+        // apriamo comunque il dossier senza chiedere un secondo click.
+        void claim
+          .then((late) => {
+            if (!late?.allowed) return;
+            setWatermarked(late.watermarked === true);
+            setDossierOpen(true);
+            setDossierError(null);
+            void queryClient.invalidateQueries({ queryKey: ["usage-summary"] });
+          })
+          .catch(() => {});
+      }
     } finally {
+      clearTimeout(timer);
       setDossierBusy(false);
     }
   };
@@ -645,7 +670,11 @@ function BandoDetail() {
                       Termine superato
                     </span>
                   ) : null}
-
+                  {dossierOpen && dossier.readiness === "PARZIALE" ? (
+                    <span className="rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-[11px] font-semibold text-warning">
+                      Bozza incompleta
+                    </span>
+                  ) : null}
                 </div>
                 {!dossierOpen && (
                   <div className="flex flex-col items-start gap-2">
@@ -707,6 +736,19 @@ function BandoDetail() {
 
               {dossierOpen && (
                 <div className="mt-4 space-y-4">
+                  {dossier.missing_before_use.length ? (
+                    <DossierBlock
+                      icon={<ListChecks className="h-4 w-4" />}
+                      title={MISSING_BEFORE_USE_TITLE}
+                    >
+                      <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+                        {dossier.missing_before_use.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ol>
+                    </DossierBlock>
+                  ) : null}
+
                   <DossierBlock icon={<FileSearch className="h-4 w-4" />} title="Copertina">
                     <FieldGrid fields={dossier.cover} />
                   </DossierBlock>
@@ -730,7 +772,7 @@ function BandoDetail() {
                         label="Requisiti confermati"
                         items={dossier.compatibility.confirmed}
                       />
-                      <ListSection label="Blocker" items={dossier.compatibility.blockers} />
+                      <ListSection label="Ostacoli" items={dossier.compatibility.blockers} />
                     </DossierBlock>
                   ) : null}
 
@@ -843,7 +885,7 @@ function BandoDetail() {
               <div className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <FileText className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold">Autofill campi modulo ufficiale</h3>
+                  <h3 className="font-semibold">Compilazione campi modulo ufficiale</h3>
                 </div>
                 {bando.pdf_field_mapping?.length ? (
                   <p className="mb-3 text-xs text-muted-foreground">
@@ -912,7 +954,7 @@ function BandoDetail() {
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Completa prima il profilo aziendale per abilitare l'autofill.
+                    Completa prima il profilo aziendale per abilitare la compilazione dei campi.
                   </p>
                 )}
 
@@ -1059,7 +1101,7 @@ function BandoDetail() {
                   rel="noopener noreferrer"
                   className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:brightness-110"
                 >
-                  <ExternalLink className="h-4 w-4" /> Piattaforma di sottomissione
+                  <ExternalLink className="h-4 w-4" /> Piattaforma di presentazione
                 </a>
               ) : (
                 <div className="mt-4">
@@ -1094,7 +1136,7 @@ function BandoDetail() {
             {profile && (
               <div className="rounded-2xl border border-border bg-card p-5">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
-                  <Building2 className="h-4 w-4" /> Dati autofill
+                  <Building2 className="h-4 w-4" /> Dati per la compilazione
                 </h3>
                 <dl className="mt-3 space-y-2 text-xs">
                   <Row l="Ragione Sociale" v={profile.ragione_sociale} />
