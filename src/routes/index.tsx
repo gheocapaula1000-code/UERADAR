@@ -121,12 +121,15 @@ function Landing() {
               Prezzi
             </Link>
           </nav>
-          <Link
-            to="/auth"
-            className="tap inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
-          >
-            Accedi <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            <MobileNav />
+            <Link
+              to="/auth"
+              className="tap inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
+            >
+              Accedi <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </header>
 
