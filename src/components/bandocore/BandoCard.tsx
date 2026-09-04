@@ -32,6 +32,7 @@ import { cardEnterDelayMs } from "@/lib/motion";
 import { MatchScore } from "@/components/bandocore/MatchScore";
 import { SportelloGuide } from "@/components/bandocore/SportelloGuide";
 import { SPORTELLO_BADGE, type ProfiloSportello } from "@/lib/sportello";
+import { cardPrimaryCta } from "@/lib/plain-ux";
 import { isGraduatoria } from "@/lib/mia-impresa";
 
 const categoryStyles: Record<Bando["categoria"], { label: string; class: string }> = {

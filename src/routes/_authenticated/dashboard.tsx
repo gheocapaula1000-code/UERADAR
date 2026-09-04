@@ -29,7 +29,7 @@ import {
   SHOW_CATALOG_LABEL,
   feedListEmpty,
   flashEmptyCopy,
-} from "@/lib/feed-empty";
+} from "@/lib/plain-ux";
 import { computeRadarStats } from "@/lib/radar-stats";
 import { isMiaImpresaCompatibile, isRealOpenAvviso } from "@/lib/mia-impresa";
 import { loadOfflineFeed, saveOfflineFeed } from "@/lib/offline-feed";
