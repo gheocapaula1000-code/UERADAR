@@ -144,8 +144,10 @@ describe("refresh «Per la mia impresa»", () => {
     expect(src).toContain('["bandi-feed", homeView], applied');
     expect(src).toContain('saveOfflineFeed(applied, undefined, homeView)');
     expect(src).toContain('clearOfflineFeed(undefined, homeView)');
-    expect(src).toContain('live.source === "central-core"');
+    expect(src).toContain("if (!controller.signal.aborted) applied = live");
+    expect(src).toContain('result.enqueued === 1 || result.status === "updated" || result.status === "queued"');
     expect(src).toContain("[homeView]: new Date().toISOString()");
+    expect(src).toContain("Restano visibili i dati salvati");
     expect(src).toContain("Per la mia impresa»");
   });
 });
