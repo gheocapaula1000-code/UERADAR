@@ -97,13 +97,22 @@ describe("passi successivi sugli empty/error del feed", () => {
 });
 
 describe("timestamp generated_at visibile", () => {
-  it("preferisce generated_at a fetched_at e non inventa date", () => {
+  it("mostra il timestamp più recente e non inventa date", () => {
     expect(
       feedUpdatedIso({
         generated_at: "2026-08-27T08:00:00.000Z",
         fetched_at: "2026-08-27T09:00:00.000Z",
       }),
-    ).toBe("2026-08-27T08:00:00.000Z");
+    ).toBe("2026-08-27T09:00:00.000Z");
+    expect(
+      feedUpdatedIso({
+        generated_at: "2026-08-27T10:00:00.000Z",
+        fetched_at: "2026-08-27T09:00:00.000Z",
+      }),
+    ).toBe("2026-08-27T10:00:00.000Z");
+    expect(
+      feedUpdatedIso({ generated_at: "non-una-data", fetched_at: "2026-08-27T09:00:00.000Z" }),
+    ).toBe("2026-08-27T09:00:00.000Z");
     expect(feedUpdatedIso({ fetched_at: "2026-08-27T09:00:00.000Z" })).toBe("2026-08-27T09:00:00.000Z");
     expect(feedUpdatedIso({ fetched_at: "non-una-data" })).toBeNull();
     expect(feedUpdatedIso(null)).toBeNull();

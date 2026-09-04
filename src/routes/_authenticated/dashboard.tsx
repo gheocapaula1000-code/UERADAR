@@ -207,7 +207,7 @@ function Dashboard() {
         // restare sullo snapshot offline vecchio. Fallisce in silenzio.
         try {
           const live = await liveFetch();
-          if (!controller.signal.aborted && live.source !== "cache") applied = live;
+          if (!controller.signal.aborted && live.source === "central-core") applied = live;
         } catch {
           // Rete o Core non disponibili: si tiene la cache già mostrata.
         }
