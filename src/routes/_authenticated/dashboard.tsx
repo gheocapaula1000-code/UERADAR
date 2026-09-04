@@ -107,7 +107,7 @@ function Dashboard() {
   const [homeView, setHomeView] = useState<HomeView>(
     () => readHomeView(browserHomeViewStorage()) || DEFAULT_HOME_VIEW,
   );
-  const [lastLiveCheckAt, setLastLiveCheckAt] = useState<string | null>(null);
+  const [lastLiveCheckAt, setLastLiveCheckAt] = useState<Partial<Record<HomeView, string>>>({});
 
   const persistHomeView = useCallback((next: HomeView) => {
     setHomeView(next);
@@ -183,9 +183,9 @@ function Dashboard() {
 
   useEffect(() => {
     if (query.data?.source === "central-core") {
-      setLastLiveCheckAt(new Date().toISOString());
+      setLastLiveCheckAt((current) => ({ ...current, [homeView]: new Date().toISOString() }));
     }
-  }, [query.data]);
+  }, [homeView, query.data]);
 
   // Refresh manuale: 1 solo enqueue, poi polling bounded del solo feed.
   useEffect(() => () => refreshAbort.current?.abort(), []);
@@ -224,7 +224,9 @@ function Dashboard() {
       if (applied) {
         queryClient.setQueryData(["bandi-feed", homeView], applied);
         saveOfflineFeed(applied, undefined, homeView);
-        if (applied.source === "central-core") setLastLiveCheckAt(new Date().toISOString());
+        if (applied.source === "central-core") {
+          setLastLiveCheckAt((current) => ({ ...current, [homeView]: new Date().toISOString() }));
+        }
         toast.success("Risultati aggiornati");
         setRefreshNotice({
           tone: "ok",
@@ -432,7 +434,7 @@ function Dashboard() {
 
   const updatedIso = feedUpdatedIso({
     generated_at: feedUpdatedIso(query.data) ?? undefined,
-    fetched_at: lastLiveCheckAt ?? "",
+    fetched_at: lastLiveCheckAt[homeView] ?? "",
   });
   const updatedLabel = updatedIso ? formatFeedUpdatedAt(updatedIso) : null;
   const listEmpty = feedListEmpty({

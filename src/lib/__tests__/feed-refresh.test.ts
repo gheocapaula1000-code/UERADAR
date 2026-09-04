@@ -145,7 +145,7 @@ describe("refresh «Per la mia impresa»", () => {
     expect(src).toContain('saveOfflineFeed(applied, undefined, homeView)');
     expect(src).toContain('clearOfflineFeed(undefined, homeView)');
     expect(src).toContain('live.source === "central-core"');
-    expect(src).toContain("setLastLiveCheckAt(new Date().toISOString())");
+    expect(src).toContain("[homeView]: new Date().toISOString()");
     expect(src).toContain("Per la mia impresa»");
   });
 });

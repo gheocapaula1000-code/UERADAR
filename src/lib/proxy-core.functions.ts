@@ -146,13 +146,22 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       // dell'ultima lettura del Core: nessun bando inventato e il client può
       // riconoscere che l'aggiornamento è avvenuto davvero. Il Core è stato
       // raggiunto, quindi la risposta è una lettura dal vivo, non una cache.
-      if (cacheDecision === "reuse-previous" && previous)
-        return {
+      if (cacheDecision === "reuse-previous" && previous) {
+        const reused: FeedResponse = {
           ...previous,
           fetched_at: nowIso,
           generated_at: generatedAt,
           source: "central-core",
+          view,
         };
+        const { error: cacheWriteError } = await cache.from("feed_cache").insert({
+          user_id: tenantId,
+          payload: reused as unknown as Json,
+          fetched_at: nowIso,
+        });
+        if (cacheWriteError) throw new Error("CACHE_WRITE_FAILED");
+        return reused;
+      }
 
       if (cacheDecision === "persist") {
         persistHiddenCache = view === "profile";

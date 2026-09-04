@@ -216,6 +216,7 @@ describe("gateway isolato", () => {
     expect(src).toContain("fetchedAt = nowIso");
     expect(src).not.toContain("fetchedAt = envelope.fetched_at");
     expect(src).toContain('source: "central-core"');
+    expect(src).toContain("payload: reused as unknown as Json");
     expect(src).toContain("? rawGeneratedAt");
     expect(src).toContain(": nowIso");
   });
