@@ -362,6 +362,9 @@ function block(title: string, lines: string[]): string {
   return [`── ${title} ──`, ...lines, ""].join("\n");
 }
 
+/** Titolo unico (schermo, TXT, PDF) dell'elenco dei dati ancora da completare. */
+export const MISSING_BEFORE_USE_TITLE = "Da completare prima dell'uso";
+
 /** Resa testuale del dossier: usata sia per la copia sia per il download TXT. */
 export type DossierRenderOptions = { watermarked?: boolean };
 
