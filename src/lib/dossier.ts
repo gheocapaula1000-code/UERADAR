@@ -276,7 +276,7 @@ export function buildDossier(
     field("Ente erogatore", bando.ente),
     field("Ultima verifica", date(bando.last_verified_at)),
     field("URL ufficiale", officialUrl(bando)),
-    field("Riferimento / programme code", bando.programme_code ?? bando.programme_name ?? bando.id),
+    field("Riferimento / codice programma", bando.programme_code ?? bando.programme_name ?? bando.id),
     field("Apertura", date(bando.apertura)),
     field("Scadenza", date(bando.scadenza)),
     field(
@@ -344,11 +344,14 @@ export function buildDossier(
       rarity_score: bando.rarity_score,
       note: bando.fonte_extratestuale,
     },
-    evidence: (bando.evidence ?? []).map((e) => ({
-      title: e.source_title || "Documento ufficiale",
-      url: e.source_url,
-      type: e.evidence_type,
-    })),
+    // Igiene fonti: mai stampare una riga senza URL reale.
+    evidence: (bando.evidence ?? [])
+      .filter((e) => typeof e?.source_url === "string" && e.source_url.trim().length > 0)
+      .map((e) => ({
+        title: e.source_title || "Documento ufficiale",
+        url: e.source_url.trim(),
+        type: e.evidence_type,
+      })),
     cover_letter: buildCoverLetter(bando, profile),
     missing_before_use,
   };
