@@ -231,11 +231,11 @@ function AuthPage() {
                   type={showPassword ? "text" : "password"}
                   autoComplete={mode === "signin" ? "current-password" : "new-password"}
                   required
-                  minLength={6}
+                  minLength={mode === "signin" ? 6 : 8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-lg border border-border bg-input pl-10 pr-11 py-3 text-base focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="Minimo 6 caratteri"
+                  placeholder={mode === "signin" ? "Minimo 6 caratteri" : "Minimo 8 caratteri"}
                 />
                 <button
                   type="button"
