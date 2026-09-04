@@ -13,7 +13,7 @@ import { ALERTS_EMPTY, ALERTS_ERROR, ALERTS_HEADING, ALERTS_LEAD } from "@/lib/a
 import { supabase } from "@/integrations/supabase/client";
 import type { Bando, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
 import { CATEGORY_FILTERS, type CategoryFilterKey } from "@/lib/bando-categories";
-import { feedMarker, runBoundedRefresh } from "@/lib/feed-refresh";
+import { feedMarker, PROFILE_REFRESH_DELAYS_MS, runBoundedRefresh } from "@/lib/feed-refresh";
 import {
   isActive,
   isFlash,
