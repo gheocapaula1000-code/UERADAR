@@ -200,31 +200,42 @@ export function buildTimeline(bando: Bando, now = Date.now()): DossierTimelineSt
   return steps;
 }
 
+export const PROFILE_FIELD_MISSING = "— non presente nel profilo";
+
 export function buildCoverLetter(bando: Bando, profile: AllowedProfile): string {
   const sede = [profile.comune, profile.provincia ? `(${profile.provincia})` : undefined, profile.regione]
     .filter(Boolean)
     .join(" ");
+  const v = (value: string | number | undefined | null) =>
+    value === undefined || value === null || value === "" ? PROFILE_FIELD_MISSING : String(value);
+  // Clausole dimensionali: presenti solo se il dato esiste davvero nel profilo.
+  const dimensionali = [
+    profile.anno_costituzione !== undefined ? `anno di costituzione ${profile.anno_costituzione}` : null,
+    profile.numero_dipendenti !== undefined ? `dipendenti ${profile.numero_dipendenti}` : null,
+    typeof profile.fatturato_annuo === "number" ? `fatturato annuo € ${it(profile.fatturato_annuo)}` : null,
+    profile.dimensione_impresa ? `dimensione ${profile.dimensione_impresa}` : null,
+  ].filter(Boolean) as string[];
+
   const lines = [
     `Oggetto: manifestazione di interesse — ${bando.titolo}`,
     "",
     `Spett.le ${bando.ente},`,
     "",
-    `l'impresa ${profile.ragione_sociale ?? "— ragione sociale non disponibile"}, partita IVA ${profile.partita_iva ?? "—"}, ` +
-      `forma giuridica ${profile.forma_giuridica ?? "—"}, codice ATECO principale ${profile.codice_ateco ?? "—"}, ` +
-      `con sede in ${sede || "—"}, manifesta interesse alla misura in oggetto.`,
+    `l'impresa ${v(profile.ragione_sociale)}, partita IVA ${v(profile.partita_iva)}, ` +
+      `forma giuridica ${v(profile.forma_giuridica)}, codice ATECO principale ${v(profile.codice_ateco)}, ` +
+      `con sede in ${sede || PROFILE_FIELD_MISSING}, manifesta interesse alla misura in oggetto.`,
     "",
-    `Dati dimensionali dichiarati nel profilo: anno di costituzione ${profile.anno_costituzione ?? "—"}, ` +
-      `dipendenti ${profile.numero_dipendenti ?? "—"}, fatturato annuo ${
-        typeof profile.fatturato_annuo === "number" ? `€ ${it(profile.fatturato_annuo)}` : "—"
-      }${profile.dimensione_impresa ? `, dimensione ${profile.dimensione_impresa}` : ""}.`,
-    "",
-    `Referente indicato: ${profile.legale_rappresentante ?? "— legale rappresentante non disponibile"}.`,
+    ...(dimensionali.length
+      ? [`Dati dimensionali dichiarati nel profilo: ${dimensionali.join(", ")}.`, ""]
+      : []),
+    `Referente indicato: ${v(profile.legale_rappresentante)}.`,
     "",
     "I dati sopra riportati provengono dal profilo aziendale inserito in UEradar.com e vanno",
     "verificati e integrati con la modulistica ufficiale dell'ente prima di qualsiasi utilizzo.",
   ];
   return lines.join("\n");
 }
+
 
 /** Dati ufficiali minimi mancanti nel bando ricevuto dal feed (fail-closed). */
 export function missingOfficialData(bando: Bando, now: number = Date.now()): string[] {
