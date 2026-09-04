@@ -298,13 +298,19 @@ function BandoDetail() {
       mapping: bando.pdf_field_mapping,
     });
     const out = await fillOfficialPdf(bytes, plan, { watermarked });
-    setFilledPdf(out);
-    setFillSummary({ filled: plan.fills.length, empty: plan.leftEmpty.length });
+    const failed = out.failedFieldNames;
+    const filledCount = plan.fills.length - failed.length;
+    setFilledPdf(out.bytes);
+    setFillSummary({ filled: filledCount, empty: plan.leftEmpty.length + failed.length });
+    const failedNote = failed.length
+      ? ` ${failed.length} ${failed.length === 1 ? "campo è rimasto vuoto" : "campi sono rimasti vuoti"} (${failed.join(", ")}): compilali a mano sul modulo ufficiale.`
+      : "";
     setModuleNote(
-      plan.fills.length
-        ? `PDF compilabile: ${plan.fills.length} campi allineati al profilo, ${plan.leftEmpty.length} lasciati vuoti. Verifica prima di qualsiasi uso.`
-        : `PDF compilabile, ma nessun campo ha una corrispondenza chiara con il profilo. Tutti i campi restano vuoti.`,
+      filledCount
+        ? `PDF compilabile: ${filledCount} campi allineati al profilo, ${plan.leftEmpty.length + failed.length} lasciati vuoti. Verifica prima di qualsiasi uso.${failedNote}`
+        : `PDF compilabile, ma nessun campo ha una corrispondenza chiara con il profilo. Tutti i campi restano vuoti.${failedNote}`,
     );
+
   };
 
   const tryPrefillOfficialPdf = async () => {
