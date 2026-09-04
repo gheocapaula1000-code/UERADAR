@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { FeedResponse } from "../bandocore-types";
-import { loadOfflineFeed, saveOfflineFeed, type StorageLike } from "../offline-feed";
+import {
+  clearOfflineFeed,
+  loadOfflineFeed,
+  saveOfflineFeed,
+  type StorageLike,
+} from "../offline-feed";
 
 function memory(): StorageLike {
   const data = new Map<string, string>();
@@ -38,6 +43,23 @@ describe("snapshot offline UEradar.com", () => {
     );
     expect(loadOfflineFeed(storage, Date.now(), "catalog")?.bandi.map((b) => b.id)).toEqual(["c"]);
     expect(loadOfflineFeed(storage, Date.now(), "profile")?.bandi.map((b) => b.id)).toEqual(["p"]);
+  });
+
+  it("cancella solo lo snapshot della vista richiesta prima del tentativo live", () => {
+    const storage = memory();
+    saveOfflineFeed(
+      { bandi: [{ id: "c" }] as FeedResponse["bandi"], fetched_at: "2026-09-02T00:00:00Z", source: "central-core" },
+      storage,
+      "catalog",
+    );
+    saveOfflineFeed(
+      { bandi: [{ id: "p" }] as FeedResponse["bandi"], fetched_at: "2026-09-02T00:00:00Z", source: "central-core" },
+      storage,
+      "profile",
+    );
+    clearOfflineFeed(storage, "profile");
+    expect(loadOfflineFeed(storage, Date.now(), "profile")).toBeNull();
+    expect(loadOfflineFeed(storage, Date.now(), "catalog")?.bandi.map((b) => b.id)).toEqual(["c"]);
   });
 
   it("scarta snapshot più vecchi di 30 giorni", () => {

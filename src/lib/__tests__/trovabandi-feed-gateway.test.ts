@@ -211,6 +211,16 @@ describe("gateway isolato", () => {
     expect(src).toContain("pickCachedView");
   });
 
+  it("marca ogni lettura Core riuscita con l'ora server corrente", () => {
+    const src = readFileSync("src/lib/proxy-core.functions.ts", "utf8");
+    expect(src).toContain("fetchedAt = nowIso");
+    expect(src).not.toContain("fetchedAt = envelope.fetched_at");
+    expect(src).toContain('source: "central-core"');
+    expect(src).toContain("payload: reused as unknown as Json");
+    expect(src).toContain("? rawGeneratedAt");
+    expect(src).toContain(": nowIso");
+  });
+
   it("controlla gli errori cache e applica la stessa TTL a feed e dettagli", () => {
     const src = readFileSync("src/lib/proxy-core.functions.ts", "utf8");
     expect(src).toContain("CACHE_WRITE_FAILED");

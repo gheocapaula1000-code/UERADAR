@@ -110,8 +110,18 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
         rejected_by_reason: report.rejected_by_reason as Record<string, number>,
         active_sources: report.active_sources,
       };
-      fetchedAt = envelope.fetched_at;
-      generatedAt = envelope.generated_at;
+      // `fetched_at` indica quando questa app ha completato con successo la
+      // lettura del Core. Il timestamp dell'envelope può essere la data di una
+      // generazione precedente e resta quindi confinato a `generated_at`.
+      fetchedAt = nowIso;
+      const rawGeneratedAt =
+        payload && typeof payload === "object"
+          ? (payload as Record<string, unknown>).generated_at
+          : undefined;
+      generatedAt =
+        typeof rawGeneratedAt === "string" && Number.isFinite(Date.parse(rawGeneratedAt))
+          ? rawGeneratedAt
+          : nowIso;
 
       const { data: previousRows, error: previousError } = await cache
         .from("feed_cache")
@@ -136,13 +146,22 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       // dell'ultima lettura del Core: nessun bando inventato e il client può
       // riconoscere che l'aggiornamento è avvenuto davvero. Il Core è stato
       // raggiunto, quindi la risposta è una lettura dal vivo, non una cache.
-      if (cacheDecision === "reuse-previous" && previous)
-        return {
+      if (cacheDecision === "reuse-previous" && previous) {
+        const reused: FeedResponse = {
           ...previous,
-          fetched_at: fetchedAt,
+          fetched_at: nowIso,
           generated_at: generatedAt,
           source: "central-core",
+          view,
         };
+        const { error: cacheWriteError } = await cache.from("feed_cache").insert({
+          user_id: tenantId,
+          payload: reused as unknown as Json,
+          fetched_at: nowIso,
+        });
+        if (cacheWriteError) throw new Error("CACHE_WRITE_FAILED");
+        return reused;
+      }
 
       if (cacheDecision === "persist") {
         persistHiddenCache = view === "profile";
