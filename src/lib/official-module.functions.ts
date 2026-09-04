@@ -21,7 +21,7 @@ export type OfficialModulisticaFetch =
  */
 export const fetchOfficialModulistica = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) =>
+  .inputValidator((input: unknown) =>
     z.object({ opportunity_id: z.string().min(1).max(200) }).parse(input),
   )
   .handler(async ({ data, context }): Promise<OfficialModulisticaFetch> => {

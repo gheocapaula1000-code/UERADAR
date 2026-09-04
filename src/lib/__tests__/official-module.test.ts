@@ -172,7 +172,8 @@ describe("modulistica ufficiale: PDF compilabile", () => {
     );
 
     const out = await fillOfficialPdf(bytes, plan);
-    const again = await PDFDocument.load(out);
+    expect(out.failedFieldNames).toEqual([]);
+    const again = await PDFDocument.load(out.bytes);
     const form = again.getForm();
     expect(form.getTextField("RagioneSociale").getText()).toBe("Acme SRL");
     expect(form.getTextField("Partita_IVA").getText()).toBe("01234567890");
