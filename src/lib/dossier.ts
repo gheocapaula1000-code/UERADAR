@@ -423,6 +423,10 @@ export function renderDossierText(d: Dossier, options: DossierRenderOptions = {}
         )
       : "",
     block("TESTO ISTANZA / LETTERA DI ACCOMPAGNAMENTO", [d.cover_letter]),
+    block(
+      MISSING_BEFORE_USE_TITLE.toUpperCase(),
+      d.missing_before_use.map((m, i) => `${i + 1}. ${m}`),
+    ),
 
     DOSSIER_DISCLAIMER,
     mark,
