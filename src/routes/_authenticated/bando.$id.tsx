@@ -11,6 +11,7 @@ import { buildDossier, renderDossierText } from "@/lib/dossier";
 import { consumeDossier, getUsageSummary } from "@/lib/usage.functions";
 import type { DossierField } from "@/lib/dossier";
 import { downloadDossierPdf } from "@/lib/dossier-pdf";
+import { DOSSIER_CTA_LABEL, OFFICIAL_CTA_LABEL } from "@/lib/plain-ux";
 import {
   classifyModulisticaHint,
   hasOfficialModulistica,
@@ -648,7 +649,7 @@ function BandoDetail() {
                       className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
                     >
                       <FileText className="h-4 w-4" />{" "}
-                      {dossierBusy ? "Apertura…" : "Genera dossier candidatura"}
+                      {dossierBusy ? "Apertura…" : DOSSIER_CTA_LABEL}
                     </button>
                     {dossierError ? (
                       <div role="alert" className="space-y-2">
@@ -660,7 +661,7 @@ function BandoDetail() {
                             rel="noopener noreferrer"
                             className="tap flex items-center justify-center gap-2 rounded-lg border-2 border-border px-4 py-3 text-sm font-semibold hover:border-primary/50"
                           >
-                            <ExternalLink className="h-4 w-4" /> Apri il bando ufficiale
+                            <ExternalLink className="h-4 w-4" /> {OFFICIAL_CTA_LABEL}
                           </a>
                         )}
                       </div>
@@ -1038,7 +1039,7 @@ function BandoDetail() {
                       rel="noopener noreferrer"
                       className="tap mt-2 flex items-center justify-center gap-2 rounded-lg border-2 border-border px-4 py-3 text-sm font-semibold hover:border-primary/50"
                     >
-                      <ExternalLink className="h-4 w-4" /> Apri il bando ufficiale
+                      <ExternalLink className="h-4 w-4" /> {OFFICIAL_CTA_LABEL}
                     </a>
                   )}
                 </div>
@@ -1066,7 +1067,7 @@ function BandoDetail() {
                       rel="noopener noreferrer"
                       className="tap mt-2 flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-3 text-sm font-bold text-accent-foreground hover:brightness-110"
                     >
-                      <ExternalLink className="h-4 w-4" /> Apri il bando ufficiale
+                      <ExternalLink className="h-4 w-4" /> {OFFICIAL_CTA_LABEL}
                     </a>
                   )}
                 </div>
