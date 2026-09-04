@@ -1,4 +1,4 @@
-const CACHE = "ueradar-shell-v10";
+const CACHE = "ueradar-shell-v11";
 const OFFLINE_FALLBACKS = ["/", "/auth"];
 // Pagine pubbliche consultabili offline dopo la prima visita.
 const PUBLIC_PAGES = ["/", "/auth", "/prezzi", "/contatti", "/privacy", "/termini", "/cookie"];

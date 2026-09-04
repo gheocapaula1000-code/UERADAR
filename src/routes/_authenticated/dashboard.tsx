@@ -209,13 +209,16 @@ function Dashboard() {
         signal: controller.signal,
       });
       if (controller.signal.aborted) return;
+      if (result.enqueued === 1 || result.status === "updated" || result.status === "queued") {
+        setLastLiveCheckAt((current) => ({ ...current, [homeView]: new Date().toISOString() }));
+      }
       let applied = result.status === "updated" ? result.feed : undefined;
       if (!applied && result.status === "queued") {
-        // Ultimo tentativo dal vivo: se il Core risponde, la vista non deve
-        // restare sullo snapshot offline vecchio. Fallisce in silenzio.
+        // Ultimo tentativo: anche un fallback cache restituito dal server è
+        // applicato, così React Query non conserva lo snapshot pre-ricerca.
         try {
           const live = await liveFetch();
-          if (!controller.signal.aborted && live.source === "central-core") applied = live;
+          if (!controller.signal.aborted) applied = live;
         } catch {
           // Rete o Core non disponibili: si tiene la cache già mostrata.
         }
@@ -227,13 +230,25 @@ function Dashboard() {
         if (applied.source === "central-core") {
           setLastLiveCheckAt((current) => ({ ...current, [homeView]: new Date().toISOString() }));
         }
-        toast.success("Risultati aggiornati");
-        setRefreshNotice({
-          tone: "ok",
-          text: isProfile
-            ? "Ricerca completata. Qui sotto trovi i Bandi aggiornati per la tua impresa."
-            : "Ricerca completata. Qui sotto trovi i Bandi aggiornati.",
-        });
+        if (applied.source === "cache") {
+          const savedIso = feedUpdatedIso(applied);
+          const savedLabel = savedIso ? formatFeedUpdatedAt(savedIso) : null;
+          toast.info("Il motore non è raggiungibile in questo momento");
+          setRefreshNotice({
+            tone: "info",
+            text: savedLabel
+              ? `Il motore non è raggiungibile in questo momento. Restano visibili i dati salvati, aggiornati al ${savedLabel}.`
+              : "Il motore non è raggiungibile in questo momento. Restano visibili i dati salvati.",
+          });
+        } else {
+          toast.success("Risultati aggiornati");
+          setRefreshNotice({
+            tone: "ok",
+            text: isProfile
+              ? "Ricerca completata. Qui sotto trovi i Bandi aggiornati per la tua impresa."
+              : "Ricerca completata. Qui sotto trovi i Bandi aggiornati.",
+          });
+        }
       } else if (result.status === "queued") {
         setRefreshNotice({
           tone: "info",
