@@ -149,11 +149,15 @@ function Abbonamento() {
       }),
     onSuccess: (res) => {
       if (!res.ok) {
-        toast.error(
-          res.code === "SEATS_EXCEEDED"
-            ? "Hai raggiunto il numero di utenti operativi del piano"
-            : "Utente non aggiunto",
-        );
+        const messages: Record<string, string> = {
+          SEATS_EXCEEDED: "Hai raggiunto il numero di utenti operativi del piano",
+          OWNER_ALREADY_COUNTED: "Questa email è già quella del titolare (occupa già un posto)",
+          ALREADY_INVITED: "Esiste già un invito o un utente con questa email",
+          MEMBER_CANNOT_MANAGE_MEMBERS: "Solo il titolare può invitare utenti",
+          NOT_ENTITLED: "Serve un piano o una prova attiva per invitare utenti",
+          INVALID_ROLE: "Ruolo non valido",
+        };
+        toast.error(messages[res.code] ?? "Invito non riuscito. Riprova tra poco.");
         return;
       }
       setForm({
