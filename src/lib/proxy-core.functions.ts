@@ -132,7 +132,11 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
         view,
       };
       const cacheDecision = decideFeedCache(previous, next);
-      if (cacheDecision === "reuse-previous" && previous) return previous;
+      // Riuso dei bandi precedenti (envelope vuoto), ma con i timestamp reali
+      // dell'ultima lettura del Core: nessun bando inventato e il client può
+      // riconoscere che l'aggiornamento è avvenuto davvero.
+      if (cacheDecision === "reuse-previous" && previous)
+        return { ...previous, fetched_at: fetchedAt, generated_at: generatedAt };
       if (cacheDecision === "persist") {
         persistHiddenCache = view === "profile";
         const { error: cacheWriteError } = await cache.from("feed_cache").insert({
