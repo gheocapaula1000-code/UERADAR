@@ -190,26 +190,45 @@ function Dashboard() {
     const controller = new AbortController();
     refreshAbort.current = controller;
     setIsRefreshing(true);
+    const isProfile = homeView === "profile";
+    const liveFetch = () => fetchFeed({ data: { deep_search: true, mode: homeView } });
     try {
       const result = await runBoundedRefresh({
         enqueue: () => enqueueRefresh(),
-        fetchFeed: () => fetchFeed({ data: { deep_search: true, mode: homeView } }),
+        fetchFeed: liveFetch,
         baselineMarker: feedMarker(queryClient.getQueryData(["bandi-feed", homeView])),
+        delaysMs: isProfile ? PROFILE_REFRESH_DELAYS_MS : undefined,
         signal: controller.signal,
       });
       if (controller.signal.aborted) return;
-      if (result.status === "updated" && result.feed) {
-        queryClient.setQueryData(["bandi-feed", homeView], result.feed);
-        saveOfflineFeed(result.feed, undefined, homeView);
+      let applied = result.status === "updated" ? result.feed : undefined;
+      if (!applied && result.status === "queued") {
+        // Ultimo tentativo dal vivo: se il Core risponde, la vista non deve
+        // restare sullo snapshot offline vecchio. Fallisce in silenzio.
+        try {
+          const live = await liveFetch();
+          if (!controller.signal.aborted && live.source !== "cache") applied = live;
+        } catch {
+          // Rete o Core non disponibili: si tiene la cache già mostrata.
+        }
+      }
+      if (controller.signal.aborted) return;
+      if (applied) {
+        queryClient.setQueryData(["bandi-feed", homeView], applied);
+        saveOfflineFeed(applied, undefined, homeView);
         toast.success("Risultati aggiornati");
         setRefreshNotice({
           tone: "ok",
-          text: "Ricerca completata. Qui sotto trovi i Bandi aggiornati.",
+          text: isProfile
+            ? "Ricerca completata. Qui sotto trovi i Bandi aggiornati per la tua impresa."
+            : "Ricerca completata. Qui sotto trovi i Bandi aggiornati.",
         });
       } else if (result.status === "queued") {
         setRefreshNotice({
           tone: "info",
-          text: "Ricerca avviata. I nuovi Bandi compariranno qui: puoi chiudere l'app, nessuna azione richiesta.",
+          text: isProfile
+            ? "Ricerca avviata. I nuovi Bandi compariranno qui su «Per la mia impresa»: puoi chiudere l'app, nessuna azione richiesta."
+            : "Ricerca avviata. I nuovi Bandi compariranno qui: puoi chiudere l'app, nessuna azione richiesta.",
         });
       } else if (result.status === "failed") {
         setRefreshNotice({
