@@ -23,27 +23,38 @@ export async function inspectOfficialPdf(bytes: Uint8Array): Promise<{
   return { fillable: fields.some((field) => field.type === "text"), fields };
 }
 
+export type OfficialPdfFillResult = {
+  bytes: Uint8Array;
+  /** Campi previsti dal piano che non è stato possibile scrivere (font/encoding): restano vuoti. */
+  failedFieldNames: string[];
+};
+
 /** Compila solo i campi del piano. Firma, checkbox e campi non previsti restano vuoti. */
 export async function fillOfficialPdf(
   bytes: Uint8Array,
   plan: OfficialFillPlan,
   options: { watermarked?: boolean } = {},
-): Promise<Uint8Array> {
+): Promise<OfficialPdfFillResult> {
   const { PDFDocument, PDFTextField, StandardFonts, degrees, rgb } = await import("pdf-lib");
   const doc = await PDFDocument.load(bytes, { updateMetadata: false });
   const form = doc.getForm();
   const allowed = new Map(plan.fills.map((fill) => [fill.fieldName, fill.value]));
+  const written = new Set<string>();
 
   for (const field of form.getFields()) {
-    const value = allowed.get(field.getName());
+    const name = field.getName();
+    const value = allowed.get(name);
     if (value === undefined) continue;
     if (!(field instanceof PDFTextField)) continue;
     try {
       field.setText(value);
+      written.add(name);
     } catch {
       // Carattere non supportato dal font del campo: meglio vuoto che un valore inventato.
     }
   }
+
+  const failedFieldNames = plan.fills.map((f) => f.fieldName).filter((name) => !written.has(name));
 
   if (options.watermarked) {
     const font = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -61,8 +72,9 @@ export async function fillOfficialPdf(
     }
   }
 
-  return doc.save();
+  return { bytes: await doc.save(), failedFieldNames };
 }
+
 
 export function triggerPdfDownload(bytes: Uint8Array, fileName: string): void {
   const copy = new Uint8Array(bytes.byteLength);
