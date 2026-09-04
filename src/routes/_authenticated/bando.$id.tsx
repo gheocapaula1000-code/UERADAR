@@ -186,6 +186,9 @@ function BandoDetail() {
   const totalBudget = coercePositiveNumber(bando.total_budget);
 
   const dossier = buildDossier(bando, profile);
+  // Contesto prova: il periodo di consumo della prova ha chiave «trial-…».
+  const trialPeriod =
+    usageQ.data?.period?.startsWith("trial-") === true || usageQ.data?.watermarked === true;
   // Nessun output prima del claim server: testo, TXT, PDF e clipboard
   // esistono solo dopo `dossierOpen`, e portano la filigrana se in prova.
   // prettier-ignore
