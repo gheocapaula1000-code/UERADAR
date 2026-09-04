@@ -1,4 +1,9 @@
-import { DOSSIER_DISCLAIMER, TRIAL_WATERMARK, type Dossier } from "./dossier";
+import {
+  DOSSIER_DISCLAIMER,
+  MISSING_BEFORE_USE_TITLE,
+  TRIAL_WATERMARK,
+  type Dossier,
+} from "./dossier";
 
 export interface PdfBlock {
   kind: "title" | "heading" | "note" | "text";
