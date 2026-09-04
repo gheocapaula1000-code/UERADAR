@@ -201,16 +201,18 @@ serve(async (req) => {
     return out(202, { ok: true, queued: true });
   }
 
-  // Catalogo ufficiale: pass-through minimo. Prima action=catalog, poi
-  // feed mode=catalog se Core non ha ancora il ramo dedicato. Nessun matching
+  // Catalogo ufficiale e feed profilo: pass-through minimo. Nessun matching
   // inventato qui: le schede restano come le invia Core.
   const catalog = isCatalogRequest(parsed);
   const res = catalog
     ? await fetchOfficialCatalog()
-    : await callCore("feed", { profile: minimizedProfile, limit: PROFILE_FEED_LIMIT });
-  // Catalogo: le righe sporche vengono scartate, il resto passa.
-  // Feed profilo: resta fail-closed sull'intero payload.
-  const sanitized = sanitizeFeedResponse(res.body, res.status, { dropInvalidRows: catalog });
+    : await callCore(
+        "feed",
+        { profile: minimizedProfile, limit: PROFILE_FEED_LIMIT },
+        PROFILE_FEED_TIMEOUT_MS,
+      );
+  // Le righe sporche vengono scartate, il resto passa anche sul profilo.
+  const sanitized = sanitizeFeedResponse(res.body, res.status, { dropInvalidRows: true });
   if (!sanitized.ok)
     return out(502, { ok: false, code: "UPSTREAM_UNAVAILABLE", reason: sanitized.code });
 
@@ -224,6 +226,7 @@ serve(async (req) => {
   });
 });
 
+const PROFILE_FEED_TIMEOUT_MS = 60_000;
 const CATALOG_TIMEOUT_MS = 60_000;
 
 async function fetchOfficialCatalog() {

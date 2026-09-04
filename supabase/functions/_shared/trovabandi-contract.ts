@@ -276,9 +276,9 @@ export function sanitizeFeedResponse(
   const rows = body.bandi as unknown[];
   let valid: ContractRow[];
   if (options.dropInvalidRows) {
+    // Le righe sporche vengono scartate; un envelope 200/ok che non lascia
+    // righe valide resta una risposta vuota, non un errore upstream.
     valid = rows.filter(opportunityIsValid);
-    if (rows.length > 0 && valid.length === 0)
-      return { ok: false, code: "UPSTREAM_INVALID_ROW" };
   } else {
     if (!rows.every(opportunityIsValid)) return { ok: false, code: "UPSTREAM_INVALID_ROW" };
     valid = rows as ContractRow[];
