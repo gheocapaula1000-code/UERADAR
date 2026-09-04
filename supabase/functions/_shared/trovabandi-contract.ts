@@ -258,7 +258,10 @@ export type SanitizedFeed =
   | { ok: false; code: string };
 
 export type SanitizeOptions = {
-  /** Catalogo: tiene le righe valide e scarta quelle sporche invece di fallire tutto. */
+  /**
+   * Tiene le righe valide e scarta quelle sporche invece di fallire tutto.
+   * Un 200 ok con bandi tutti invalidi resta un elenco vuoto, non un errore.
+   */
   dropInvalidRows?: boolean;
 };
 
@@ -277,8 +280,6 @@ export function sanitizeFeedResponse(
   let valid: ContractRow[];
   if (options.dropInvalidRows) {
     valid = rows.filter(opportunityIsValid);
-    if (rows.length > 0 && valid.length === 0)
-      return { ok: false, code: "UPSTREAM_INVALID_ROW" };
   } else {
     if (!rows.every(opportunityIsValid)) return { ok: false, code: "UPSTREAM_INVALID_ROW" };
     valid = rows as ContractRow[];

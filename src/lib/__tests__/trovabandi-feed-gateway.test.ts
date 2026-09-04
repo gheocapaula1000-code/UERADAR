@@ -83,6 +83,20 @@ describe("profilo minimizzato trovabandi-feed", () => {
     expect(src).toContain("{ limit: CATALOG_LIMIT }");
     expect(src).not.toContain('mode: "catalog", profile');
   });
+
+  it("il feed profilo scarta le righe sporche e usa lo stesso timeout del catalogo", () => {
+    const src = readFileSync("supabase/functions/trovabandi-feed/index.ts", "utf8");
+    expect(src).toContain("const CORE_READ_TIMEOUT_MS = 60_000");
+    expect(src).toMatch(
+      /await callCore\(\s*"feed",\s*\{\s*profile:\s*minimizedProfile,\s*limit:\s*PROFILE_FEED_LIMIT\s*\},\s*CORE_READ_TIMEOUT_MS/,
+    );
+    expect(src).toContain("{ dropInvalidRows: true }");
+    expect(src).not.toContain("{ dropInvalidRows: catalog }");
+    expect(src).not.toContain("fail-closed sull'intero payload");
+    expect(src).not.toContain("CATALOG_TIMEOUT_MS");
+    const defaultTimeout = src.match(/timeoutMs\s*=\s*([\d_]+)/);
+    expect(defaultTimeout?.[1]).toBe("15_000");
+  });
 });
 
 describe("contratto upstream rigoroso", () => {
@@ -157,6 +171,35 @@ describe("contratto upstream rigoroso", () => {
   it("fallisce l'intero payload se una sola riga è invalida", () => {
     expect(parseGatewayFeed({ ok: true, bandi: [row, { ...row, id: "" }] })).toBeNull();
     expect(parseGatewayFeed({ ok: true, bandi: [row, null] })).toBeNull();
+  });
+
+  it("con dropInvalidRows tiene le righe valide e su 200 ok restituisce bandi vuoti", () => {
+    const mixed = sanitizeFeedResponse(
+      { ok: true, bandi: [row, { ...row, id: "" }, { ...row, official_url: "/relativo" }] },
+      200,
+      { dropInvalidRows: true },
+    );
+    expect(mixed).toMatchObject({ ok: true });
+    if (mixed.ok) {
+      expect(mixed.bandi).toHaveLength(1);
+      expect(mixed.bandi[0]?.id).toBe("a");
+    }
+
+    const emptyAfterFilter = sanitizeFeedResponse(
+      { ok: true, bandi: [{ ...row, id: "" }, { ...row, category: "QUALSIASI" }] },
+      200,
+      { dropInvalidRows: true },
+    );
+    expect(emptyAfterFilter).toEqual({ ok: true, bandi: [], generated_at: null });
+
+    const emptyOk = sanitizeFeedResponse({ ok: true, bandi: [] }, 200, { dropInvalidRows: true });
+    expect(emptyOk).toEqual({ ok: true, bandi: [], generated_at: null });
+
+    expect(
+      sanitizeFeedResponse({ ok: true, bandi: [{ ...row, id: "" }] }, 500, {
+        dropInvalidRows: true,
+      }),
+    ).toMatchObject({ ok: false, code: "UPSTREAM_STATUS" });
   });
 
   it("rimuove campi upstream non usati dalle card o dal dettaglio", () => {

@@ -28,7 +28,8 @@ describe("cadenza consumata solo dal refresh", () => {
   });
 
   it("il feed resta leggibile senza consumare la corsia", () => {
-    const feedTail = edge.slice(edge.indexOf('await callCore("feed"'));
+    const feedTail = edge.slice(edge.indexOf("const catalog = isCatalogRequest"));
+    expect(feedTail).toContain("PROFILE_FEED_LIMIT");
     expect(feedTail).not.toContain("ueradar_claim_search_lane");
   });
 });

@@ -207,10 +207,14 @@ serve(async (req) => {
   const catalog = isCatalogRequest(parsed);
   const res = catalog
     ? await fetchOfficialCatalog()
-    : await callCore("feed", { profile: minimizedProfile, limit: PROFILE_FEED_LIMIT });
-  // Catalogo: le righe sporche vengono scartate, il resto passa.
-  // Feed profilo: resta fail-closed sull'intero payload.
-  const sanitized = sanitizeFeedResponse(res.body, res.status, { dropInvalidRows: catalog });
+    : await callCore(
+        "feed",
+        { profile: minimizedProfile, limit: PROFILE_FEED_LIMIT },
+        CORE_READ_TIMEOUT_MS,
+      );
+  // Catalogo e feed profilo: le righe sporche vengono scartate, il resto passa.
+  // Un 200 ok con bandi tutti invalidi resta un elenco vuoto, non un 502.
+  const sanitized = sanitizeFeedResponse(res.body, res.status, { dropInvalidRows: true });
   if (!sanitized.ok)
     return out(502, { ok: false, code: "UPSTREAM_UNAVAILABLE", reason: sanitized.code });
 
@@ -224,17 +228,17 @@ serve(async (req) => {
   });
 });
 
-const CATALOG_TIMEOUT_MS = 60_000;
+const CORE_READ_TIMEOUT_MS = 60_000;
 
 async function fetchOfficialCatalog() {
   const lenient = { dropInvalidRows: true };
-  const primary = await callCore("catalog", { limit: CATALOG_LIMIT }, CATALOG_TIMEOUT_MS);
+  const primary = await callCore("catalog", { limit: CATALOG_LIMIT }, CORE_READ_TIMEOUT_MS);
   if (sanitizeFeedResponse(primary.body, primary.status, lenient).ok) return primary;
 
   const secondary = await callCore(
     "feed",
     { mode: "catalog", limit: CATALOG_LIMIT },
-    CATALOG_TIMEOUT_MS,
+    CORE_READ_TIMEOUT_MS,
   );
   if (sanitizeFeedResponse(secondary.body, secondary.status, lenient).ok) return secondary;
 
