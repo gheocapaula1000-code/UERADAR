@@ -113,6 +113,20 @@ export function BandoCard({
   const parziale = !sportello && Boolean(gaps?.missing_deadline || gaps?.missing_economics);
   const ufficialeHref = officialLink(bando);
   const importoMax = coercePositiveNumber(bando.importo_max);
+  // Una sola CTA primaria: la decide plain-ux, mai più azioni in competizione.
+  const primary = cardPrimaryCta({
+    sportello,
+    esito,
+    parziale,
+    compatibile:
+      preview?.status === "COMPATIBILE"
+        ? true
+        : homeView === "profile" && preview
+          ? false
+          : null,
+    officialHref: ufficialeHref,
+    entitled: true, // il gate di quota è sul dettaglio: la card apre sempre
+  });
 
   return (
     <div
@@ -276,14 +290,14 @@ export function BandoCard({
         </div>
       )}
 
-      {!sportello && (esito || parziale) && ufficialeHref ? (
+      {!sportello && primary.kind === "official" && primary.href ? (
         <a
-          href={ufficialeHref}
+          href={primary.href}
           target="_blank"
           rel="noopener noreferrer"
           className="cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
         >
-          Apri il bando ufficiale <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          {primary.label} <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </a>
       ) : null}
 
@@ -294,7 +308,7 @@ export function BandoCard({
           aria-label={`Genera dossier candidatura per ${bando.titolo} — bozza informativa da verificare`}
           title="Genera un dossier di candidatura in bozza: contenuto informativo da verificare, nessuna domanda viene inviata"
           className={
-            (esito || parziale) && ufficialeHref
+            primary.kind === "official"
               ? "tap mt-2 inline-flex items-center justify-center gap-2 rounded-lg border border-border py-2.5 text-sm font-semibold hover:border-primary/50"
               : "cta-lift tap mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-110 hover:shadow-glow"
           }
