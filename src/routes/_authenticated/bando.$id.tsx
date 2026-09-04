@@ -670,7 +670,11 @@ function BandoDetail() {
                       Termine superato
                     </span>
                   ) : null}
-
+                  {dossierOpen && dossier.readiness === "PARZIALE" ? (
+                    <span className="rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-[11px] font-semibold text-warning">
+                      Bozza incompleta
+                    </span>
+                  ) : null}
                 </div>
                 {!dossierOpen && (
                   <div className="flex flex-col items-start gap-2">
