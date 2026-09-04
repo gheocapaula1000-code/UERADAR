@@ -370,15 +370,23 @@ function BandoDetail() {
   const openDossier = async () => {
     setDossierBusy(true);
     setDossierError(null);
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
+      const claim = claimDossier({ data: { opportunity_id: bando.id } });
+      // Se il timeout vince, la promessa in volo non deve restare "unhandled".
+      claim.catch(() => {});
       const res = await Promise.race([
-        claimDossier({ data: { opportunity_id: bando.id } }),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), 12_000)),
+        claim,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error("TIMEOUT")), 12_000);
+        }),
       ]);
       if (!res.allowed) {
         const msg =
           res.code === "QUOTA_EXCEEDED"
-            ? "Hai esaurito i dossier inclusi in questo mese"
+            ? trialPeriod
+              ? "Hai esaurito i dossier inclusi nella prova gratuita"
+              : "Hai esaurito i dossier inclusi in questo mese"
             : res.code === "EXPORT_NOT_INCLUDED"
               ? "Dossier non disponibile con il piano attivo"
               : res.code === "USAGE_UNAVAILABLE"
