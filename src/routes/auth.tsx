@@ -263,7 +263,7 @@ function AuthPage() {
           <p className="mt-4 text-center text-xs text-muted-foreground">
             Continuando accetti i <Link to="/termini" className="text-primary hover:underline">Termini</Link>
             {" e l'"}<Link to="/privacy" className="text-primary hover:underline">informativa privacy</Link>.
-            Il trial non genera addebiti automatici.
+            La prova gratuita non genera addebiti automatici.
           </p>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
