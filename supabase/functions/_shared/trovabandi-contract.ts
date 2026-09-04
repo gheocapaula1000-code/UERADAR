@@ -277,8 +277,8 @@ export function sanitizeFeedResponse(
   let valid: ContractRow[];
   if (options.dropInvalidRows) {
     valid = rows.filter(opportunityIsValid);
-    if (rows.length > 0 && valid.length === 0)
-      return { ok: false, code: "UPSTREAM_INVALID_ROW" };
+    // Tutte le righe invalide: envelope vuoto valido (il proxy può riusare la
+    // cache precedente con fetched_at fresco), non 502 totale.
   } else {
     if (!rows.every(opportunityIsValid)) return { ok: false, code: "UPSTREAM_INVALID_ROW" };
     valid = rows as ContractRow[];
