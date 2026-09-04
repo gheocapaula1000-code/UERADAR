@@ -7,7 +7,7 @@ import { AppShell } from "@/components/bandocore/AppShell";
 import { fetchFeedFromProxyCore, loadCachedFeed } from "@/lib/proxy-core.functions";
 import { supabase } from "@/integrations/supabase/client";
 import type { CompanyProfile } from "@/lib/bandocore-types";
-import { buildDossier, renderDossierText } from "@/lib/dossier";
+import { MISSING_BEFORE_USE_TITLE, buildDossier, renderDossierText } from "@/lib/dossier";
 import { consumeDossier, getUsageSummary } from "@/lib/usage.functions";
 import type { DossierField } from "@/lib/dossier";
 import { downloadDossierPdf } from "@/lib/dossier-pdf";
