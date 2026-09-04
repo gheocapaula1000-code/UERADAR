@@ -116,7 +116,7 @@ export function planCompareRows(): readonly PlanCompareRow[] {
     },
     {
       label: "Acquisto online",
-      istruttoria: "self-service",
+      istruttoria: "online (checkout)",
       studio: "nessun acquisto online",
     },
   ];
