@@ -4,6 +4,7 @@ import type { Bando, CompanyProfile } from "@/lib/bandocore-types";
 import {
   ALLOWED_PROFILE_FIELDS,
   DOSSIER_DISCLAIMER,
+  MISSING_BEFORE_USE_TITLE,
   TRIAL_WATERMARK,
   buildDossier,
   missingOfficialData,
@@ -246,5 +247,53 @@ describe("dossier candidatura", () => {
     const page = readFileSync("src/routes/_authenticated/bando.$id.tsx", "utf8");
     expect(page).toContain("watermarked");
     expect(page).toContain("filigranat");
+  });
+
+  it("elenca i dati da completare prima dell'uso su schermo, TXT e PDF", () => {
+    const parziale = { ...bando, requisiti: [] } as unknown as Bando;
+    const d = buildDossier(parziale, profile, NOW);
+    expect(d.missing_before_use.length).toBeGreaterThan(0);
+    expect(renderDossierText(d)).toContain(MISSING_BEFORE_USE_TITLE.toUpperCase());
+    expect(dossierPdfModel(d).map((b) => b.text).join("\n")).toContain(MISSING_BEFORE_USE_TITLE);
+    const page = readFileSync("src/routes/_authenticated/bando.$id.tsx", "utf8");
+    expect(page).toContain("MISSING_BEFORE_USE_TITLE");
+    expect(page).toContain("Bozza incompleta");
+  });
+
+  it("scarta le evidenze senza URL invece di stampare undefined", () => {
+    const sporco = {
+      ...bando,
+      evidence: [
+        { source_title: "Senza link", evidence_type: "DETERMINA" },
+        { source_url: "  ", source_title: "Vuoto", evidence_type: "DETERMINA" },
+        ...(bando.evidence ?? []),
+      ],
+    } as unknown as Bando;
+    const d = buildDossier(sporco, profile, NOW);
+    expect(d.evidence).toHaveLength(1);
+    expect(renderDossierText(d)).not.toContain("undefined");
+  });
+
+  it("usa etichette italiane nel dossier e nella scheda", () => {
+    const d = buildDossier(bando, profile, NOW);
+    expect(d.cover.some((f) => f.label === "Riferimento / codice programma")).toBe(true);
+    const page = readFileSync("src/routes/_authenticated/bando.$id.tsx", "utf8");
+    expect(page).not.toContain("Piattaforma di sottomissione");
+    expect(page).not.toMatch(/utofill/);
+    expect(page).not.toContain('label="Blocker"');
+  });
+
+  it("il PDF non riuscito ricade sempre sul TXT, anche offline", () => {
+    const page = readFileSync("src/routes/_authenticated/bando.$id.tsx", "utf8");
+    const fn = page.slice(page.indexOf("const downloadPdf"), page.indexOf("const instanceText"));
+    expect(fn).toContain("downloadDossierTxt()");
+    expect(fn).not.toMatch(/onLine === false\s*\)\s*\{\s*toast/);
+  });
+
+  it("la modulistica ufficiale è protetta dalla stessa quota del dossier", () => {
+    const src = readFileSync("src/lib/official-module.functions.ts", "utf8");
+    expect(src).toContain("exportsEnabled");
+    expect(src).toContain("consumeQuotaOnce");
+    expect(src).toContain('kind: "dossiers"');
   });
 });
