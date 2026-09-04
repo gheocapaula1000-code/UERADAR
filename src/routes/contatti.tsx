@@ -59,8 +59,8 @@ function Contatti() {
         <p>
           Per la Prova Gratuita di 7 giorni non sono richiesti carta di credito né dati bancari e non
           è previsto alcun addebito automatico. La cancellazione avviene online, senza disdetta
-          scritta. In questa fase la fatturazione elettronica e gli addebiti sono tecnicamente
-          disattivati fino al collaudo.
+          scritta. Dopo la prova, l’abbonamento Istruttoria si attiva solo con conferma esplicita al
+          checkout; fatture e disdetta si gestiscono dal portale clienti.
         </p>
       </LegalSection>
     </LegalPage>
