@@ -73,6 +73,7 @@ describe("dashboard Radar usa sedeOk = matchesSede e non reintroduce il ranking"
     expect(dashboard).toContain("const sedeOk");
     expect(dashboard).toContain("sedeOk(b)");
     expect(dashboard).toContain("compareByQualityAndGeo");
-    expect(dashboard).not.toContain("from \"@/lib/plain-ux\"");
+    // La logica sede resta in @/lib/sede: plain-ux decide solo CTA e stati vuoti.
+    expect(dashboard).toContain('matchesSede } from "@/lib/sede"');
   });
 });
