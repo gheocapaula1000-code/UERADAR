@@ -11,6 +11,7 @@
 - [x] Posti esauriti: modulo invito chiuso con spiegazione
 
 ## Backlog
+- [x] Ridistribuita Edge `trovabandi-feed` (profilo tollerante, timeout 60s, envelope vuoto valido)
 - [ ] Email di invito + rotta pubblica `/invito`
 - [ ] Allineare cache offline (30 gg) alla policy feed (7 gg)
 - [ ] Svuotare la cache React Query al logout

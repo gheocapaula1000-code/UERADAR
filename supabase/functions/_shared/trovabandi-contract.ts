@@ -276,9 +276,9 @@ export function sanitizeFeedResponse(
   const rows = body.bandi as unknown[];
   let valid: ContractRow[];
   if (options.dropInvalidRows) {
+    // Le righe sporche vengono scartate; un envelope 200/ok che non lascia
+    // righe valide resta una risposta vuota, non un errore upstream.
     valid = rows.filter(opportunityIsValid);
-    // Tutte le righe invalide: envelope vuoto valido (il proxy può riusare la
-    // cache precedente con fetched_at fresco), non 502 totale.
   } else {
     if (!rows.every(opportunityIsValid)) return { ok: false, code: "UPSTREAM_INVALID_ROW" };
     valid = rows as ContractRow[];

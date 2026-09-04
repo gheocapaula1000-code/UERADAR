@@ -154,7 +154,29 @@ describe("contratto upstream rigoroso", () => {
     }
   });
 
-  it("fallisce l'intero payload se una sola riga è invalida", () => {
+  it("con dropInvalidRows tiene le righe valide senza fallire tutto il payload", () => {
+    const mixed = sanitizeFeedResponse(
+      { ok: true, bandi: [row, { ...row, id: "" }, null] },
+      200,
+      { dropInvalidRows: true },
+    );
+    expect(mixed).toMatchObject({ ok: true });
+    if (mixed.ok) {
+      expect(mixed.bandi).toHaveLength(1);
+      expect(mixed.bandi[0]?.id).toBe("a");
+    }
+  });
+
+  it("con dropInvalidRows un payload senza righe valide resta una risposta vuota", () => {
+    const empty = sanitizeFeedResponse(
+      { ok: true, bandi: [{ ...row, id: "" }, { ...row, official_url: "" }] },
+      200,
+      { dropInvalidRows: true },
+    );
+    expect(empty).toMatchObject({ ok: true, bandi: [] });
+  });
+
+  it("senza dropInvalidRows fallisce l'intero payload se una sola riga è invalida", () => {
     expect(parseGatewayFeed({ ok: true, bandi: [row, { ...row, id: "" }] })).toBeNull();
     expect(parseGatewayFeed({ ok: true, bandi: [row, null] })).toBeNull();
   });
