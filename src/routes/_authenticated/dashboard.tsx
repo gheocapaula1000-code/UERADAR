@@ -32,7 +32,7 @@ import {
 } from "@/lib/plain-ux";
 import { computeRadarStats } from "@/lib/radar-stats";
 import { isMiaImpresaCompatibile, isRealOpenAvviso } from "@/lib/mia-impresa";
-import { loadOfflineFeed, saveOfflineFeed } from "@/lib/offline-feed";
+import { clearOfflineFeed, loadOfflineFeed, saveOfflineFeed } from "@/lib/offline-feed";
 import {
   DEFAULT_HOME_VIEW,
   browserHomeViewStorage,
@@ -107,6 +107,7 @@ function Dashboard() {
   const [homeView, setHomeView] = useState<HomeView>(
     () => readHomeView(browserHomeViewStorage()) || DEFAULT_HOME_VIEW,
   );
+  const [lastLiveCheckAt, setLastLiveCheckAt] = useState<string | null>(null);
 
   const persistHomeView = useCallback((next: HomeView) => {
     setHomeView(next);
@@ -180,6 +181,12 @@ function Dashboard() {
     retry: false,
   });
 
+  useEffect(() => {
+    if (query.data?.source === "central-core") {
+      setLastLiveCheckAt(new Date().toISOString());
+    }
+  }, [query.data]);
+
   // Refresh manuale: 1 solo enqueue, poi polling bounded del solo feed.
   useEffect(() => () => refreshAbort.current?.abort(), []);
 
@@ -193,6 +200,7 @@ function Dashboard() {
     const isProfile = homeView === "profile";
     const liveFetch = () => fetchFeed({ data: { deep_search: true, mode: homeView } });
     try {
+      if (navigator.onLine) clearOfflineFeed(undefined, homeView);
       const result = await runBoundedRefresh({
         enqueue: () => enqueueRefresh(),
         fetchFeed: liveFetch,
@@ -216,6 +224,7 @@ function Dashboard() {
       if (applied) {
         queryClient.setQueryData(["bandi-feed", homeView], applied);
         saveOfflineFeed(applied, undefined, homeView);
+        if (applied.source === "central-core") setLastLiveCheckAt(new Date().toISOString());
         toast.success("Risultati aggiornati");
         setRefreshNotice({
           tone: "ok",
@@ -421,7 +430,10 @@ function Dashboard() {
     setHiddenOnly(false);
   };
 
-  const updatedIso = feedUpdatedIso(query.data); // generated_at ufficiale, altrimenti fetched_at
+  const updatedIso = feedUpdatedIso({
+    generated_at: feedUpdatedIso(query.data) ?? undefined,
+    fetched_at: lastLiveCheckAt ?? undefined,
+  });
   const updatedLabel = updatedIso ? formatFeedUpdatedAt(updatedIso) : null;
   const listEmpty = feedListEmpty({
     fetchFailed: Boolean(query.error),

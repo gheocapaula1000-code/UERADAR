@@ -49,6 +49,18 @@ export function saveOfflineFeed(
   }
 }
 
+export function clearOfflineFeed(
+  storage: StorageLike | null = browserStorage(),
+  view: FeedView = "profile",
+): void {
+  if (!storage) return;
+  try {
+    storage.removeItem(offlineFeedKey(view));
+  } catch {
+    // Storage non disponibile: il tentativo live continua comunque.
+  }
+}
+
 export function loadOfflineFeed(
   storage: StorageLike | null = browserStorage(),
   now = Date.now(),
