@@ -55,4 +55,5 @@ npm test
 
 - Secret di produzione (Core API key, cron digest, Resend).
 - `CORE_ALLOWED_ORIGINS` e release gate del digest.
-- Configurazione operativa Stripe LIVE (price ID Istruttoria mensile e annuale, webhook secret): se mancano, il billing resta fail-closed. I price Radar/Studio sono opzionali e non bloccano nulla.
+
+Stripe LIVE checkout Istruttoria è già configurato e non è un blocco: price ID mensile/annuale e webhook secret sono operativi lato Paula.
