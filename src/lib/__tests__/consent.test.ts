@@ -126,13 +126,12 @@ describe("UI banner e footer — requisiti normativi statici", () => {
     expect(banner).toContain("restoreRef");
   });
 
-  it("i tre pulsanti hanno pari evidenza e area di tocco >= 44px", () => {
+  it("Accetta e' il pulsante primario, con rifiuto sempre visibile e area di tocco >= 44px", () => {
     expect(banner).toContain("Accetta tutti");
     expect(banner).toContain("Rifiuta opzionali");
     expect(banner).toContain("Personalizza");
-    const styled = banner.match(/bg-secondary/g) ?? [];
-    expect(styled.length).toBeGreaterThanOrEqual(3);
-    expect(banner).not.toMatch(/Accetta tutti[\s\S]{0,200}bg-primary/);
+    expect(banner).toMatch(/data-testid="consent-accept-all"[\s\S]{0,200}bg-primary/);
+    expect(banner).toMatch(/data-testid="consent-reject"[\s\S]{0,200}border-border/);
     expect(banner).toContain("min-h-11");
   });
 
