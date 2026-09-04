@@ -415,7 +415,21 @@ function BandoDetail() {
           : "Dossier non disponibile in questo momento";
       setDossierError(msg);
       toast.error(msg);
+      if (timedOut) {
+        // La chiamata è ancora in volo: se arriva e la quota è concessa,
+        // apriamo comunque il dossier senza chiedere un secondo click.
+        void claim
+          .then((late) => {
+            if (!late?.allowed) return;
+            setWatermarked(late.watermarked === true);
+            setDossierOpen(true);
+            setDossierError(null);
+            void queryClient.invalidateQueries({ queryKey: ["usage-summary"] });
+          })
+          .catch(() => {});
+      }
     } finally {
+      clearTimeout(timer);
       setDossierBusy(false);
     }
   };
