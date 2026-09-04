@@ -19,10 +19,10 @@ Non è un prodotto nuovo e non è Civiko: è il frontend sottile di UERADAR.
 
 ## Prezzi (listino pubblico)
 
-| Piano | Mensile | Note |
-| --- | --- | --- |
-| Istruttoria | 449 € | unico piano a checkout; 5 utenti, 10 dossier/mese; bozza, non invia agli enti |
-| Studio | da 990 € | su richiesta, nessun checkout pubblico |
+| Piano | Mensile | Annuale | Note |
+| --- | --- | --- | --- |
+| Istruttoria | 449 € | 4.490 € (2 mesi inclusi) | unico piano a checkout; 5 utenti, 10 dossier/mese; bozza, non invia agli enti |
+| Studio | da 990 € | — | su richiesta, nessun checkout pubblico |
 
 Prova: **7 giorni**, senza carta, senza dati bancari, senza disdetta. 1 impresa, 1 dossier filigranato.
 
