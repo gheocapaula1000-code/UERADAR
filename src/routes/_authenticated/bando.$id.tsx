@@ -755,7 +755,7 @@ function BandoDetail() {
                         label="Requisiti confermati"
                         items={dossier.compatibility.confirmed}
                       />
-                      <ListSection label="Blocker" items={dossier.compatibility.blockers} />
+                      <ListSection label="Ostacoli" items={dossier.compatibility.blockers} />
                     </DossierBlock>
                   ) : null}
 
@@ -868,7 +868,7 @@ function BandoDetail() {
               <div className="mt-8 rounded-xl border border-primary/30 bg-primary/5 p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <FileText className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold">Autofill campi modulo ufficiale</h3>
+                  <h3 className="font-semibold">Compilazione campi modulo ufficiale</h3>
                 </div>
                 {bando.pdf_field_mapping?.length ? (
                   <p className="mb-3 text-xs text-muted-foreground">
@@ -937,7 +937,7 @@ function BandoDetail() {
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Completa prima il profilo aziendale per abilitare l'autofill.
+                    Completa prima il profilo aziendale per abilitare la compilazione dei campi.
                   </p>
                 )}
 
@@ -1084,7 +1084,7 @@ function BandoDetail() {
                   rel="noopener noreferrer"
                   className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:brightness-110"
                 >
-                  <ExternalLink className="h-4 w-4" /> Piattaforma di sottomissione
+                  <ExternalLink className="h-4 w-4" /> Piattaforma di presentazione
                 </a>
               ) : (
                 <div className="mt-4">
@@ -1119,7 +1119,7 @@ function BandoDetail() {
             {profile && (
               <div className="rounded-2xl border border-border bg-card p-5">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
-                  <Building2 className="h-4 w-4" /> Dati autofill
+                  <Building2 className="h-4 w-4" /> Dati per la compilazione
                 </h3>
                 <dl className="mt-3 space-y-2 text-xs">
                   <Row l="Ragione Sociale" v={profile.ragione_sociale} />
