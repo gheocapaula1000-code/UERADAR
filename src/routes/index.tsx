@@ -18,7 +18,65 @@ import {
   ShieldCheck,
   Globe,
   ArrowRight,
+  Menu,
 } from "lucide-react";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+
+function MobileNav() {
+  const linkClass =
+    "tap block rounded-lg px-4 py-3 text-base font-semibold text-foreground hover:bg-muted/60";
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <button
+          type="button"
+          aria-label="Apri il menu di navigazione"
+          className="tap inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border text-foreground md:hidden"
+        >
+          <Menu className="h-5 w-5" aria-hidden="true" />
+        </button>
+      </SheetTrigger>
+      <SheetContent side="right" className="w-72" aria-describedby={undefined}>
+        <SheetHeader>
+          <SheetTitle className="sr-only">Menu di navigazione</SheetTitle>
+          <SheetDescription className="sr-only">
+            Sezioni della pagina e link ai prezzi
+          </SheetDescription>
+        </SheetHeader>
+        <nav aria-label="Navigazione principale mobile" className="mt-4 flex flex-col gap-1">
+          <SheetClose asChild>
+            <a href="#come-funziona" className={linkClass}>
+              Come Funziona
+            </a>
+          </SheetClose>
+          <SheetClose asChild>
+            <a href="#cosa-trova" className={linkClass}>
+              Cosa Trova
+            </a>
+          </SheetClose>
+          <SheetClose asChild>
+            <a href="#sicurezza" className={linkClass}>
+              Sicurezza
+            </a>
+          </SheetClose>
+          <SheetClose asChild>
+            <Link to="/prezzi" className={linkClass}>
+              Prezzi
+            </Link>
+          </SheetClose>
+        </nav>
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -63,12 +121,15 @@ function Landing() {
               Prezzi
             </Link>
           </nav>
-          <Link
-            to="/auth"
-            className="tap inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
-          >
-            Accedi <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            <MobileNav />
+            <Link
+              to="/auth"
+              className="tap inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-glow transition hover:brightness-110"
+            >
+              Accedi <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
       </header>
 

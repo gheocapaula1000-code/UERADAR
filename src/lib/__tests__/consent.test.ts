@@ -201,13 +201,14 @@ describe("UI banner e footer — requisiti normativi statici", () => {
     expect(files).not.toMatch(/Codice Fiscale/i);
   });
 
-  it("i termini riportano prezzi, prova e billing disattivato", () => {
+  it("i termini riportano prezzi, prova e pagamenti online live", () => {
     const terms = readFileSync("src/routes/termini.tsx", "utf8");
     expect(terms).not.toContain("€249");
     expect(terms).toContain("€449");
     expect(terms).toContain("€990");
     expect(terms).toMatch(/non richiede carta di credito/);
     expect(terms).toContain("senza PEC");
-    expect(terms).toMatch(/fatturazione .*disattivata fino al collaudo/);
+    expect(terms).not.toMatch(/disattivata fino al collaudo/i);
+    expect(terms).toMatch(/modalità live/i);
   });
 });
