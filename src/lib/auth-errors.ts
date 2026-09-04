@@ -7,7 +7,7 @@ const AUTH_ERROR_MAP: Array<[RegExp, string]> = [
   [/invalid login credentials/i, "Email o password non corretti."],
   [/email not confirmed/i, "Devi prima confermare la tua email: controlla la casella di posta."],
   [/user already registered|already been registered/i, "Esiste già un account con questa email. Prova ad accedere."],
-  [/password.*(at least|too short|weak)|weak_password/i, "Password troppo debole: usa almeno 6 caratteri."],
+  [/password.*(at least|too short|weak)|weak_password/i, "Password troppo debole: in registrazione servono almeno 8 caratteri (in accesso almeno 6)."],
   [/too many requests|rate limit|over_request_rate_limit|over_email_send_rate_limit/i, "Troppi tentativi. Attendi qualche minuto e riprova."],
   [/email.*(invalid|not valid)|invalid.*email/i, "L'indirizzo email non sembra valido."],
   [/signup.*disabled|signups.*disabled/i, "Le registrazioni sono temporaneamente sospese. Riprova più tardi."],
