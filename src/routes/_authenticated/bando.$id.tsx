@@ -221,18 +221,18 @@ function BandoDetail() {
       await downloadDossierPdf(dossier, `dossier-${bando.id}.pdf`, watermarked);
       toast.success("PDF generato nel browser");
     } catch {
-      // Nessun vicolo cieco: se il PDF non si genera, scarichiamo subito il TXT.
-      if (navigator.onLine === false) {
+      // Nessun vicolo cieco: qualunque errore del PDF (anche offline) scarica
+      // comunque subito il dossier in formato testo.
+      const offline = navigator.onLine === false;
+      try {
+        downloadDossierTxt();
         toast.error(
-          "Sei offline: il PDF si genera sul tuo dispositivo, riprova quando torni online",
+          offline
+            ? "PDF non disponibile: abbiamo scaricato il dossier in formato testo (TXT). Sei offline, riprova il PDF quando torni online."
+            : "PDF non riuscito: abbiamo scaricato il dossier in formato testo (TXT).",
         );
-      } else {
-        try {
-          downloadDossierTxt();
-          toast.error("PDF non riuscito: abbiamo scaricato il dossier in formato testo (TXT).");
-        } catch {
-          toast.error("Generazione PDF non riuscita. Riprova o copia il testo del dossier.");
-        }
+      } catch {
+        toast.error("Generazione PDF non riuscita. Riprova o copia il testo del dossier.");
       }
     } finally {
       setPdfBusy(false);
