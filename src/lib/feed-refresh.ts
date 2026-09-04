@@ -39,6 +39,12 @@ function fnv1a(input: string): string {
 
 export const DEFAULT_REFRESH_DELAYS_MS = [1500, 3000, 6000];
 
+/**
+ * «Per la mia impresa»: il Core deve completare l'abbinamento dopo l'enqueue,
+ * quindi la finestra è più lunga ma sempre limitata (max ~31s, nessun loop).
+ */
+export const PROFILE_REFRESH_DELAYS_MS = [1500, 3000, 6000, 9000, 12000];
+
 export type RefreshStatus = "updated" | "queued" | "failed" | "aborted";
 
 export interface BoundedRefreshResult {

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
 import { feedMarker, runBoundedRefresh } from "../feed-refresh";
 import type { FeedResponse } from "../bandocore-types";
 
@@ -126,5 +127,23 @@ describe("runBoundedRefresh", () => {
     );
     expect(res.status).toBe("aborted");
     expect(enqueue).not.toHaveBeenCalled();
+  });
+});
+
+describe("refresh «Per la mia impresa»", () => {
+  it("usa una finestra più lunga ma sempre limitata", async () => {
+    const { PROFILE_REFRESH_DELAYS_MS, DEFAULT_REFRESH_DELAYS_MS } = await import("../feed-refresh");
+    expect(PROFILE_REFRESH_DELAYS_MS.length).toBeGreaterThan(DEFAULT_REFRESH_DELAYS_MS.length);
+    expect(PROFILE_REFRESH_DELAYS_MS.reduce((a, b) => a + b, 0)).toBeLessThanOrEqual(60_000);
+  });
+
+  it("la dashboard aggiorna la cache della vista profilo e non lascia lo snapshot offline", () => {
+    const src = readFileSync("src/routes/_authenticated/dashboard.tsx", "utf8");
+    expect(src).toContain("PROFILE_REFRESH_DELAYS_MS");
+    expect(src).toContain('mode: homeView');
+    expect(src).toContain('["bandi-feed", homeView], applied');
+    expect(src).toContain('saveOfflineFeed(applied, undefined, homeView)');
+    expect(src).toContain('live.source !== "cache"');
+    expect(src).toContain("Per la mia impresa»");
   });
 });
