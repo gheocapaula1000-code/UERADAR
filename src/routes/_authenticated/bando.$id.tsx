@@ -371,10 +371,10 @@ function BandoDetail() {
     setDossierBusy(true);
     setDossierError(null);
     let timer: ReturnType<typeof setTimeout> | undefined;
+    const claim = claimDossier({ data: { opportunity_id: bando.id } });
+    // Se il timeout vince, la promessa in volo non deve restare "unhandled".
+    claim.catch(() => {});
     try {
-      const claim = claimDossier({ data: { opportunity_id: bando.id } });
-      // Se il timeout vince, la promessa in volo non deve restare "unhandled".
-      claim.catch(() => {});
       const res = await Promise.race([
         claim,
         new Promise<never>((_, reject) => {
