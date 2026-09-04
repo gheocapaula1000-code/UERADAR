@@ -432,7 +432,7 @@ function Dashboard() {
 
   const updatedIso = feedUpdatedIso({
     generated_at: feedUpdatedIso(query.data) ?? undefined,
-    fetched_at: lastLiveCheckAt ?? undefined,
+    fetched_at: lastLiveCheckAt ?? "",
   });
   const updatedLabel = updatedIso ? formatFeedUpdatedAt(updatedIso) : null;
   const listEmpty = feedListEmpty({
