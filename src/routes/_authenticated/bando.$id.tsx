@@ -736,6 +736,19 @@ function BandoDetail() {
 
               {dossierOpen && (
                 <div className="mt-4 space-y-4">
+                  {dossier.missing_before_use.length ? (
+                    <DossierBlock
+                      icon={<ListChecks className="h-4 w-4" />}
+                      title={MISSING_BEFORE_USE_TITLE}
+                    >
+                      <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+                        {dossier.missing_before_use.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ol>
+                    </DossierBlock>
+                  ) : null}
+
                   <DossierBlock icon={<FileSearch className="h-4 w-4" />} title="Copertina">
                     <FieldGrid fields={dossier.cover} />
                   </DossierBlock>
