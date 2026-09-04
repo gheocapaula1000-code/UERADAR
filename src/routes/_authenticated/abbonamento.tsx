@@ -100,18 +100,22 @@ function Abbonamento() {
       startPayment({ data: { plan, interval } }),
     onSuccess: (res) => {
       if (res.ok && res.url) window.location.assign(res.url);
-      else toast.error("Attivazione non disponibile", { description: res.code });
+      else toast.error("Attivazione non disponibile", {
+        description: checkoutBlockText(res.code) ?? "Riprova tra poco.",
+      });
     },
-    onError: () => toast.error("Attivazione non disponibile"),
+    onError: () => toast.error("Attivazione non disponibile. Riprova tra poco."),
   });
 
   const portalMutation = useMutation({
     mutationFn: () => openPortal(),
     onSuccess: (res) => {
       if (res.ok && res.url) window.location.assign(res.url);
-      else toast.error("Portale non disponibile", { description: res.code });
+      else toast.error("Portale non disponibile", {
+        description: checkoutBlockText(res.code) ?? "Riprova tra poco.",
+      });
     },
-    onError: () => toast.error("Portale non disponibile"),
+    onError: () => toast.error("Portale non disponibile. Riprova tra poco."),
   });
 
   // Sincronizzazione post-checkout TEST: lo stato locale viene riallineato
