@@ -147,7 +147,7 @@ export function CookieConsent() {
           </button>
         </div>
 
-        <p id={descId} className="mt-2 text-sm leading-6 text-muted-foreground">
+        <p id={descId} className="mt-1.5 text-[13px] leading-5 text-muted-foreground sm:text-sm sm:leading-6">
           Usiamo strumenti necessari per accesso, sicurezza e uso offline del servizio. Le categorie
           opzionali restano disattivate finché non scegli tu.{" "}
           {hasOptionalVendors()
@@ -206,12 +206,12 @@ export function CookieConsent() {
           </ul>
         )}
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:grid-cols-3">
           <button
             type="button"
             onClick={() => decide("accept_all")}
             data-testid="consent-accept-all"
-            className="tap inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+            className="tap col-span-2 inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground shadow-glow sm:col-span-1"
           >
             Accetta tutti
           </button>
@@ -219,7 +219,7 @@ export function CookieConsent() {
             type="button"
             onClick={dismissAsRefusal}
             data-testid="consent-reject"
-            className="tap inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+            className="tap inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold text-muted-foreground"
           >
             Rifiuta opzionali
           </button>
@@ -228,7 +228,7 @@ export function CookieConsent() {
               type="button"
               onClick={() => decide("custom", choices)}
               data-testid="consent-save"
-              className="tap inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+              className="tap inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold text-muted-foreground"
             >
               Salva preferenze
             </button>
@@ -237,7 +237,7 @@ export function CookieConsent() {
               type="button"
               onClick={() => setDetails(true)}
               data-testid="consent-customize"
-              className="tap inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-secondary px-4 text-sm font-semibold text-secondary-foreground"
+              className="tap inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold text-muted-foreground"
             >
               Personalizza
             </button>
