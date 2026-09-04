@@ -400,7 +400,8 @@ function BandoDetail() {
       const timedOut = err instanceof Error && err.message === "TIMEOUT";
       void queryClient.invalidateQueries({ queryKey: ["usage-summary"] });
       const msg = timedOut
-        ? "Il dossier ci sta mettendo troppo. Ricarica la pagina tra un minuto: se era già pronto lo trovi qui"
+        ? "Il dossier ci sta mettendo troppo. Premi di nuovo lo stesso pulsante tra un minuto: la quota non viene addebitata due volte per lo stesso bando"
+
         : navigator.onLine === false
           ? "Sei offline: il dossier si prepara sul server, riprova quando torni online"
           : "Dossier non disponibile in questo momento";
