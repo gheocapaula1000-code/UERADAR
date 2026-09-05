@@ -798,10 +798,27 @@ function BandoDetail() {
                       <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
                         {dossier.documents.map((doc) => (
                           <li key={doc.label}>
-                            <span className="text-foreground">{doc.label}</span>
+                            {doc.url ? (
+                              <a
+                                href={doc.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-foreground underline underline-offset-2"
+                              >
+                                {doc.label}
+                              </a>
+                            ) : (
+                              <span className="text-foreground">{doc.label}</span>
+                            )}
+                            {doc.obbligatorio ? (
+                              <Badge variant="outline" className="ml-2 align-middle text-[10px]">
+                                Obbligatorio
+                              </Badge>
+                            ) : null}
                           </li>
                         ))}
                       </ol>
+
                     </DossierBlock>
                   ) : null}
 
