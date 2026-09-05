@@ -1,4 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { LayoutDashboard, Building2, CreditCard, LogOut } from "lucide-react";
 import { BrandLogo } from "@/components/bandocore/BrandLogo";
 import { SiteFooter } from "@/components/bandocore/SiteFooter";
@@ -18,10 +19,12 @@ export function AppShell({
   requireEntitlement?: boolean;
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    queryClient.clear();
     toast.success("Sessione chiusa");
     navigate({ to: "/auth", replace: true });
   };
@@ -35,7 +38,10 @@ export function AppShell({
   return (
     <div className="h-dvh max-w-full bg-background text-foreground flex overflow-hidden overflow-x-clip">
       {/* Sidebar desktop */}
-      <aside aria-label="Navigazione area riservata" className="safe-top safe-bottom hidden lg:flex w-64 flex-col border-r border-border bg-sidebar shrink-0">
+      <aside
+        aria-label="Navigazione area riservata"
+        className="safe-top safe-bottom hidden lg:flex w-64 flex-col border-r border-border bg-sidebar shrink-0"
+      >
         <Link
           to="/dashboard"
           className="flex items-center gap-2 px-6 py-6 border-b border-sidebar-border"
@@ -76,14 +82,21 @@ export function AppShell({
             <Link to="/dashboard" className="flex items-center gap-2">
               <BrandLogo size="sm" />
             </Link>
-            <button onClick={signOut} aria-label="Esci dall'area riservata" className="tap inline-flex items-center justify-center text-muted-foreground p-2">
+            <button
+              onClick={signOut}
+              aria-label="Esci dall'area riservata"
+              className="tap inline-flex items-center justify-center text-muted-foreground p-2"
+            >
               <LogOut className="h-5 w-5" />
             </button>
           </div>
         </header>
 
         <PullToRefresh>
-          <main id="contenuto-principale" className="safe-x min-w-0 max-w-full overflow-x-clip pb-24 lg:pb-10">
+          <main
+            id="contenuto-principale"
+            className="safe-x min-w-0 max-w-full overflow-x-clip pb-24 lg:pb-10"
+          >
             {requireEntitlement ? <EntitlementGate>{children}</EntitlementGate> : children}
           </main>
           <div className="bottom-nav-gap">

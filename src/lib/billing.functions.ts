@@ -142,7 +142,8 @@ export const getBillingStatus = createServerFn({ method: "POST" })
     const { count, error: membersError } = await context.supabase
       .from("ueradar_company_members")
       .select("id", { count: "exact", head: true })
-      .eq("owner_user_id", tenant.tenant_owner_id);
+      .eq("owner_user_id", tenant.tenant_owner_id)
+      .in("status", ["invited", "accepted"]);
     if (membersError) {
       return {
         ok: false,
@@ -702,6 +703,7 @@ export const listCompanyMembers = createServerFn({ method: "POST" })
       .from("ueradar_company_members")
       .select("id, email, role, status, created_at, first_name, last_name, declared_role, accepted_at")
       .eq("owner_user_id", tenant.tenant_owner_id)
+      .in("status", ["invited", "accepted"])
       .order("created_at", { ascending: true });
     return { members: (data as CompanyMember[] | null) ?? [] };
   });
@@ -724,7 +726,7 @@ export const inviteCompanyMember = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ data, context }): Promise<{ ok: boolean; code: string }> => {
+  .handler(async ({ data, context }): Promise<{ ok: boolean; code: string; email_sent?: boolean }> => {
     if (!isMemberRole(data.declared_role)) return { ok: false, code: "INVALID_ROLE" };
     const { resolveTenantContext } = await import("./tenant.server");
     const tenant = await resolveTenantContext(context.supabase, context.userId);
@@ -764,7 +766,21 @@ export const inviteCompanyMember = createServerFn({ method: "POST" })
       _declared_role: data.declared_role,
       _seats: entitlement.seats,
     });
-    return mapInviteRpcResult(result as InviteRpcResult, error);
+    const mapped = mapInviteRpcResult(result as InviteRpcResult, error);
+    if (!mapped.ok) return mapped;
+    const token = (result as InviteRpcResult)?.invite_token;
+    const { inviteAcceptUrl, sendInviteEmail } = await import("./invite-email");
+    const { SITE_URL } = await import("./seo");
+    const acceptUrl = token ? inviteAcceptUrl(token, SITE_URL) : null;
+    if (!acceptUrl) return { ...mapped, email_sent: false };
+    const sent = await sendInviteEmail({
+      to: email,
+      first_name: data.first_name.trim(),
+      last_name: data.last_name.trim(),
+      declared_role: data.declared_role,
+      acceptUrl,
+    });
+    return { ...mapped, email_sent: sent.sent };
   });
 
 /** Invito pendente destinato all'utente autenticato (match sull'email del token). */
@@ -850,7 +866,50 @@ export const acceptCompanyInvite = createServerFn({ method: "POST" })
     );
   });
 
-/** Rimozione di un posto: server-only, consentita solo al titolare del tenant. */
+/** Invito pubblico per token: nessun dato del titolare, solo campi visibili all'invitato. */
+export const getInviteByToken = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => z.object({ token: z.string().uuid() }).parse(input))
+  .handler(
+    async ({
+      data,
+    }): Promise<{
+      invite: {
+        id: string;
+        first_name: string | null;
+        last_name: string | null;
+        declared_role: string | null;
+      } | null;
+    }> => {
+      const { adminClient } = await import("./billing.server");
+      const { data: row } = await adminClient()
+        .from("ueradar_company_members")
+        .select("id, first_name, last_name, declared_role, status, member_user_id")
+        .eq("invite_token", data.token)
+        .eq("status", "invited")
+        .is("member_user_id", null)
+        .maybeSingle();
+      if (!row) return { invite: null };
+      const invite = row as {
+        id: string;
+        first_name: string | null;
+        last_name: string | null;
+        declared_role: string | null;
+      };
+      return {
+        invite: {
+          id: invite.id,
+          first_name: invite.first_name,
+          last_name: invite.last_name,
+          declared_role: invite.declared_role,
+        },
+      };
+    },
+  );
+
+/**
+ * Rimozione di un posto: revoca, non cancellazione. L'email torna invitabile
+ * perché l'indice unico copre solo invited/accepted e la RPC riattiva la riga.
+ */
 export const removeCompanyMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ member_id: z.string().uuid() }).parse(input))
@@ -860,10 +919,20 @@ export const removeCompanyMember = createServerFn({ method: "POST" })
     if (!tenant.can_manage_company || tenant.tenant_owner_id !== context.userId)
       return { ok: false, code: "MEMBER_CANNOT_MANAGE_MEMBERS" };
     const { adminClient } = await import("./billing.server");
-    const { error } = await adminClient()
+    const { data: updated, error } = await adminClient()
       .from("ueradar_company_members")
-      .delete()
+      .update({
+        status: "revoked",
+        member_user_id: null,
+        accepted_at: null,
+        invite_token: null,
+      })
       .eq("owner_user_id", context.userId)
-      .eq("id", data.member_id);
-    return error ? { ok: false, code: "MEMBER_DELETE_FAILED" } : { ok: true, code: "OK" };
+      .eq("id", data.member_id)
+      .in("status", ["invited", "accepted"])
+      .select("id")
+      .maybeSingle();
+    if (error) return { ok: false, code: "MEMBER_DELETE_FAILED" };
+    if (!updated) return { ok: false, code: "MEMBER_NOT_FOUND" };
+    return { ok: true, code: "OK" };
   });

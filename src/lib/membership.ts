@@ -77,9 +77,7 @@ export type TrialNeutralizationPatch = {
 
 export function trialNeutralization(
   sub: MemberSubscription | null,
-):
-  | { neutralize: false; reason: string }
-  | { neutralize: true; patch: TrialNeutralizationPatch } {
+): { neutralize: false; reason: string } | { neutralize: true; patch: TrialNeutralizationPatch } {
   if (!sub) return { neutralize: false, reason: "NO_SUBSCRIPTION" };
   if (sub.provider_subscription_id) return { neutralize: false, reason: "PROVIDER_SUBSCRIPTION" };
   if (sub.status !== "trialing") return { neutralize: false, reason: "NOT_TRIALING" };
@@ -132,7 +130,22 @@ export function mapAcceptRpcResult(
 /** RPC atomica di invito (service-only): conteggio posti e insert in transazione. */
 export const INVITE_RPC = "ueradar_invite_member";
 
-export type InviteRpcResult = { ok?: boolean; code?: string } | null;
+export type InviteRpcResult = {
+  ok?: boolean;
+  code?: string;
+  invite_id?: string;
+  invite_token?: string;
+} | null;
+
+/** Solo inviti vivi e accettati occupano un posto; i revocati no. */
+export function inviteOccupiesSeat(status: string | null | undefined): boolean {
+  return status === "invited" || status === "accepted";
+}
+
+/** Dopo rimozione (revoca) la stessa email può essere invitata di nuovo. */
+export function canReinviteAfterRemoval(status: string | null | undefined): boolean {
+  return status === "revoked";
+}
 
 export function mapInviteRpcResult(
   result: InviteRpcResult,
@@ -144,5 +157,6 @@ export function mapInviteRpcResult(
   }
   if (!result || typeof result.ok !== "boolean" || !result.code)
     return { ok: false, code: "INVITE_FAILED" };
+  if (result.code === "MEMBER_ALREADY_PRESENT") return { ok: false, code: "ALREADY_INVITED" };
   return { ok: result.ok, code: result.code };
 }

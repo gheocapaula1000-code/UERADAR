@@ -45,4 +45,14 @@ describe("politica cache feed UEradar", () => {
     next.bandi[0] = { ...next.bandi[0], titolo: "Aggiornato" };
     expect(decideFeedCache(previous, next)).toBe("persist");
   });
+
+  it("«Cerca» non riusa il feed_cache profilo del 02/09 se il motore torna vuoto", () => {
+    const now = Date.parse("2026-09-05T10:00:00Z");
+    const stale = populated("2026-09-02T08:00:00Z");
+    const liveEmpty = empty("2026-09-05T10:00:00Z");
+    expect(decideFeedCache(stale, liveEmpty, now)).toBe("reuse-previous");
+    expect(decideFeedCache(stale, liveEmpty, now, { skipReuse: true })).toBe("persist");
+    expect(decideFeedCache(empty("2026-09-05T09:00:00Z"), liveEmpty, now, { skipReuse: true }))
+      .toBe("serve-without-persist");
+  });
 });

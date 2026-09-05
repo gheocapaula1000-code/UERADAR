@@ -9,55 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TerminiRouteImport } from './routes/termini'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as PrezziRouteImport } from './routes/prezzi'
-import { Route as PianiRouteImport } from './routes/piani'
-import { Route as CookieRouteImport } from './routes/cookie'
-import { Route as ContattiRouteImport } from './routes/contatti'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedProfiloRouteImport } from './routes/_authenticated/profilo'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ContattiRouteImport } from './routes/contatti'
+import { Route as CookieRouteImport } from './routes/cookie'
+import { Route as InvitoRouteImport } from './routes/invito'
+import { Route as PianiRouteImport } from './routes/piani'
+import { Route as PrezziRouteImport } from './routes/prezzi'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TerminiRouteImport } from './routes/termini'
 import { Route as AuthenticatedAbbonamentoRouteImport } from './routes/_authenticated/abbonamento'
-import { Route as ApiPublicBillingWebhookRouteImport } from './routes/api/public/billing-webhook'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedProfiloRouteImport } from './routes/_authenticated/profilo'
 import { Route as AuthenticatedBandoIdRouteImport } from './routes/_authenticated/bando.$id'
+import { Route as ApiPublicBillingWebhookRouteImport } from './routes/api/public/billing-webhook'
 
-const TerminiRoute = TerminiRouteImport.update({
-  id: '/termini',
-  path: '/termini',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrezziRoute = PrezziRouteImport.update({
-  id: '/prezzi',
-  path: '/prezzi',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PianiRoute = PianiRouteImport.update({
-  id: '/piani',
-  path: '/piani',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CookieRoute = CookieRouteImport.update({
-  id: '/cookie',
-  path: '/cookie',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContattiRoute = ContattiRouteImport.update({
-  id: '/contatti',
-  path: '/contatti',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -65,24 +40,45 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const ContattiRoute = ContattiRouteImport.update({
+  id: '/contatti',
+  path: '/contatti',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const CookieRoute = CookieRouteImport.update({
+  id: '/cookie',
+  path: '/cookie',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedProfiloRoute = AuthenticatedProfiloRouteImport.update({
-  id: '/profilo',
-  path: '/profilo',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const InvitoRoute = InvitoRouteImport.update({
+  id: '/invito',
+  path: '/invito',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const PianiRoute = PianiRouteImport.update({
+  id: '/piani',
+  path: '/piani',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrezziRoute = PrezziRouteImport.update({
+  id: '/prezzi',
+  path: '/prezzi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TerminiRoute = TerminiRouteImport.update({
+  id: '/termini',
+  path: '/termini',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAbbonamentoRoute =
   AuthenticatedAbbonamentoRouteImport.update({
@@ -90,15 +86,25 @@ const AuthenticatedAbbonamentoRoute =
     path: '/abbonamento',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ApiPublicBillingWebhookRoute = ApiPublicBillingWebhookRouteImport.update({
-  id: '/api/public/billing-webhook',
-  path: '/api/public/billing-webhook',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProfiloRoute = AuthenticatedProfiloRouteImport.update({
+  id: '/profilo',
+  path: '/profilo',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBandoIdRoute = AuthenticatedBandoIdRouteImport.update({
   id: '/bando/$id',
   path: '/bando/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiPublicBillingWebhookRoute = ApiPublicBillingWebhookRouteImport.update({
+  id: '/api/public/billing-webhook',
+  path: '/api/public/billing-webhook',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/contatti': typeof ContattiRoute
   '/cookie': typeof CookieRoute
+  '/invito': typeof InvitoRoute
   '/piani': typeof PianiRoute
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/contatti': typeof ContattiRoute
   '/cookie': typeof CookieRoute
+  '/invito': typeof InvitoRoute
   '/piani': typeof PianiRoute
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/contatti': typeof ContattiRoute
   '/cookie': typeof CookieRoute
+  '/invito': typeof InvitoRoute
   '/piani': typeof PianiRoute
   '/prezzi': typeof PrezziRoute
   '/privacy': typeof PrivacyRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contatti'
     | '/cookie'
+    | '/invito'
     | '/piani'
     | '/prezzi'
     | '/privacy'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contatti'
     | '/cookie'
+    | '/invito'
     | '/piani'
     | '/prezzi'
     | '/privacy'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contatti'
     | '/cookie'
+    | '/invito'
     | '/piani'
     | '/prezzi'
     | '/privacy'
@@ -209,6 +221,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ContattiRoute: typeof ContattiRoute
   CookieRoute: typeof CookieRoute
+  InvitoRoute: typeof InvitoRoute
   PianiRoute: typeof PianiRoute
   PrezziRoute: typeof PrezziRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -219,60 +232,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/termini': {
-      id: '/termini'
-      path: '/termini'
-      fullPath: '/termini'
-      preLoaderRoute: typeof TerminiRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/prezzi': {
-      id: '/prezzi'
-      path: '/prezzi'
-      fullPath: '/prezzi'
-      preLoaderRoute: typeof PrezziRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/piani': {
-      id: '/piani'
-      path: '/piani'
-      fullPath: '/piani'
-      preLoaderRoute: typeof PianiRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cookie': {
-      id: '/cookie'
-      path: '/cookie'
-      fullPath: '/cookie'
-      preLoaderRoute: typeof CookieRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contatti': {
-      id: '/contatti'
-      path: '/contatti'
-      fullPath: '/contatti'
-      preLoaderRoute: typeof ContattiRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -282,18 +246,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/profilo': {
-      id: '/_authenticated/profilo'
-      path: '/profilo'
-      fullPath: '/profilo'
-      preLoaderRoute: typeof AuthenticatedProfiloRouteImport
+    '/contatti': {
+      id: '/contatti'
+      path: '/contatti'
+      fullPath: '/contatti'
+      preLoaderRoute: typeof ContattiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cookie': {
+      id: '/cookie'
+      path: '/cookie'
+      fullPath: '/cookie'
+      preLoaderRoute: typeof CookieRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invito': {
+      id: '/invito'
+      path: '/invito'
+      fullPath: '/invito'
+      preLoaderRoute: typeof InvitoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/piani': {
+      id: '/piani'
+      path: '/piani'
+      fullPath: '/piani'
+      preLoaderRoute: typeof PianiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prezzi': {
+      id: '/prezzi'
+      path: '/prezzi'
+      fullPath: '/prezzi'
+      preLoaderRoute: typeof PrezziRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termini': {
+      id: '/termini'
+      path: '/termini'
+      fullPath: '/termini'
+      preLoaderRoute: typeof TerminiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/abbonamento': {
+      id: '/_authenticated/abbonamento'
+      path: '/abbonamento'
+      fullPath: '/abbonamento'
+      preLoaderRoute: typeof AuthenticatedAbbonamentoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -303,11 +323,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/abbonamento': {
-      id: '/_authenticated/abbonamento'
-      path: '/abbonamento'
-      fullPath: '/abbonamento'
-      preLoaderRoute: typeof AuthenticatedAbbonamentoRouteImport
+    '/_authenticated/profilo': {
+      id: '/_authenticated/profilo'
+      path: '/profilo'
+      fullPath: '/profilo'
+      preLoaderRoute: typeof AuthenticatedProfiloRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/bando/$id': {
+      id: '/_authenticated/bando/$id'
+      path: '/bando/$id'
+      fullPath: '/bando/$id'
+      preLoaderRoute: typeof AuthenticatedBandoIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/public/billing-webhook': {
@@ -316,13 +343,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/billing-webhook'
       preLoaderRoute: typeof ApiPublicBillingWebhookRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/bando/$id': {
-      id: '/_authenticated/bando/$id'
-      path: '/bando/$id'
-      fullPath: '/bando/$id'
-      preLoaderRoute: typeof AuthenticatedBandoIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
@@ -350,6 +370,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ContattiRoute: ContattiRoute,
   CookieRoute: CookieRoute,
+  InvitoRoute: InvitoRoute,
   PianiRoute: PianiRoute,
   PrezziRoute: PrezziRoute,
   PrivacyRoute: PrivacyRoute,

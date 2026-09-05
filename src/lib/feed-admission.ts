@@ -378,11 +378,10 @@ export interface AdmissionGaps {
 }
 
 export const MISSING_DEADLINE_LABEL = "Manca la scadenza nel testo ufficiale";
-export const SPORTELLO_LABEL =
-  "A sportello · fino a esaurimento fondi";
+export const SPORTELLO_LABEL = "A sportello · fino a esaurimento fondi";
 export const MISSING_ECONOMICS_LABEL = "Manca l'importo nel testo ufficiale";
 
-function hostOf(url: string): string | null {
+export function hostOf(url: string): string | null {
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
@@ -409,7 +408,9 @@ export function sourceForUrl(url: string | undefined | null): CoreSource | null 
  * `official_source` da Core su un URL http(s) valido evita SOURCE_NOT_CORE
  * per host già abilitati su `trovabandi_sources` ma non ancora in PWA.
  */
-export function sourceForBando(bando: Pick<Bando, "official_url" | "notice_url" | "official_source">): CoreSource | null {
+export function sourceForBando(
+  bando: Pick<Bando, "official_url" | "notice_url" | "official_source">,
+): CoreSource | null {
   const officialUrl = bando.official_url ?? bando.notice_url;
   const listed = sourceForUrl(officialUrl);
   if (listed) return listed;
@@ -432,8 +433,7 @@ function parseDate(value: unknown): number | null {
 }
 
 export type Admission =
-  | { ok: true; source: CoreSource; gaps: AdmissionGaps }
-  | { ok: false; reason: RejectReason };
+  { ok: true; source: CoreSource; gaps: AdmissionGaps } | { ok: false; reason: RejectReason };
 
 /**
  * Ammissione: nessun dato viene dedotto o inventato.
@@ -475,6 +475,8 @@ export interface AdmissionReport {
   missing_economics_count: number;
   rejected_by_reason: Partial<Record<RejectReason, number>>;
   active_sources: Array<{ id: CoreSource["id"]; label: string; count: number }>;
+  /** Host ammessi solo perché Core ha attestato `official_source`. */
+  attested_hosts: string[];
 }
 
 /* ------------------------------------------------------------------ *
@@ -490,14 +492,10 @@ export type FeedTier = "ALTA_PRIORITA" | "DA_VERIFICARE";
  */
 export function feedTier(bando: Bando, now: number = Date.now()): FeedTier {
   const hasDate =
-    parseDate(bando.scadenza) !== null ||
-    parseDate(bando.apertura) !== null ||
-    isSportello(bando);
+    parseDate(bando.scadenza) !== null || parseDate(bando.apertura) !== null || isSportello(bando);
   const deadline = parseDate(bando.scadenza);
   const notExpired = deadline === null || deadline >= now;
-  return hasDate && notExpired && hasEconomicData(bando)
-    ? "ALTA_PRIORITA"
-    : "DA_VERIFICARE";
+  return hasDate && notExpired && hasEconomicData(bando) ? "ALTA_PRIORITA" : "DA_VERIFICARE";
 }
 
 /** Divide il feed nelle due fasce mantenendo l'ordine ricevuto. */
@@ -518,6 +516,7 @@ export function admitFeed(bandi: Bando[], now: number = Date.now()): AdmissionRe
   const admitted: Bando[] = [];
   const rejected_by_reason: Partial<Record<RejectReason, number>> = {};
   const counts = new Map<CoreSource["id"], number>();
+  const attested = new Set<string>();
   let missing_deadline_count = 0;
   let missing_economics_count = 0;
 
@@ -528,6 +527,10 @@ export function admitFeed(bandi: Bando[], now: number = Date.now()): AdmissionRe
       if (verdict.gaps.missing_deadline) missing_deadline_count += 1;
       if (verdict.gaps.missing_economics) missing_economics_count += 1;
       counts.set(verdict.source.id, (counts.get(verdict.source.id) ?? 0) + 1);
+      if (verdict.source.id === CORE_ATTESTED_SOURCE.id) {
+        const host = hostOf(bando.official_url ?? bando.notice_url ?? "");
+        if (host) attested.add(host);
+      }
     } else {
       rejected_by_reason[verdict.reason] = (rejected_by_reason[verdict.reason] ?? 0) + 1;
     }
@@ -547,5 +550,6 @@ export function admitFeed(bandi: Bando[], now: number = Date.now()): AdmissionRe
         label: source.label,
         count: counts.get(source.id) ?? 0,
       })),
+    attested_hosts: [...attested],
   };
 }

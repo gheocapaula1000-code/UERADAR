@@ -8,6 +8,8 @@ import type { Json } from "@/integrations/supabase/types";
 
 const InputSchema = z.object({
   force_refresh: z.boolean().optional(),
+  /** Accetta l'envelope live (anche vuoto) e sostituisce un feed_cache stale. Non accoda. */
+  skip_reuse: z.boolean().optional(),
   deep_search: z.boolean().optional(),
   mode: z.enum(["catalog", "profile"]).optional(),
 });
@@ -21,8 +23,7 @@ function asCachedFeed(row: { payload: unknown; fetched_at: string } | null): Fee
     fetched_at: row.fetched_at,
     source: "cache",
     view: feedViewOf(payload),
-    generated_at:
-      typeof payload.generated_at === "string" ? payload.generated_at : row.fetched_at,
+    generated_at: typeof payload.generated_at === "string" ? payload.generated_at : row.fetched_at,
   };
 }
 
@@ -104,11 +105,16 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       const { admitFeed } = await import("./feed-admission");
       const report = admitFeed(mapped, Date.parse(nowIso));
       bandi = report.admitted;
+      if (report.attested_hosts.length > 0) {
+        const { coreAttestedSignal, emitOpsSignal } = await import("./ops-signal");
+        for (const host of report.attested_hosts) emitOpsSignal(coreAttestedSignal(host));
+      }
       admission = {
         admitted_count: report.admitted_count,
         rejected_count: report.rejected_count,
         rejected_by_reason: report.rejected_by_reason as Record<string, number>,
         active_sources: report.active_sources,
+        attested_hosts: report.attested_hosts,
       };
       // `fetched_at` indica quando questa app ha completato con successo la
       // lettura del Core. Il timestamp dell'envelope può essere la data di una
@@ -141,7 +147,9 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
         admission,
         view,
       };
-      const cacheDecision = decideFeedCache(previous, next);
+      const cacheDecision = decideFeedCache(previous, next, Date.parse(nowIso), {
+        skipReuse: data.skip_reuse === true,
+      });
       // Riuso dei bandi precedenti (envelope vuoto), ma con i timestamp reali
       // dell'ultima lettura del Core: nessun bando inventato e il client può
       // riconoscere che l'aggiornamento è avvenuto davvero. Il Core è stato
@@ -170,7 +178,9 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
           payload: next as unknown as Json,
           fetched_at: fetchedAt,
         });
-        if (cacheWriteError) throw new Error("CACHE_WRITE_FAILED");
+        // «Cerca» deve comunque consegnare l'envelope live: un insert fallito
+        // non deve far ricadere sul feed_cache del 02/09.
+        if (cacheWriteError && data.skip_reuse !== true) throw new Error("CACHE_WRITE_FAILED");
       }
     } catch (err) {
       console.warn("[trovabandi-feed] feed failed, falling back to cache:", err);

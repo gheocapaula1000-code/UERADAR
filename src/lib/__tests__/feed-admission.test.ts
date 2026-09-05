@@ -332,9 +332,9 @@ describe("ammissione fail-closed", () => {
   });
 
   it("accetta apertura dichiarata al posto della scadenza", () => {
-    expect(
-      admitBando(bando({ scadenza: undefined, apertura: "2026-10-01" }), NOW),
-    ).toMatchObject({ ok: true });
+    expect(admitBando(bando({ scadenza: undefined, apertura: "2026-10-01" }), NOW)).toMatchObject({
+      ok: true,
+    });
   });
 
   it("scarta scadenza passata", () => {
@@ -345,7 +345,9 @@ describe("ammissione fail-closed", () => {
   });
 
   it("accetta intensita aiuto o spese ammissibili come dato economico", () => {
-    expect(admitBando(bando({ importo_max: undefined, aid_intensity_percent: 40 }), NOW)).toMatchObject({ ok: true });
+    expect(
+      admitBando(bando({ importo_max: undefined, aid_intensity_percent: 40 }), NOW),
+    ).toMatchObject({ ok: true });
     expect(
       admitBando(bando({ importo_max: undefined, eligible_expenses: ["Macchinari"] }), NOW),
     ).toMatchObject({ ok: true });
@@ -354,19 +356,31 @@ describe("ammissione fail-closed", () => {
   it("ammette schede solide comunali, camerali e provinciali", () => {
     expect(
       admitBando(
-        bando({ scope: "COMUNALE", ente: "Comune di Padova", official_url: "https://www.padovanet.it/bando" }),
+        bando({
+          scope: "COMUNALE",
+          ente: "Comune di Padova",
+          official_url: "https://www.padovanet.it/bando",
+        }),
         NOW,
       ),
     ).toMatchObject({ ok: true });
     expect(
       admitBando(
-        bando({ scope: "CAMERALE", ente: "CCIAA Padova", official_url: "https://www.pd.camcom.it/bando" }),
+        bando({
+          scope: "CAMERALE",
+          ente: "CCIAA Padova",
+          official_url: "https://www.pd.camcom.it/bando",
+        }),
         NOW,
       ),
     ).toMatchObject({ ok: true });
     expect(
       admitBando(
-        bando({ scope: "REGIONALE", ente: "Provincia di Padova", official_url: "https://www.provincia.pd.it/bando" }),
+        bando({
+          scope: "REGIONALE",
+          ente: "Provincia di Padova",
+          official_url: "https://www.provincia.pd.it/bando",
+        }),
         NOW,
       ),
     ).toMatchObject({ ok: true });
@@ -415,7 +429,10 @@ describe("ammissione fail-closed", () => {
       ),
     ).toMatchObject({ ok: true });
     expect(
-      admitBando(bando({ official_url: "https://random-bandi.example.com/x", notice_url: undefined }), NOW),
+      admitBando(
+        bando({ official_url: "https://random-bandi.example.com/x", notice_url: undefined }),
+        NOW,
+      ),
     ).toMatchObject({ ok: false, reason: "SOURCE_NOT_CORE" });
   });
 
@@ -495,7 +512,9 @@ describe("ammissione fail-closed", () => {
   });
 
   it("scarta fonti fuori registro", () => {
-    expect(admitBando(bando({ official_url: "https://example.com/x", notice_url: undefined }), NOW)).toMatchObject({
+    expect(
+      admitBando(bando({ official_url: "https://example.com/x", notice_url: undefined }), NOW),
+    ).toMatchObject({
       ok: false,
       reason: "SOURCE_NOT_CORE",
     });
@@ -508,10 +527,7 @@ describe("ammissione fail-closed", () => {
 describe("rendiconto feed", () => {
   it("porta: ufficiale senza data e senza importo entra, scadenza passata ed example.com no", () => {
     expect(
-      admitBando(
-        bando({ scadenza: undefined, apertura: undefined, importo_max: undefined }),
-        NOW,
-      ),
+      admitBando(bando({ scadenza: undefined, apertura: undefined, importo_max: undefined }), NOW),
     ).toMatchObject({ ok: true, gaps: { missing_deadline: true, missing_economics: true } });
     expect(admitBando(bando({ scadenza: "2020-01-01" }), NOW)).toMatchObject({ ok: false });
     expect(
@@ -538,6 +554,7 @@ describe("rendiconto feed", () => {
     expect(report.rejected_count).toBe(2);
     expect(report.rejected_by_reason).toMatchObject({ DEADLINE_PAST: 1, SOURCE_NOT_CORE: 1 });
     expect(report.active_sources.map((s) => s.id)).toEqual(["veneto", "mimit"]);
+    expect(report.attested_hosts).toEqual([]);
   });
 
   it("conteggia le schede attestate da Core tra le fonti attive", () => {
@@ -555,6 +572,7 @@ describe("rendiconto feed", () => {
     );
     expect(report.admitted_count).toBe(2);
     expect(report.active_sources.map((s) => s.id)).toEqual(["veneto", "core"]);
+    expect(report.attested_hosts).toEqual(["nuova-fonte.core-catalog.test"]);
   });
 });
 
@@ -570,13 +588,15 @@ describe("fasce vetrina", () => {
   it("alta priorita con data e dato economico, indipendente dal match", () => {
     expect(feedTier(bando({ match: strong() }), NOW)).toBe("ALTA_PRIORITA");
     expect(feedTier(bando(), NOW)).toBe("ALTA_PRIORITA");
-    expect(feedTier(bando({ match: strong(), importo_max: undefined, eligible_expenses: [] }), NOW)).toBe(
-      "DA_VERIFICARE",
-    );
+    expect(
+      feedTier(bando({ match: strong(), importo_max: undefined, eligible_expenses: [] }), NOW),
+    ).toBe("DA_VERIFICARE");
     expect(
       feedTier(bando({ match: strong(), scadenza: undefined, apertura: undefined }), NOW),
     ).toBe("DA_VERIFICARE");
-    expect(feedTier(bando({ scadenza: undefined, apertura: undefined }), NOW)).toBe("DA_VERIFICARE");
+    expect(feedTier(bando({ scadenza: undefined, apertura: undefined }), NOW)).toBe(
+      "DA_VERIFICARE",
+    );
   });
 
   it("non nasconde nulla: le due fasce coprono tutto il feed", () => {
@@ -590,12 +610,12 @@ describe("fasce vetrina", () => {
   });
 
   it("importo Postgres stringa conta come dato economico, senza inventare", () => {
-    expect(
-      feedTier(bando({ importo_max: "150000.00" as unknown as number }), NOW),
-    ).toBe("ALTA_PRIORITA");
-    expect(feedTier(bando({ importo_max: "no" as unknown as number, eligible_expenses: [] }), NOW)).toBe(
-      "DA_VERIFICARE",
+    expect(feedTier(bando({ importo_max: "150000.00" as unknown as number }), NOW)).toBe(
+      "ALTA_PRIORITA",
     );
+    expect(
+      feedTier(bando({ importo_max: "no" as unknown as number, eligible_expenses: [] }), NOW),
+    ).toBe("DA_VERIFICARE");
   });
 
   it("sportello senza scadenza non è un buco di data", () => {

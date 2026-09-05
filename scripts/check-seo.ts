@@ -36,6 +36,7 @@ const ROUTE_FILES: Record<SeoKey, string> = {
   "/cookie": "src/routes/cookie.tsx",
   "/contatti": "src/routes/contatti.tsx",
   "/auth": "src/routes/auth.tsx",
+  "/invito": "src/routes/invito.tsx",
   "/dashboard": "src/routes/_authenticated/dashboard.tsx",
   "/profilo": "src/routes/_authenticated/profilo.tsx",
   "/bando": "src/routes/_authenticated/bando.$id.tsx",

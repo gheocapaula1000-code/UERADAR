@@ -32,12 +32,20 @@ describe("snapshot offline UEradar.com", () => {
   it("isola catalogo e profilo su chiavi diverse", () => {
     const storage = memory();
     saveOfflineFeed(
-      { bandi: [{ id: "c" }] as FeedResponse["bandi"], fetched_at: "2026-08-01T00:00:00Z", source: "central-core" },
+      {
+        bandi: [{ id: "c" }] as FeedResponse["bandi"],
+        fetched_at: "2026-08-01T00:00:00Z",
+        source: "central-core",
+      },
       storage,
       "catalog",
     );
     saveOfflineFeed(
-      { bandi: [{ id: "p" }] as FeedResponse["bandi"], fetched_at: "2026-08-01T00:00:00Z", source: "central-core" },
+      {
+        bandi: [{ id: "p" }] as FeedResponse["bandi"],
+        fetched_at: "2026-08-01T00:00:00Z",
+        source: "central-core",
+      },
       storage,
       "profile",
     );
@@ -48,12 +56,20 @@ describe("snapshot offline UEradar.com", () => {
   it("cancella solo lo snapshot della vista richiesta prima del tentativo live", () => {
     const storage = memory();
     saveOfflineFeed(
-      { bandi: [{ id: "c" }] as FeedResponse["bandi"], fetched_at: "2026-09-02T00:00:00Z", source: "central-core" },
+      {
+        bandi: [{ id: "c" }] as FeedResponse["bandi"],
+        fetched_at: "2026-09-02T00:00:00Z",
+        source: "central-core",
+      },
       storage,
       "catalog",
     );
     saveOfflineFeed(
-      { bandi: [{ id: "p" }] as FeedResponse["bandi"], fetched_at: "2026-09-02T00:00:00Z", source: "central-core" },
+      {
+        bandi: [{ id: "p" }] as FeedResponse["bandi"],
+        fetched_at: "2026-09-02T00:00:00Z",
+        source: "central-core",
+      },
       storage,
       "profile",
     );
@@ -62,9 +78,11 @@ describe("snapshot offline UEradar.com", () => {
     expect(loadOfflineFeed(storage, Date.now(), "catalog")?.bandi.map((b) => b.id)).toEqual(["c"]);
   });
 
-  it("scarta snapshot più vecchi di 30 giorni", () => {
+  it("scarta snapshot più vecchi di 7 giorni, allineati alla policy feed", () => {
     const storage = memory();
     saveOfflineFeed({ bandi: [], fetched_at: "2026-01-01T00:00:00Z", source: "cache" }, storage);
-    expect(loadOfflineFeed(storage, Date.now() + 31 * 24 * 60 * 60 * 1000)).toBeNull();
+    const now = Date.now();
+    expect(loadOfflineFeed(storage, now + 6 * 24 * 60 * 60 * 1000)).not.toBeNull();
+    expect(loadOfflineFeed(storage, now + 8 * 24 * 60 * 60 * 1000)).toBeNull();
   });
 });

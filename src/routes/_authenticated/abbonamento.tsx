@@ -100,9 +100,10 @@ function Abbonamento() {
       startPayment({ data: { plan, interval } }),
     onSuccess: (res) => {
       if (res.ok && res.url) window.location.assign(res.url);
-      else toast.error("Attivazione non disponibile", {
-        description: checkoutBlockText(res.code) ?? "Riprova tra poco.",
-      });
+      else
+        toast.error("Attivazione non disponibile", {
+          description: checkoutBlockText(res.code) ?? "Riprova tra poco.",
+        });
     },
     onError: () => toast.error("Attivazione non disponibile. Riprova tra poco."),
   });
@@ -111,9 +112,10 @@ function Abbonamento() {
     mutationFn: () => openPortal(),
     onSuccess: (res) => {
       if (res.ok && res.url) window.location.assign(res.url);
-      else toast.error("Portale non disponibile", {
-        description: checkoutBlockText(res.code) ?? "Riprova tra poco.",
-      });
+      else
+        toast.error("Portale non disponibile", {
+          description: checkoutBlockText(res.code) ?? "Riprova tra poco.",
+        });
     },
     onError: () => toast.error("Portale non disponibile. Riprova tra poco."),
   });
@@ -171,7 +173,11 @@ function Abbonamento() {
         declared_role: "dipendente",
         attestation: false,
       });
-      toast.success("Invito registrato: l'utente deve accettarlo con il proprio account");
+      toast.success(
+        res.email_sent
+          ? "Invito inviato: l'utente apre la mail e conferma dal link"
+          : "Invito registrato. L'email non è partita: manca la configurazione di invio.",
+      );
       void queryClient.invalidateQueries({ queryKey: ["company-members"] });
       void queryClient.invalidateQueries({ queryKey: ["billing-status"] });
     },
@@ -266,8 +272,7 @@ function Abbonamento() {
                 {STATE_LABEL[entitlement?.state ?? "NONE"] ?? "Abbonamento non attivo"}
               </h2>
               <dl className="mt-3 grid gap-1 text-sm text-muted-foreground">
-                {(entitlement?.state === "TRIAL" ||
-                  entitlement?.state === "TRIAL_EXPIRED") && (
+                {(entitlement?.state === "TRIAL" || entitlement?.state === "TRIAL_EXPIRED") && (
                   <div>
                     Fine prova:{" "}
                     <span className="text-foreground">
@@ -282,8 +287,7 @@ function Abbonamento() {
                   </span>
                 </div>
                 <div>
-                  Utenti operativi:{" "}
-                  <span className="text-foreground">{usage.label}</span>
+                  Utenti operativi: <span className="text-foreground">{usage.label}</span>
                 </div>
                 <div>
                   Partita IVA registrata:{" "}
@@ -351,7 +355,9 @@ function Abbonamento() {
                 aria-pressed={interval === value}
                 onClick={() => setInterval(value)}
                 className={`tap rounded-md px-4 py-2.5 text-sm font-semibold ${
-                  interval === value ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  interval === value
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground"
                 }`}
               >
                 {value === "month" ? "Mensile" : "Annuale (2 mesi inclusi)"}
@@ -401,7 +407,9 @@ function Abbonamento() {
                       "Attivazione a pagamento non disponibile in questo momento. Riprova più tardi.",
                   });
                 }}
-                disabled={payMutation.isPending || Boolean(disabledReason) || !data?.checkout_available}
+                disabled={
+                  payMutation.isPending || Boolean(disabledReason) || !data?.checkout_available
+                }
                 aria-disabled={Boolean(disabledReason) || !data?.checkout_available}
                 className="tap mt-6 w-full rounded-lg bg-primary px-5 py-3 font-semibold text-primary-foreground disabled:opacity-50"
               >
@@ -465,90 +473,89 @@ function Abbonamento() {
             <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4 text-sm">
               <p className="font-medium">Tutti i posti del piano sono occupati</p>
               <p className="mt-1 text-muted-foreground">
-                Stai usando {usage.used} posti su {usage.seats}. Per aggiungere una persona,
-                rimuovi prima un utente dall'elenco qui sotto oppure passa a un piano con più
-                utenti.
+                Stai usando {usage.used} posti su {usage.seats}. Per aggiungere una persona, rimuovi
+                prima un utente dall'elenco qui sotto oppure passa a un piano con più utenti.
               </p>
             </div>
           ) : (
             <>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="text-xs font-medium" htmlFor="member-first-name">
-                Nome
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs font-medium" htmlFor="member-first-name">
+                    Nome
+                  </label>
+                  <input
+                    id="member-first-name"
+                    value={form.first_name}
+                    onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
+                    maxLength={80}
+                    className="tap mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium" htmlFor="member-last-name">
+                    Cognome
+                  </label>
+                  <input
+                    id="member-last-name"
+                    value={form.last_name}
+                    onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
+                    maxLength={80}
+                    className="tap mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium" htmlFor="member-email">
+                    Email nominativa
+                  </label>
+                  <input
+                    id="member-email"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                    maxLength={255}
+                    placeholder="nome.cognome@impresa.it"
+                    className="tap mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium" htmlFor="member-role">
+                    Ruolo dichiarato
+                  </label>
+                  <select
+                    id="member-role"
+                    value={form.declared_role}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, declared_role: e.target.value as MemberRole }))
+                    }
+                    className="tap mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+                  >
+                    {MEMBER_ROLES.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <label className="mt-3 flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.attestation}
+                  onChange={(e) => setForm((f) => ({ ...f, attestation: e.target.checked }))}
+                  className="mt-1 h-4 w-4"
+                />
+                Attesto che la persona indicata appartiene alla stessa impresa titolare
+                dell'abbonamento.
               </label>
-              <input
-                id="member-first-name"
-                value={form.first_name}
-                onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
-                maxLength={80}
-                className="tap mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium" htmlFor="member-last-name">
-                Cognome
-              </label>
-              <input
-                id="member-last-name"
-                value={form.last_name}
-                onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
-                maxLength={80}
-                className="tap mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium" htmlFor="member-email">
-                Email nominativa
-              </label>
-              <input
-                id="member-email"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                maxLength={255}
-                placeholder="nome.cognome@impresa.it"
-                className="tap mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium" htmlFor="member-role">
-                Ruolo dichiarato
-              </label>
-              <select
-                id="member-role"
-                value={form.declared_role}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, declared_role: e.target.value as MemberRole }))
-                }
-                className="tap mt-1 w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              <button
+                type="button"
+                onClick={() => inviteMutation.mutate()}
+                disabled={!canInvite || inviteMutation.isPending}
+                className="tap mt-3 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground disabled:opacity-50"
               >
-                {MEMBER_ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <label className="mt-3 flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={form.attestation}
-              onChange={(e) => setForm((f) => ({ ...f, attestation: e.target.checked }))}
-              className="mt-1 h-4 w-4"
-            />
-            Attesto che la persona indicata appartiene alla stessa impresa titolare
-            dell'abbonamento.
-          </label>
-          <button
-            type="button"
-            onClick={() => inviteMutation.mutate()}
-            disabled={!canInvite || inviteMutation.isPending}
-            className="tap mt-3 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground disabled:opacity-50"
-          >
-            Invita utente
-          </button>
+                Invita utente
+              </button>
             </>
           )}
           <ul className="mt-4 divide-y divide-border text-sm">

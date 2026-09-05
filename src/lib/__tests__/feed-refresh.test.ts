@@ -141,6 +141,7 @@ describe("refresh «Per la mia impresa»", () => {
     const src = readFileSync("src/routes/_authenticated/dashboard.tsx", "utf8");
     expect(src).toContain("PROFILE_REFRESH_DELAYS_MS");
     expect(src).toContain('mode: homeView');
+    expect(src).toContain("skip_reuse: true");
     expect(src).toContain('["bandi-feed", homeView], applied');
     expect(src).toContain('saveOfflineFeed(applied, undefined, homeView)');
     expect(src).toContain('clearOfflineFeed(undefined, homeView)');
@@ -148,6 +149,7 @@ describe("refresh «Per la mia impresa»", () => {
     expect(src).toContain('result.enqueued === 1 || result.status === "updated" || result.status === "queued"');
     expect(src).toContain("[homeView]: new Date().toISOString()");
     expect(src).toContain("Restano visibili i dati salvati");
+    expect(src).toContain("isOffline && !isRefreshing");
     expect(src).toContain("Per la mia impresa»");
   });
 });

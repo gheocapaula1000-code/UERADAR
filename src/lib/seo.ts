@@ -11,7 +11,7 @@ export const SITE_NAME = "UEradar.com";
 export const SOCIAL_IMAGE = `${SITE_URL}/brand/ueradar-social-1200x630.png`;
 export const SOCIAL_IMAGE_ALT = "UEradar.com — Radar dei Bandi e Incentivi per PMI e P.IVA";
 /** Revisione del copy pubblico indicizzabile (ISO date), usata come lastmod sitemap. */
-export const PUBLIC_CONTENT_LASTMOD = "2026-08-26";
+export const PUBLIC_CONTENT_LASTMOD = "2026-09-05";
 
 export type RouteSeo = {
   /** Path canonico della rotta. */
@@ -77,6 +77,13 @@ export const ROUTE_SEO = {
     title: "Accedi a UEradar.com — Radar dei Bandi per l'Impresa",
     description:
       "Accesso riservato: entra con email o Google, configura il Profilo Aziendale e consulta il Radar dei Bandi filtrato su ATECO e sede della tua Impresa.",
+    indexable: false,
+  },
+  "/invito": {
+    path: "/invito",
+    title: "Invito al Radar Bandi — accesso riservato UEradar.com",
+    description:
+      "Accetta l'invito a UEradar.com come utente operativo dell'Impresa: accedi o crea l'account con la stessa email e conferma il posto nel Radar dei Bandi.",
     indexable: false,
   },
   "/dashboard": {

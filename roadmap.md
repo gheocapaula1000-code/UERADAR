@@ -12,8 +12,10 @@
 
 ## Backlog
 - [x] Ridistribuita Edge `trovabandi-feed` (profilo tollerante, timeout 60s, envelope vuoto valido)
-- [ ] Email di invito + rotta pubblica `/invito`
-- [ ] Allineare cache offline (30 gg) alla policy feed (7 gg)
-- [ ] Svuotare la cache React Query al logout
-- [ ] Verificare reinvito dopo rimozione membro
-- [ ] Segnale per eventi Stripe non gestiti e per fonti attestate dal Core
+- [x] Email di invito + rotta pubblica `/invito`
+- [x] Allineare cache offline (30 gg) alla policy feed (7 gg)
+- [x] Svuotare la cache React Query al logout
+- [x] Verificare reinvito dopo rimozione membro
+- [x] Segnale per eventi Stripe non gestiti e per fonti attestate dal Core
+- [x] «Cerca nuovi Bandi» non riusa un feed_cache profilo stale (es. 02/09): envelope live anche vuoto, niente «Dati salvati» se il motore risponde
+- [x] Copertura automatica del percorso prova autenticato (errori auth IT + Radar/dossier); E2E browser non presente nel repo

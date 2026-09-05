@@ -1,8 +1,9 @@
 import type { FeedResponse, FeedView } from "./bandocore-types";
+import { POPULATED_CACHE_MAX_AGE_MS } from "./feed-cache-policy";
 
 const PROFILE_KEY = "ueradar:last-feed:v1";
 const CATALOG_KEY = "ueradar:last-catalog:v1";
-const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const MAX_AGE_MS = POPULATED_CACHE_MAX_AGE_MS;
 
 export function offlineFeedKey(view: FeedView = "profile"): string {
   return view === "catalog" ? CATALOG_KEY : PROFILE_KEY;
