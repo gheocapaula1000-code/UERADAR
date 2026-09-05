@@ -1,11 +1,13 @@
-import type { Bando } from "./bandocore-types";
+import type { Bando, BandoAllegato } from "./bandocore-types";
 import {
   coerceFiniteNumber,
   coerceOptionalHttpUrl,
+  sanitizeAllegati,
   sanitizeFeedResponse,
   type ContractRow,
 } from "../../supabase/functions/_shared/trovabandi-contract.ts";
 import { coercePositiveNumber } from "./official-number";
+
 
 export type CoreOpportunity = ContractRow & {
   id: string;
@@ -122,6 +124,8 @@ export function mapCoreOpportunity(item: CoreOpportunity): Bando {
     official_url: officialUrl,
     requisiti: (item.requirements as string[] | null | undefined) ?? [],
     ateco_compatibili: officialAtecoList(item),
+    allegati: sanitizeAllegati(item.allegati) as unknown as BandoAllegato[],
+
     pdf_field_mapping:
       (item.pdf_field_mapping as Bando["pdf_field_mapping"] | undefined) ?? undefined,
     aid_intensity_percent: coercePositiveNumber(item.aid_intensity_percent),

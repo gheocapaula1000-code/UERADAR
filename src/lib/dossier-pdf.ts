@@ -46,7 +46,10 @@ export function dossierPdfModel(d: Dossier, watermarked = false): PdfBlock[] {
     ...(d.documents.length
       ? [
           { kind: "heading" as const, text: "Allegati ufficiali del bando" },
-          ...d.documents.map((doc, i) => ({ kind: "text" as const, text: `${i + 1}. ${doc.label}` })),
+          ...d.documents.map((doc, i) => ({
+            kind: "text" as const,
+            text: `${i + 1}. ${doc.label}${doc.obbligatorio ? " (obbligatorio)" : ""}${doc.url ? ` — ${doc.url}` : ""}`,
+          })),
         ]
       : []),
     { kind: "heading", text: "Timeline operativa" },

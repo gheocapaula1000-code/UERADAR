@@ -166,7 +166,33 @@ function validPdfFieldMapping(value: unknown): boolean {
   });
 }
 
+/**
+ * Allegati ufficiali (contratto Core PR #85): solo se la fonte li nomina.
+ * Fail-soft sul campo: un array malformato azzera gli allegati, non scarta la scheda.
+ */
+export const MAX_ALLEGATI = 20;
+
+export function sanitizeAllegati(value: unknown): ContractRow[] {
+  if (!Array.isArray(value)) return [];
+  const out: ContractRow[] = [];
+  for (const entry of value) {
+    if (out.length >= MAX_ALLEGATI) break;
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const row = entry as ContractRow;
+    if (!nonEmptyString(row.nome)) continue;
+    const nome = (row.nome as string).trim();
+    if (nome.length > 300) continue;
+    if (row.obbligatorio != null && typeof row.obbligatorio !== "boolean") continue;
+    const url = coerceOptionalHttpUrl(row.url);
+    const clean: ContractRow = { nome, obbligatorio: row.obbligatorio === true };
+    if (url) clean.url = url;
+    out.push(clean);
+  }
+  return out;
+}
+
 function validEvidence(value: unknown): boolean {
+
   if (value == null) return true;
   if (!Array.isArray(value)) return false;
   return value.every((entry) => {
@@ -229,6 +255,7 @@ const OUTPUT_FIELDS = [
   "id", "title", "authority_name", "authority_level", "category", "summary", "official_url",
   ...OPTIONAL_TEXT, ...OPTIONAL_URL, ...OPTIONAL_DATE, ...OPTIONAL_NUMBER, ...OPTIONAL_BOOLEAN,
   ...OPTIONAL_STRING_ARRAY, "verification_status", "trovabandi_evidence", "pdf_field_mapping", "match",
+  "allegati",
 ] as const;
 
 function sanitizeOpportunity(row: ContractRow): ContractRow {
@@ -237,11 +264,17 @@ function sanitizeOpportunity(row: ContractRow): ContractRow {
   for (const field of OUTPUT_FIELDS) {
     const value = row[field];
     if (value === undefined || value === null) continue;
+    if (field === "allegati") {
+      const allegati = sanitizeAllegati(value);
+      if (allegati.length) clean[field] = allegati;
+      continue;
+    }
     if (optionalUrls.includes(field)) {
       const url = coerceOptionalHttpUrl(value);
       if (url) clean[field] = url;
       continue;
     }
+
     if (typeof value === "string" && value.trim() === "") continue;
     if ((OPTIONAL_NUMBER as readonly string[]).includes(field)) {
       const parsed = coerceFiniteNumber(value);

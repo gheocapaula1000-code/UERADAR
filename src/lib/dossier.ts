@@ -53,7 +53,11 @@ export interface DossierField {
 export interface DossierDocument {
   label: string;
   reason: string;
+  /** URL ufficiale dell'allegato, solo se pubblicato dalla fonte. */
+  url?: string;
+  obbligatorio?: boolean;
 }
+
 
 export interface DossierTimelineStep {
   label: string;
@@ -148,12 +152,26 @@ const ATTACHMENT_HINT =
  * Nessun documento inventato (visura, DURC, de minimis, carta d'identità).
  */
 export function officialAttachments(bando: Bando): DossierDocument[] {
+  const docs: DossierDocument[] = [];
+  const seen = new Set<string>();
+  // Allegati dichiarati dal contratto Core: nome, link se pubblicato, obbligatorietà.
+  for (const a of bando.allegati ?? []) {
+    const nome = typeof a?.nome === "string" ? a.nome.trim() : "";
+    if (!nome) continue;
+    const key = nome.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    docs.push({
+      label: nome,
+      reason: "Allegato indicato dalla fonte ufficiale",
+      ...(a.url ? { url: a.url } : {}),
+      obbligatorio: a.obbligatorio === true,
+    });
+  }
   const items = (bando.requisiti ?? [])
     .filter((r): r is string => typeof r === "string" && r.trim().length > 0)
     .map((r) => r.trim())
     .filter((r) => ATTACHMENT_HINT.test(r));
-  const seen = new Set<string>();
-  const docs: DossierDocument[] = [];
   for (const item of items) {
     const key = item.toLowerCase();
     if (seen.has(key)) continue;
@@ -162,6 +180,7 @@ export function officialAttachments(bando: Bando): DossierDocument[] {
   }
   return docs;
 }
+
 
 
 export function buildTimeline(bando: Bando, now = Date.now()): DossierTimelineStep[] {
@@ -237,13 +256,41 @@ export function buildCoverLetter(bando: Bando, profile: AllowedProfile): string 
 }
 
 
+/** Canale ufficiale di presentazione dichiarato dalla fonte (contratto Core PR #85). */
+export function hasOfficialChannel(bando: Bando): boolean {
+  return Boolean(
+    bando.application_url ||
+      bando.piattaforma_url ||
+      bando.modulistica_url ||
+      bando.ufficio_protocollo_pec ||
+      bando.pec,
+  );
+}
+
+/** Dato economico ufficiale: importo massimo, intensità di aiuto o budget totale. */
+export function hasOfficialEconomics(bando: Bando): boolean {
+  return (
+    typeof bando.importo_max === "number" ||
+    typeof bando.aid_intensity_percent === "number" ||
+    typeof bando.total_budget === "number"
+  );
+}
+
 /** Dati ufficiali minimi mancanti nel bando ricevuto dal feed (fail-closed). */
 export function missingOfficialData(bando: Bando, now: number = Date.now()): string[] {
   const sportello = isSportello(bando);
+  const hasWindow = Boolean(bando.scadenza) || Boolean(bando.apertura) || sportello;
   const missing = REQUIRED_OFFICIAL.filter(
-    (f) => !bando[f.key] && !(sportello && f.key === "scadenza"),
+    (f) => !bando[f.key] && !(hasWindow && f.key === "scadenza"),
   ).map((f) => f.label);
+  if (!hasWindow) missing.push("Finestra di presentazione (scadenza, apertura o sportello)");
   if (!officialUrl(bando)) missing.push("URL della fonte ufficiale (official_url / notice_url)");
+  if (!hasOfficialChannel(bando)) {
+    missing.push("Canale ufficiale di presentazione (piattaforma, modulistica o PEC)");
+  }
+  if (!hasOfficialEconomics(bando)) {
+    missing.push("Dato economico ufficiale (importo massimo, intensità di aiuto o budget)");
+  }
   if (bando.verification_status !== "VERIFICATO" && !sportello) {
     missing.push(
       bando.verification_status
@@ -256,6 +303,7 @@ export function missingOfficialData(bando: Bando, now: number = Date.now()): str
   if (bando.scadenza && isExpired(bando, now)) missing.push("Termine di presentazione già superato");
   return missing;
 }
+
 
 export function buildDossier(
   bando: Bando,
@@ -402,7 +450,10 @@ export function renderDossierText(d: Dossier, options: DossierRenderOptions = {}
     ),
     block(
       "ALLEGATI UFFICIALI DEL BANDO",
-      d.documents.map((doc, i) => `${i + 1}. ${doc.label}`),
+      d.documents.map(
+        (doc, i) =>
+          `${i + 1}. ${doc.label}${doc.obbligatorio ? " (obbligatorio)" : ""}${doc.url ? ` — ${doc.url}` : ""}`,
+      ),
     ),
     block(
       "TIMELINE OPERATIVA",

@@ -70,7 +70,15 @@ export interface PdfFieldMapping {
   static_value?: string;
 }
 
+/** Allegato ufficiale nominato dalla fonte (contratto Core). Mai inventato. */
+export interface BandoAllegato {
+  nome: string;
+  url?: string;
+  obbligatorio: boolean;
+}
+
 export interface Bando {
+
   id: string;
   titolo: string;
   ente: string;
@@ -93,6 +101,9 @@ export interface Bando {
   ateco_compatibili?: string[];
   requisiti?: string[];
   modulistica_url?: string;
+  /** Allegati ufficiali dichiarati dalla fonte; vuoto quando non ne nomina. */
+  allegati?: BandoAllegato[];
+
   /** True quando il bando è stato estratto da fonti "sommerse" (albo pretorio, BUR, decreto non pubblicizzato). */
   is_hidden?: boolean;
   /** Descrizione della fonte originaria extratestuale (es. "Allegato B verbale delibera Comune di X"). */
