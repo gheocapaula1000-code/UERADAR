@@ -53,7 +53,11 @@ export interface DossierField {
 export interface DossierDocument {
   label: string;
   reason: string;
+  /** URL ufficiale dell'allegato, solo se pubblicato dalla fonte. */
+  url?: string;
+  obbligatorio?: boolean;
 }
+
 
 export interface DossierTimelineStep {
   label: string;
