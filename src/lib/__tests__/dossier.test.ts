@@ -26,6 +26,7 @@ const bando = {
   notice_url: "https://esempio.it/bando",
   official_url: "https://esempio.it/bando",
   modulistica_url: "https://esempio.it/moduli",
+  importo_max: 50000,
   verification_status: "VERIFICATO",
   requisiti: ["Sede operativa in provincia", "Iscrizione al registro imprese"],
   evidence: [
@@ -93,6 +94,7 @@ describe("dossier candidatura", () => {
     } as unknown as Bando;
     expect(missingOfficialData(partiale, NOW)).toEqual([
       "Data di scadenza",
+      "Finestra di presentazione (scadenza, apertura o sportello)",
       "URL della fonte ufficiale (official_url / notice_url)",
     ]);
     const d = buildDossier(partiale, null, NOW);
