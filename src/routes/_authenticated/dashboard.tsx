@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Bando, BandoScope, CompanyProfile } from "@/lib/bandocore-types";
 import { CATEGORY_FILTERS, type CategoryFilterKey } from "@/lib/bando-categories";
 import { feedMarker, PROFILE_REFRESH_DELAYS_MS, runBoundedRefresh } from "@/lib/feed-refresh";
+import { refreshNoticeFor } from "@/lib/refresh-enqueue";
 import {
   isActive,
   isFlash,
@@ -210,7 +211,7 @@ function Dashboard() {
         signal: controller.signal,
       });
       if (controller.signal.aborted) return;
-      if (result.enqueued === 1 || result.status === "updated" || result.status === "queued") {
+      if (result.enqueued === 1 || result.status === "updated") {
         setLastLiveCheckAt((current) => ({ ...current, [homeView]: new Date().toISOString() }));
       }
       let applied = result.status === "updated" ? result.feed : undefined;
@@ -231,37 +232,28 @@ function Dashboard() {
         if (applied.source === "central-core") {
           setLastLiveCheckAt((current) => ({ ...current, [homeView]: new Date().toISOString() }));
         }
+        const savedIso = applied.source === "cache" ? feedUpdatedIso(applied) : null;
+        const savedLabel = savedIso ? formatFeedUpdatedAt(savedIso) : null;
+        const notice = refreshNoticeFor({
+          status: result.status,
+          reason: result.reason,
+          appliedSource: applied.source,
+          isProfile,
+          savedLabel,
+        });
         if (applied.source === "cache") {
-          const savedIso = feedUpdatedIso(applied);
-          const savedLabel = savedIso ? formatFeedUpdatedAt(savedIso) : null;
           toast.info("Il motore non è raggiungibile in questo momento");
-          setRefreshNotice({
-            tone: "info",
-            text: savedLabel
-              ? `Il motore non è raggiungibile in questo momento. Restano visibili i dati salvati, aggiornati al ${savedLabel}.`
-              : "Il motore non è raggiungibile in questo momento. Restano visibili i dati salvati.",
-          });
         } else {
           toast.success("Risultati aggiornati");
-          setRefreshNotice({
-            tone: "ok",
-            text: isProfile
-              ? "Ricerca completata. Qui sotto trovi i Bandi aggiornati per la tua impresa."
-              : "Ricerca completata. Qui sotto trovi i Bandi aggiornati.",
-          });
         }
-      } else if (result.status === "queued") {
-        setRefreshNotice({
-          tone: "info",
-          text: isProfile
-            ? "Ricerca avviata. I nuovi Bandi compariranno qui su «Per la mia impresa»: puoi chiudere l'app, nessuna azione richiesta."
-            : "Ricerca avviata. I nuovi Bandi compariranno qui: puoi chiudere l'app, nessuna azione richiesta.",
+        if (notice) setRefreshNotice(notice);
+      } else {
+        const notice = refreshNoticeFor({
+          status: result.status,
+          reason: result.reason,
+          isProfile,
         });
-      } else if (result.status === "failed") {
-        setRefreshNotice({
-          tone: "error",
-          text: "Aggiornamento non riuscito. I Bandi che vedi restano validi. Riprova con Cerca nuovi Bandi.",
-        });
+        if (notice) setRefreshNotice(notice);
       }
     } finally {
       refreshInFlight.current = false;

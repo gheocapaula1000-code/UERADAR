@@ -50,8 +50,9 @@ describe("percorso prova autenticato (Radar + dossier)", () => {
   it("il profilo avvia la prova al salvataggio e non inventa un esito positivo", () => {
     expect(profilo).toContain("activateTrial");
     expect(profilo).toContain('trial.code === "TRIAL_STARTED"');
-    expect(mapStartTrialResult({ ok: true, code: "TRIAL_STARTED", trial_ends_at: NOW }, null).ok)
-      .toBe(true);
+    expect(
+      mapStartTrialResult({ ok: true, code: "TRIAL_STARTED", trial_ends_at: NOW }, null).ok,
+    ).toBe(true);
     expect(trialStartMessage("TRIAL_STARTED")).toMatch(/7 giorni/i);
     expect(trialStartMessage("VAT_REQUIRED")).toMatch(/Partita IVA/i);
   });
@@ -67,16 +68,20 @@ describe("percorso prova autenticato (Radar + dossier)", () => {
     expect(dashboard).toContain("Dati salvati");
     expect(proxy).toContain("skip_reuse");
     expect(proxy).toContain("skipReuse: data.skip_reuse === true");
+    expect(dashboard).toContain("refreshNoticeFor");
+    expect(proxy).toContain("CADENCE_LIMITED");
 
     const stale: FeedResponse = {
-      bandi: [{
-        id: "old-02-09",
-        titolo: "Bando del 2 settembre",
-        ente: "MIMIT",
-        descrizione: "Sintesi",
-        categoria: "FONDO_PERDUTO",
-        scope: "NAZIONALE",
-      }],
+      bandi: [
+        {
+          id: "old-02-09",
+          titolo: "Bando del 2 settembre",
+          ente: "MIMIT",
+          descrizione: "Sintesi",
+          categoria: "FONDO_PERDUTO",
+          scope: "NAZIONALE",
+        },
+      ],
       fetched_at: "2026-09-02T08:00:00.000Z",
       generated_at: "2026-09-02T08:00:00.000Z",
       source: "cache",

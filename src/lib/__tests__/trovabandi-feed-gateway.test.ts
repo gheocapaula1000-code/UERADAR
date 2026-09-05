@@ -155,11 +155,9 @@ describe("contratto upstream rigoroso", () => {
   });
 
   it("con dropInvalidRows tiene le righe valide senza fallire tutto il payload", () => {
-    const mixed = sanitizeFeedResponse(
-      { ok: true, bandi: [row, { ...row, id: "" }, null] },
-      200,
-      { dropInvalidRows: true },
-    );
+    const mixed = sanitizeFeedResponse({ ok: true, bandi: [row, { ...row, id: "" }, null] }, 200, {
+      dropInvalidRows: true,
+    });
     expect(mixed).toMatchObject({ ok: true });
     if (mixed.ok) {
       expect(mixed.bandi).toHaveLength(1);
@@ -169,7 +167,13 @@ describe("contratto upstream rigoroso", () => {
 
   it("con dropInvalidRows un payload senza righe valide resta una risposta vuota", () => {
     const empty = sanitizeFeedResponse(
-      { ok: true, bandi: [{ ...row, id: "" }, { ...row, official_url: "" }] },
+      {
+        ok: true,
+        bandi: [
+          { ...row, id: "" },
+          { ...row, official_url: "" },
+        ],
+      },
       200,
       { dropInvalidRows: true },
     );
@@ -223,6 +227,8 @@ describe("gateway isolato", () => {
     expect(src).toContain("isCatalogRequest");
     expect(src).toContain("fetchOfficialCatalog");
     expect(src).toContain("UPSTREAM_UNAVAILABLE");
+    expect(src).toContain("REQUEST_REFRESH_TIMEOUT_MS");
+    expect(src).toContain("isTransientCoreStatus");
   });
 
   it("il client chiede catalogo con action catalog, feed profilo invariato", () => {

@@ -1,4 +1,12 @@
 import type { FeedResponse } from "./bandocore-types";
+import {
+  REFRESH_CADENCE_LIMITED,
+  REFRESH_UPSTREAM_UNAVAILABLE,
+  classifyRefreshEnqueue,
+  classifyRefreshError,
+  isTransientRefreshVerdict,
+  type RefreshQueueVerdict,
+} from "./refresh-enqueue";
 
 /**
  * Marker di freschezza del feed.
@@ -52,8 +60,10 @@ export interface BoundedRefreshResult {
   feed?: FeedResponse;
   /** Numero di fetch del feed effettuati (mai enqueue). */
   attempts: number;
-  /** Deve essere sempre 0 o 1: request_refresh non viene mai ri-accodato. */
+  /** 0 o 1: al più una coda confermata. Un retry transitorio non conta come seconda coda. */
   enqueued: number;
+  /** Codice classificato (cadenza, Core transitorio, coda). */
+  reason?: string;
 }
 
 export interface BoundedRefreshOptions {
@@ -82,10 +92,11 @@ function defaultSleep(ms: number, signal?: AbortSignal) {
 }
 
 /**
- * Refresh manuale bounded: 1 enqueue + al massimo `delaysMs.length` letture del
- * feed con backoff breve. Si ferma appena il marker cambia; allo scadere dei
- * tentativi restituisce "queued" senza toccare i dati precedenti. Ogni step
- * controlla `signal` per uscire in sicurezza allo unmount.
+ * Refresh manuale bounded: 1 enqueue (con un retry se il Core è transitorio) +
+ * al massimo `delaysMs.length` letture del feed con backoff breve. Si ferma
+ * appena il marker cambia; allo scadere dei tentativi restituisce "queued"
+ * senza toccare i dati precedenti. Ogni step controlla `signal` per uscire
+ * in sicurezza allo unmount.
  */
 export async function runBoundedRefresh(
   options: BoundedRefreshOptions,
@@ -96,12 +107,21 @@ export async function runBoundedRefresh(
 
   if (aborted()) return { status: "aborted", attempts: 0, enqueued: 0 };
 
-  try {
-    await options.enqueue();
-  } catch {
-    return { status: "failed", attempts: 0, enqueued: 0 };
+  const first = await runEnqueue(options.enqueue);
+  const enqueueVerdict = isTransientRefreshVerdict(first)
+    ? await runEnqueue(options.enqueue)
+    : first;
+  if (enqueueVerdict.kind === "failed" || enqueueVerdict.kind === "upstream") {
+    return {
+      status: "failed",
+      attempts: 0,
+      enqueued: 0,
+      reason:
+        enqueueVerdict.kind === "upstream" ? REFRESH_UPSTREAM_UNAVAILABLE : enqueueVerdict.code,
+    };
   }
-  const enqueued = 1;
+  const enqueued = enqueueVerdict.kind === "queued" ? 1 : 0;
+  const reason = enqueueVerdict.kind === "cadence" ? REFRESH_CADENCE_LIMITED : undefined;
 
   let attempts = 0;
   for (const delay of delays) {
@@ -118,5 +138,13 @@ export async function runBoundedRefresh(
       // Errore transitorio: nessun re-enqueue, si passa al tentativo successivo.
     }
   }
-  return { status: "queued", attempts, enqueued };
+  return { status: "queued", attempts, enqueued, reason };
+}
+
+async function runEnqueue(enqueue: () => Promise<unknown>): Promise<RefreshQueueVerdict> {
+  try {
+    return classifyRefreshEnqueue(await enqueue());
+  } catch (error) {
+    return classifyRefreshError(error);
+  }
 }
