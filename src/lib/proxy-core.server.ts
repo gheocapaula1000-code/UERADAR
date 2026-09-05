@@ -1,11 +1,13 @@
-import type { Bando } from "./bandocore-types";
+import type { Bando, BandoAllegato } from "./bandocore-types";
 import {
   coerceFiniteNumber,
   coerceOptionalHttpUrl,
+  sanitizeAllegati,
   sanitizeFeedResponse,
   type ContractRow,
 } from "../../supabase/functions/_shared/trovabandi-contract.ts";
 import { coercePositiveNumber } from "./official-number";
+
 
 export type CoreOpportunity = ContractRow & {
   id: string;
