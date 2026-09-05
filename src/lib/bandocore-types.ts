@@ -101,6 +101,9 @@ export interface Bando {
   ateco_compatibili?: string[];
   requisiti?: string[];
   modulistica_url?: string;
+  /** Allegati ufficiali dichiarati dalla fonte; vuoto quando non ne nomina. */
+  allegati?: BandoAllegato[];
+
   /** True quando il bando è stato estratto da fonti "sommerse" (albo pretorio, BUR, decreto non pubblicizzato). */
   is_hidden?: boolean;
   /** Descrizione della fonte originaria extratestuale (es. "Allegato B verbale delibera Comune di X"). */
