@@ -256,13 +256,41 @@ export function buildCoverLetter(bando: Bando, profile: AllowedProfile): string 
 }
 
 
+/** Canale ufficiale di presentazione dichiarato dalla fonte (contratto Core PR #85). */
+export function hasOfficialChannel(bando: Bando): boolean {
+  return Boolean(
+    bando.application_url ||
+      bando.piattaforma_url ||
+      bando.modulistica_url ||
+      bando.ufficio_protocollo_pec ||
+      bando.pec,
+  );
+}
+
+/** Dato economico ufficiale: importo massimo, intensità di aiuto o budget totale. */
+export function hasOfficialEconomics(bando: Bando): boolean {
+  return (
+    typeof bando.importo_max === "number" ||
+    typeof bando.aid_intensity_percent === "number" ||
+    typeof bando.total_budget === "number"
+  );
+}
+
 /** Dati ufficiali minimi mancanti nel bando ricevuto dal feed (fail-closed). */
 export function missingOfficialData(bando: Bando, now: number = Date.now()): string[] {
   const sportello = isSportello(bando);
+  const hasWindow = Boolean(bando.scadenza) || Boolean(bando.apertura) || sportello;
   const missing = REQUIRED_OFFICIAL.filter(
-    (f) => !bando[f.key] && !(sportello && f.key === "scadenza"),
+    (f) => !bando[f.key] && !(hasWindow && f.key === "scadenza"),
   ).map((f) => f.label);
+  if (!hasWindow) missing.push("Finestra di presentazione (scadenza, apertura o sportello)");
   if (!officialUrl(bando)) missing.push("URL della fonte ufficiale (official_url / notice_url)");
+  if (!hasOfficialChannel(bando)) {
+    missing.push("Canale ufficiale di presentazione (piattaforma, modulistica o PEC)");
+  }
+  if (!hasOfficialEconomics(bando)) {
+    missing.push("Dato economico ufficiale (importo massimo, intensità di aiuto o budget)");
+  }
   if (bando.verification_status !== "VERIFICATO" && !sportello) {
     missing.push(
       bando.verification_status
@@ -275,6 +303,7 @@ export function missingOfficialData(bando: Bando, now: number = Date.now()): str
   if (bando.scadenza && isExpired(bando, now)) missing.push("Termine di presentazione già superato");
   return missing;
 }
+
 
 export function buildDossier(
   bando: Bando,
