@@ -20,11 +20,30 @@ export function feedFingerprint(feed: FeedResponse): string {
   return JSON.stringify(stable(feed.bandi));
 }
 
+export type FeedCacheOptions = {
+  /**
+   * «Cerca nuovi Bandi»: accetta l'envelope live anche se vuoto e sovrascrive
+   * un feed_cache profilo/catalogo ancora popolato. Senza questo flag un vuoto
+   * valido del motore (es. nuovo abbinamento) lasciava visibili i bandi del
+   * 02/09 come se fossero ancora attuali.
+   */
+  skipReuse?: boolean;
+};
+
 export function decideFeedCache(
   previous: FeedResponse | null,
   next: FeedResponse,
   now = Date.now(),
+  options?: FeedCacheOptions,
 ): CacheDecision {
+  if (options?.skipReuse) {
+    if (next.bandi.length === 0) {
+      return previous && previous.bandi.length > 0 ? "persist" : "serve-without-persist";
+    }
+    if (previous && feedFingerprint(previous) === feedFingerprint(next))
+      return "serve-without-persist";
+    return "persist";
+  }
   if (next.bandi.length === 0) {
     const age = previous ? now - Date.parse(previous.fetched_at) : Infinity;
     if (

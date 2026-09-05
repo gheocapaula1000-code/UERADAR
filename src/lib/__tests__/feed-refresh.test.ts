@@ -141,6 +141,7 @@ describe("refresh «Per la mia impresa»", () => {
     const src = readFileSync("src/routes/_authenticated/dashboard.tsx", "utf8");
     expect(src).toContain("PROFILE_REFRESH_DELAYS_MS");
     expect(src).toContain('mode: homeView');
+    expect(src).toContain("skip_reuse: true");
     expect(src).toContain('["bandi-feed", homeView], applied');
     expect(src).toContain('saveOfflineFeed(applied, undefined, homeView)');
     expect(src).toContain('clearOfflineFeed(undefined, homeView)');

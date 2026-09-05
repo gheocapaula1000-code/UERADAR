@@ -8,6 +8,8 @@ import type { Json } from "@/integrations/supabase/types";
 
 const InputSchema = z.object({
   force_refresh: z.boolean().optional(),
+  /** Accetta l'envelope live (anche vuoto) e sostituisce un feed_cache stale. Non accoda. */
+  skip_reuse: z.boolean().optional(),
   deep_search: z.boolean().optional(),
   mode: z.enum(["catalog", "profile"]).optional(),
 });
@@ -145,7 +147,9 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
         admission,
         view,
       };
-      const cacheDecision = decideFeedCache(previous, next);
+      const cacheDecision = decideFeedCache(previous, next, Date.parse(nowIso), {
+        skipReuse: data.skip_reuse === true,
+      });
       // Riuso dei bandi precedenti (envelope vuoto), ma con i timestamp reali
       // dell'ultima lettura del Core: nessun bando inventato e il client può
       // riconoscere che l'aggiornamento è avvenuto davvero. Il Core è stato
@@ -174,7 +178,9 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
           payload: next as unknown as Json,
           fetched_at: fetchedAt,
         });
-        if (cacheWriteError) throw new Error("CACHE_WRITE_FAILED");
+        // «Cerca» deve comunque consegnare l'envelope live: un insert fallito
+        // non deve far ricadere sul feed_cache del 02/09.
+        if (cacheWriteError && data.skip_reuse !== true) throw new Error("CACHE_WRITE_FAILED");
       }
     } catch (err) {
       console.warn("[trovabandi-feed] feed failed, falling back to cache:", err);

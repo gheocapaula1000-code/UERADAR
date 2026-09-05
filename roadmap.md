@@ -17,3 +17,5 @@
 - [x] Svuotare la cache React Query al logout
 - [x] Verificare reinvito dopo rimozione membro
 - [x] Segnale per eventi Stripe non gestiti e per fonti attestate dal Core
+- [x] «Cerca nuovi Bandi» non riusa un feed_cache profilo stale (es. 02/09): envelope live anche vuoto, niente «Dati salvati» se il motore risponde
+- [x] Copertura automatica del percorso prova autenticato (errori auth IT + Radar/dossier); E2E browser non presente nel repo

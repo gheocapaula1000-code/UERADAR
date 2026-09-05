@@ -198,7 +198,8 @@ function Dashboard() {
     refreshAbort.current = controller;
     setIsRefreshing(true);
     const isProfile = homeView === "profile";
-    const liveFetch = () => fetchFeed({ data: { deep_search: true, mode: homeView } });
+    const liveFetch = () =>
+      fetchFeed({ data: { deep_search: true, mode: homeView, skip_reuse: true } });
     try {
       if (navigator.onLine) clearOfflineFeed(undefined, homeView);
       const result = await runBoundedRefresh({
