@@ -64,6 +64,8 @@ export interface BoundedRefreshResult {
   enqueued: number;
   /** Codice classificato (cadenza, Core transitorio, coda). */
   reason?: string;
+  /** Secondi mancanti se la cadenza ha bloccato un nuovo enqueue (429). */
+  retryAfterSeconds?: number;
 }
 
 export interface BoundedRefreshOptions {
@@ -122,6 +124,26 @@ export async function runBoundedRefresh(
   }
   const enqueued = enqueueVerdict.kind === "queued" ? 1 : 0;
   const reason = enqueueVerdict.kind === "cadence" ? REFRESH_CADENCE_LIMITED : undefined;
+  const retryAfterSeconds =
+    enqueueVerdict.kind === "cadence" ? enqueueVerdict.retryAfterSeconds : undefined;
+
+  if (enqueueVerdict.kind === "cadence") {
+    // 429: non aspettare la finestra di polling. Una lettura live basta
+    // per applicare un eventuale esito della ricerca precedente.
+    if (aborted())
+      return { status: "aborted", attempts: 0, enqueued: 0, reason, retryAfterSeconds };
+    try {
+      const feed = await options.fetchFeed();
+      if (aborted())
+        return { status: "aborted", attempts: 1, enqueued: 0, reason, retryAfterSeconds };
+      if (feedMarker(feed) !== options.baselineMarker) {
+        return { status: "updated", feed, attempts: 1, enqueued: 0, reason, retryAfterSeconds };
+      }
+    } catch {
+      // Si tiene l'elenco già visibile.
+    }
+    return { status: "queued", attempts: 1, enqueued: 0, reason, retryAfterSeconds };
+  }
 
   let attempts = 0;
   for (const delay of delays) {

@@ -215,9 +215,10 @@ function Dashboard() {
         setLastLiveCheckAt((current) => ({ ...current, [homeView]: new Date().toISOString() }));
       }
       let applied = result.status === "updated" ? result.feed : undefined;
-      if (!applied && result.status === "queued") {
+      if (!applied && result.status === "queued" && result.reason !== "CADENCE_LIMITED") {
         // Ultimo tentativo: anche un fallback cache restituito dal server è
         // applicato, così React Query non conserva lo snapshot pre-ricerca.
+        // Su 429 cadenza non si riapplica lo stesso elenco come «Ricerca completata».
         try {
           const live = await liveFetch();
           if (!controller.signal.aborted) applied = live;
@@ -237,6 +238,7 @@ function Dashboard() {
         const notice = refreshNoticeFor({
           status: result.status,
           reason: result.reason,
+          retryAfterSeconds: result.retryAfterSeconds,
           appliedSource: applied.source,
           isProfile,
           savedLabel,
@@ -251,6 +253,7 @@ function Dashboard() {
         const notice = refreshNoticeFor({
           status: result.status,
           reason: result.reason,
+          retryAfterSeconds: result.retryAfterSeconds,
           isProfile,
         });
         if (notice) setRefreshNotice(notice);

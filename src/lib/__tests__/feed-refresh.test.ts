@@ -129,9 +129,29 @@ describe("runBoundedRefresh", () => {
     );
     expect(res.status).toBe("queued");
     expect(res.reason).toBe("CADENCE_LIMITED");
+    expect(res.retryAfterSeconds).toBe(600);
+    expect(res.enqueued).toBe(0);
+    expect(res.attempts).toBe(1);
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(fetchFeed).toHaveBeenCalledTimes(1);
+  });
+
+  it("cadenza 429 con feed già nuovo applica l'elenco senza ri-accodare", async () => {
+    const enqueue = vi.fn().mockResolvedValue({
+      queued: false,
+      code: "CADENCE_LIMITED",
+      retry_after_seconds: 120,
+    });
+    const fresh = feed({ bandi: [{ id: "z" }] as FeedResponse["bandi"] });
+    const fetchFeed = vi.fn().mockResolvedValue(fresh);
+    const res = await run(
+      runBoundedRefresh({ enqueue, fetchFeed, baselineMarker: feedMarker(feed()) }),
+    );
+    expect(res.status).toBe("updated");
+    expect(res.feed).toBe(fresh);
     expect(res.enqueued).toBe(0);
     expect(enqueue).toHaveBeenCalledTimes(1);
-    expect(fetchFeed).toHaveBeenCalled();
+    expect(fetchFeed).toHaveBeenCalledTimes(1);
   });
 
   it("abort (unmount) ferma il polling", async () => {
@@ -189,6 +209,8 @@ describe("refresh «Per la mia impresa»", () => {
     expect(src).toContain("[homeView]: new Date().toISOString()");
     expect(src).toContain("refreshNoticeFor");
     expect(src).toContain("result.reason");
+    expect(src).toContain("CADENCE_LIMITED");
+    expect(src).toContain("retryAfterSeconds");
     expect(src).toContain("isOffline && !isRefreshing");
     expect(src).toContain("Per la mia impresa»");
   });

@@ -92,11 +92,14 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
     try {
       if (data.force_refresh) {
         // La coda deve confermare {ok:true, queued:true}: nessun refresh "finto".
-        const { data: refreshPayload, error: refreshError } = await supabase.functions.invoke(
-          "trovabandi-feed",
-          { body: { action: "request_refresh" } },
-        );
-        const refresh = readRefreshEnqueue(refreshPayload, refreshError);
+        const {
+          data: refreshPayload,
+          error: refreshError,
+          response: refreshResponse,
+        } = await supabase.functions.invoke("trovabandi-feed", {
+          body: { action: "request_refresh" },
+        });
+        const refresh = await readRefreshEnqueue(refreshPayload, refreshError, refreshResponse);
         if (!refresh.queued) throw new Error(refresh.code);
       }
 
@@ -241,8 +244,12 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
     };
   });
 
-function readRefreshEnqueue(data: unknown, error: unknown): RefreshEnqueueResult {
-  const payload = readFunctionsInvokePayload(data, error);
+async function readRefreshEnqueue(
+  data: unknown,
+  error: unknown,
+  response?: unknown,
+): Promise<RefreshEnqueueResult> {
+  const payload = await readFunctionsInvokePayload(data, error, response);
   return toRefreshEnqueueResult(verdictFromRefreshPayload(payload, Boolean(error)));
 }
 
@@ -262,10 +269,10 @@ export const requestFeedRefresh = createServerFn({ method: "POST" })
     );
     if (!entitlement.entitled) throw new Error(`FEED_NOT_ENTITLED:${entitlement.reason}`);
     // Accoda una singola richiesta di refresh, senza leggere il feed.
-    const { data, error } = await context.supabase.functions.invoke("trovabandi-feed", {
+    const { data, error, response } = await context.supabase.functions.invoke("trovabandi-feed", {
       body: { action: "request_refresh" },
     });
-    const refresh = readRefreshEnqueue(data, error);
+    const refresh = await readRefreshEnqueue(data, error, response);
     if (!refresh.queued) {
       console.warn("[trovabandi-feed] request_refresh classified:", refresh.code);
     }

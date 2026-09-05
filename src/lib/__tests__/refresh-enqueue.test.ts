@@ -6,6 +6,7 @@ import {
   REFRESH_UPSTREAM_UNAVAILABLE,
   classifyRefreshEnqueue,
   classifyRefreshError,
+  formatRetryAfter,
   isTransientRefreshVerdict,
   readFunctionsInvokePayload,
   refreshNoticeFor,
@@ -14,14 +15,32 @@ import {
 } from "../refresh-enqueue";
 
 describe("classificazione enqueue Cerca nuovi Bandi", () => {
-  it("legge il body anche quando invoke marca error (429/502)", () => {
+  it("legge il body anche quando invoke marca error (429/502)", async () => {
     const cadence = { ok: false, code: REFRESH_CADENCE_LIMITED, retry_after_seconds: 800 };
-    expect(readFunctionsInvokePayload(cadence, new Error("non-2xx"))).toEqual(cadence);
+    expect(await readFunctionsInvokePayload(cadence, new Error("non-2xx"))).toEqual(cadence);
     expect(
-      readFunctionsInvokePayload(null, {
+      await readFunctionsInvokePayload(null, {
         context: { ok: false, code: REFRESH_UPSTREAM_UNAVAILABLE },
       }),
     ).toEqual({ ok: false, code: REFRESH_UPSTREAM_UNAVAILABLE });
+  });
+
+  it("estrae CADENCE_LIMITED dalla Response di FunctionsHttpError (data=null)", async () => {
+    const body = { ok: false, code: REFRESH_CADENCE_LIMITED, retry_after_seconds: 780 };
+    const response = new Response(JSON.stringify(body), {
+      status: 429,
+      headers: { "Content-Type": "application/json" },
+    });
+    const parsed = await readFunctionsInvokePayload(null, {
+      name: "FunctionsHttpError",
+      message: "Edge Function returned a non-2xx status code",
+      context: response,
+    });
+    expect(parsed).toEqual(body);
+    expect(verdictFromRefreshPayload(parsed, true)).toEqual({
+      kind: "cadence",
+      retryAfterSeconds: 780,
+    });
   });
 
   it("non tratta CADENCE_LIMITED come fallimento di prodotto", () => {
@@ -72,15 +91,20 @@ describe("copy esito ricerca", () => {
     expect(notice?.text).not.toMatch(/Aggiornamento non riuscito/);
   });
 
-  it("la cadenza prova (15 min) spiega che la ricerca è già in corso", () => {
+  it("la cadenza 429 dice che si è cercato di recente e quando riprovare", () => {
+    expect(formatRetryAfter(780)).toBe("Riprova tra 13 minuti.");
+    expect(formatRetryAfter(40)).toBe("Riprova tra 1 minuto.");
     const notice = refreshNoticeFor({
       status: "queued",
       reason: REFRESH_CADENCE_LIMITED,
+      retryAfterSeconds: 780,
       isProfile: true,
     });
     expect(notice?.tone).toBe("info");
-    expect(notice?.text).toMatch(/già in corso/i);
+    expect(notice?.text).toMatch(/già cercato di recente/i);
+    expect(notice?.text).toMatch(/Riprova tra 13 minuti/);
     expect(notice?.text).not.toMatch(/Aggiornamento non riuscito/);
+    expect(notice?.text).not.toMatch(/già in corso/i);
   });
 
   it("non inventa Bandi: cache e fallimento duro lasciano i dati visibili", () => {
@@ -109,5 +133,6 @@ describe("proxy e Edge espongono la classificazione", () => {
       proxy.indexOf("export const loadCachedFeed"),
     );
     expect(refresh).not.toMatch(/if \(error\) throw new Error\("REFRESH_QUEUE_FAILED"\)/);
+    expect(refresh).toContain("await readRefreshEnqueue(data, error, response)");
   });
 });

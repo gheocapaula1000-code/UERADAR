@@ -19,19 +19,45 @@ export type RefreshEnqueueResult =
   | { queued: false; code: typeof REFRESH_CADENCE_LIMITED; retry_after_seconds: number }
   | { queued: false; code: typeof REFRESH_UPSTREAM_UNAVAILABLE | typeof REFRESH_QUEUE_FAILED };
 
-export function readFunctionsInvokePayload(data: unknown, error: unknown): unknown {
-  if (data != null) return data;
-  if (!error || typeof error !== "object") return null;
-  const ctx = (error as { context?: unknown }).context;
+function looksLikeResponse(value: unknown): value is Response {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as Response).json === "function" &&
+    typeof (value as Response).clone === "function" &&
+    typeof (value as Response).status === "number"
+  );
+}
+
+async function parseInvokeContext(ctx: unknown): Promise<unknown> {
   if (ctx == null) return null;
-  if (
-    typeof ctx === "object" &&
-    !Array.isArray(ctx) &&
-    ("ok" in ctx || "code" in ctx || "queued" in ctx)
-  ) {
+  if (looksLikeResponse(ctx)) {
+    try {
+      return await ctx.clone().json();
+    } catch {
+      return null;
+    }
+  }
+  if (typeof ctx === "object" && !Array.isArray(ctx) && ("code" in ctx || "queued" in ctx)) {
     return ctx;
   }
   return null;
+}
+
+/**
+ * supabase-js su 429/502 lascia `data` a null e mette il body nella Response
+ * di `error.context`. Senza questo parse CADENCE_LIMITED diventava un hard fail.
+ */
+export async function readFunctionsInvokePayload(
+  data: unknown,
+  error: unknown,
+  response?: unknown,
+): Promise<unknown> {
+  if (data != null) return data;
+  const fromResponse = await parseInvokeContext(response);
+  if (fromResponse != null) return fromResponse;
+  if (!error || typeof error !== "object") return null;
+  return parseInvokeContext((error as { context?: unknown }).context);
 }
 
 function asRecord(payload: unknown): Record<string, unknown> | null {
@@ -97,9 +123,18 @@ export function isTransientRefreshVerdict(verdict: RefreshQueueVerdict): boolean
 
 export type RefreshNoticeTone = "ok" | "info" | "error";
 
+export function formatRetryAfter(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return "Riprova tra poco con Cerca nuovi Bandi.";
+  }
+  const minutes = Math.max(1, Math.ceil(seconds / 60));
+  return minutes === 1 ? "Riprova tra 1 minuto." : `Riprova tra ${minutes} minuti.`;
+}
+
 export function refreshNoticeFor(input: {
   status: "updated" | "queued" | "failed" | "aborted";
   reason?: string;
+  retryAfterSeconds?: number;
   appliedSource?: "central-core" | "cache";
   isProfile: boolean;
   savedLabel?: string | null;
@@ -124,9 +159,7 @@ export function refreshNoticeFor(input: {
   if (input.status === "queued" && input.reason === REFRESH_CADENCE_LIMITED) {
     return {
       tone: "info",
-      text: input.isProfile
-        ? "Una ricerca è già in corso. I nuovi Bandi compariranno qui su «Per la mia impresa»: puoi chiudere l'app, nessuna azione richiesta."
-        : "Una ricerca è già in corso. I nuovi Bandi compariranno qui: puoi chiudere l'app, nessuna azione richiesta.",
+      text: `Hai già cercato di recente. I Bandi che vedi restano validi. ${formatRetryAfter(input.retryAfterSeconds ?? 0)}`,
     };
   }
   if (input.status === "queued") {
