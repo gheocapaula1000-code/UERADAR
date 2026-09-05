@@ -166,7 +166,33 @@ function validPdfFieldMapping(value: unknown): boolean {
   });
 }
 
+/**
+ * Allegati ufficiali (contratto Core PR #85): solo se la fonte li nomina.
+ * Fail-soft sul campo: un array malformato azzera gli allegati, non scarta la scheda.
+ */
+export const MAX_ALLEGATI = 20;
+
+export function sanitizeAllegati(value: unknown): ContractRow[] {
+  if (!Array.isArray(value)) return [];
+  const out: ContractRow[] = [];
+  for (const entry of value) {
+    if (out.length >= MAX_ALLEGATI) break;
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const row = entry as ContractRow;
+    if (!nonEmptyString(row.nome)) continue;
+    const nome = (row.nome as string).trim();
+    if (nome.length > 300) continue;
+    if (row.obbligatorio != null && typeof row.obbligatorio !== "boolean") continue;
+    const url = coerceOptionalHttpUrl(row.url);
+    const clean: ContractRow = { nome, obbligatorio: row.obbligatorio === true };
+    if (url) clean.url = url;
+    out.push(clean);
+  }
+  return out;
+}
+
 function validEvidence(value: unknown): boolean {
+
   if (value == null) return true;
   if (!Array.isArray(value)) return false;
   return value.every((entry) => {
