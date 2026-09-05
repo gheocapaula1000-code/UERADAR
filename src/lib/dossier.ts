@@ -152,12 +152,26 @@ const ATTACHMENT_HINT =
  * Nessun documento inventato (visura, DURC, de minimis, carta d'identità).
  */
 export function officialAttachments(bando: Bando): DossierDocument[] {
+  const docs: DossierDocument[] = [];
+  const seen = new Set<string>();
+  // Allegati dichiarati dal contratto Core: nome, link se pubblicato, obbligatorietà.
+  for (const a of bando.allegati ?? []) {
+    const nome = typeof a?.nome === "string" ? a.nome.trim() : "";
+    if (!nome) continue;
+    const key = nome.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    docs.push({
+      label: nome,
+      reason: "Allegato indicato dalla fonte ufficiale",
+      ...(a.url ? { url: a.url } : {}),
+      obbligatorio: a.obbligatorio === true,
+    });
+  }
   const items = (bando.requisiti ?? [])
     .filter((r): r is string => typeof r === "string" && r.trim().length > 0)
     .map((r) => r.trim())
     .filter((r) => ATTACHMENT_HINT.test(r));
-  const seen = new Set<string>();
-  const docs: DossierDocument[] = [];
   for (const item of items) {
     const key = item.toLowerCase();
     if (seen.has(key)) continue;
@@ -166,6 +180,7 @@ export function officialAttachments(bando: Bando): DossierDocument[] {
   }
   return docs;
 }
+
 
 
 export function buildTimeline(bando: Bando, now = Date.now()): DossierTimelineStep[] {
