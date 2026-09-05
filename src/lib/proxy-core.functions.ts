@@ -5,6 +5,15 @@ import type { FeedResponse, FeedView, Bando } from "./bandocore-types";
 import { feedViewOf, mapCoreOpportunity, parseGatewayEnvelope } from "./proxy-core.server";
 import { decideFeedCache } from "./feed-cache-policy";
 import type { Json } from "@/integrations/supabase/types";
+import {
+  REFRESH_CADENCE_LIMITED,
+  REFRESH_QUEUE_FAILED,
+  REFRESH_UPSTREAM_UNAVAILABLE,
+  readFunctionsInvokePayload,
+  toRefreshEnqueueResult,
+  verdictFromRefreshPayload,
+  type RefreshEnqueueResult,
+} from "./refresh-enqueue";
 
 const InputSchema = z.object({
   force_refresh: z.boolean().optional(),
@@ -83,14 +92,15 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
     try {
       if (data.force_refresh) {
         // La coda deve confermare {ok:true, queued:true}: nessun refresh "finto".
-        const { data: refreshPayload, error: refreshError } = await supabase.functions.invoke(
-          "trovabandi-feed",
-          { body: { action: "request_refresh" } },
-        );
-        if (refreshError) throw new Error("REFRESH_QUEUE_FAILED");
-        const refresh = refreshPayload as { ok?: unknown; queued?: unknown } | null;
-        if (!refresh || refresh.ok !== true || refresh.queued !== true)
-          throw new Error("REFRESH_QUEUE_FAILED");
+        const {
+          data: refreshPayload,
+          error: refreshError,
+          response: refreshResponse,
+        } = await supabase.functions.invoke("trovabandi-feed", {
+          body: { action: "request_refresh" },
+        });
+        const refresh = await readRefreshEnqueue(refreshPayload, refreshError, refreshResponse);
+        if (!refresh.queued) throw new Error(refresh.code);
       }
 
       const { data: payload, error } = await supabase.functions.invoke("trovabandi-feed", {
@@ -234,9 +244,18 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
     };
   });
 
+async function readRefreshEnqueue(
+  data: unknown,
+  error: unknown,
+  response?: unknown,
+): Promise<RefreshEnqueueResult> {
+  const payload = await readFunctionsInvokePayload(data, error, response);
+  return toRefreshEnqueueResult(verdictFromRefreshPayload(payload, Boolean(error)));
+}
+
 export const requestFeedRefresh = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<{ queued: true }> => {
+  .handler(async ({ context }): Promise<RefreshEnqueueResult> => {
     // Stesso gate del feed. La cadenza è riservata dentro la Edge Function,
     // così non esiste un secondo consumo della stessa corsia.
     const { resolveTenantContext } = await import("./tenant.server");
@@ -250,14 +269,21 @@ export const requestFeedRefresh = createServerFn({ method: "POST" })
     );
     if (!entitlement.entitled) throw new Error(`FEED_NOT_ENTITLED:${entitlement.reason}`);
     // Accoda una singola richiesta di refresh, senza leggere il feed.
-    const { data, error } = await context.supabase.functions.invoke("trovabandi-feed", {
+    const { data, error, response } = await context.supabase.functions.invoke("trovabandi-feed", {
       body: { action: "request_refresh" },
     });
-    if (error) throw new Error("REFRESH_QUEUE_FAILED");
-    const refresh = data as { ok?: unknown; queued?: unknown } | null;
-    if (!refresh || refresh.ok !== true || refresh.queued !== true)
-      throw new Error("REFRESH_QUEUE_FAILED");
-    return { queued: true };
+    const refresh = await readRefreshEnqueue(data, error, response);
+    if (!refresh.queued) {
+      console.warn("[trovabandi-feed] request_refresh classified:", refresh.code);
+    }
+    if (refresh.queued) return refresh;
+    // Cadenza: non è un fallimento di prodotto — la ricerca precedente è già in coda.
+    if (refresh.code === REFRESH_CADENCE_LIMITED) return refresh;
+    throw new Error(
+      refresh.code === REFRESH_UPSTREAM_UNAVAILABLE
+        ? REFRESH_UPSTREAM_UNAVAILABLE
+        : REFRESH_QUEUE_FAILED,
+    );
   });
 
 export const loadCachedFeed = createServerFn({ method: "GET" })

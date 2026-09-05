@@ -7,8 +7,7 @@ export type FeedGatewayMode = (typeof FEED_MODES)[number];
 const ALLOWED_KEYS = new Set(["action", "mode"]);
 
 export type ParsedFeedRequest =
-  | { ok: true; action: FeedGatewayAction; mode?: FeedGatewayMode }
-  | { ok: false; code: string };
+  { ok: true; action: FeedGatewayAction; mode?: FeedGatewayMode } | { ok: false; code: string };
 
 /** Allowlist: solo action e, per feed/catalog, mode catalog|profile. */
 export function parseRequestBody(payload: unknown): ParsedFeedRequest {
@@ -41,3 +40,28 @@ export function isCatalogRequest(parsed: { action: FeedGatewayAction; mode?: Fee
 /** Catalogo ufficiale: tetto allineato al massimo del Core (5000), senza matching. */
 export const CATALOG_LIMIT = 5000;
 export const PROFILE_FEED_LIMIT = 250;
+
+/**
+ * request_refresh deve solo accodare: 15s lasciava fallire i cold-start Core.
+ * 30s + un retry su status 0 resta sotto il tetto feed (60s) e sotto il wall
+ * clock tipico delle Edge Function.
+ */
+export const REQUEST_REFRESH_TIMEOUT_MS = 30_000;
+
+type RefreshRow = Record<string, unknown>;
+
+/** request_refresh accetta 202 o 200 + ok=true + queued=true. */
+export function evaluateRefreshResponse(payload: unknown, status: number) {
+  if (status !== 202 && status !== 200) return { queued: false as const, code: "REFRESH_STATUS" };
+  if (payload === null || typeof payload !== "object" || Array.isArray(payload))
+    return { queued: false as const, code: "REFRESH_SHAPE" };
+  const body = payload as RefreshRow;
+  if (body.ok !== true || body.queued !== true)
+    return { queued: false as const, code: "REFRESH_NOT_QUEUED" };
+  return { queued: true as const, code: "REFRESH_QUEUED" };
+}
+
+/** Timeout di rete / abort: un secondo tentativo ha senso. Non ritenta i 4xx. */
+export function isTransientCoreStatus(status: number) {
+  return status === 0 || status === 408 || status >= 500;
+}

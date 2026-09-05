@@ -8,17 +8,16 @@ import {
 import {
   CATALOG_LIMIT,
   PROFILE_FEED_LIMIT,
+  REQUEST_REFRESH_TIMEOUT_MS,
+  evaluateRefreshResponse,
   isCatalogRequest,
+  isTransientCoreStatus,
   parseRequestBody,
   type FeedGatewayAction,
 } from "../_shared/trovabandi-feed-request.ts";
-import {
-  edgeEntitlement,
-  laneFor,
-  type EdgeEntitlement,
-} from "../_shared/ueradar-entitlement.ts";
+import { edgeEntitlement, laneFor, type EdgeEntitlement } from "../_shared/ueradar-entitlement.ts";
 
-export { parseRequestBody };
+export { evaluateRefreshResponse, parseRequestBody };
 
 type Row = Record<string, unknown>;
 type Action = FeedGatewayAction;
@@ -30,17 +29,6 @@ function env(name: string) {
 }
 function out(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers });
-}
-
-/** request_refresh accetta solo 202 + ok=true + queued=true. */
-export function evaluateRefreshResponse(payload: unknown, status: number) {
-  if (status !== 202) return { queued: false, code: "REFRESH_STATUS" };
-  if (payload === null || typeof payload !== "object" || Array.isArray(payload))
-    return { queued: false, code: "REFRESH_SHAPE" };
-  const body = payload as Row;
-  if (body.ok !== true || body.queued !== true)
-    return { queued: false, code: "REFRESH_NOT_QUEUED" };
-  return { queued: true, code: "REFRESH_QUEUED" };
 }
 
 export function coreEndpoint(base: string) {
@@ -93,9 +81,7 @@ serve(async (req) => {
   if (req.method !== "POST") return out(405, { ok: false, code: "METHOD_NOT_ALLOWED" });
 
   const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.toLowerCase().startsWith("bearer ")
-    ? authHeader.slice(7).trim()
-    : "";
+  const token = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
   if (!token) return out(401, { ok: false, code: "UNAUTHORIZED" });
 
   const supabaseUrl = env("SUPABASE_URL");
@@ -184,8 +170,21 @@ serve(async (req) => {
         retry_after_seconds: verdict["retry_after_seconds"] ?? 0,
       });
 
-    const res = await callCore("request_refresh", { profile: minimizedProfile });
-    const outcome = evaluateRefreshResponse(res.body, res.status);
+    let res = await callCore(
+      "request_refresh",
+      { profile: minimizedProfile },
+      REQUEST_REFRESH_TIMEOUT_MS,
+    );
+    let outcome = evaluateRefreshResponse(res.body, res.status);
+    // Un solo retry su timeout/5xx: la corsia è già prenotata, non si ri-claim.
+    if (!outcome.queued && isTransientCoreStatus(res.status)) {
+      res = await callCore(
+        "request_refresh",
+        { profile: minimizedProfile },
+        REQUEST_REFRESH_TIMEOUT_MS,
+      );
+      outcome = evaluateRefreshResponse(res.body, res.status);
+    }
     if (!outcome.queued) {
       // Coda non confermata: la prenotazione viene rilasciata, così l'utente
       // non resta bloccato dall'intervallo per una richiesta mai partita.
@@ -196,7 +195,7 @@ serve(async (req) => {
         _claimed_at: verdict["claimed_at"] ?? null,
         _previous_at: verdict["previous_at"] ?? null,
       });
-      return out(502, { ok: false, code: "UPSTREAM_UNAVAILABLE" });
+      return out(502, { ok: false, code: "UPSTREAM_UNAVAILABLE", reason: outcome.code });
     }
     return out(202, { ok: true, queued: true });
   }
@@ -243,4 +242,3 @@ async function fetchOfficialCatalog() {
 
   return primary.status !== 0 ? primary : secondary;
 }
-

@@ -33,9 +33,11 @@ describe("feedMarker", () => {
       feedMarker(feed({ bandi: [{ id: "b" }] as FeedResponse["bandi"] })),
     );
     expect(feedMarker(feed())).not.toBe(
-      feedMarker(feed({
-        bandi: [{ id: "a", last_verified_at: "2026-08-06T12:00:00Z" }] as FeedResponse["bandi"],
-      })),
+      feedMarker(
+        feed({
+          bandi: [{ id: "a", last_verified_at: "2026-08-06T12:00:00Z" }] as FeedResponse["bandi"],
+        }),
+      ),
     );
   });
   it("feed assente → marker vuoto (fail-closed)", () => {
@@ -83,17 +85,73 @@ describe("runBoundedRefresh", () => {
     expect(enqueue).toHaveBeenCalledTimes(1);
   });
 
-  it("enqueue fallito → failed senza alcun fetch", async () => {
+  it("enqueue fallito due volte → failed senza alcun fetch", async () => {
     const fetchFeed = vi.fn();
+    const enqueue = vi.fn().mockRejectedValue(new Error("REFRESH_QUEUE_FAILED"));
     const res = await run(
       runBoundedRefresh({
-        enqueue: vi.fn().mockRejectedValue(new Error("REFRESH_QUEUE_FAILED")),
+        enqueue,
         fetchFeed,
         baselineMarker: "base",
       }),
     );
     expect(res.status).toBe("failed");
+    expect(res.reason).toBe("REFRESH_QUEUE_FAILED");
+    expect(enqueue).toHaveBeenCalledTimes(2);
     expect(fetchFeed).not.toHaveBeenCalled();
+  });
+
+  it("enqueue transitorio al primo colpo, poi coda → prosegue il polling", async () => {
+    const enqueue = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("UPSTREAM_UNAVAILABLE"))
+      .mockResolvedValueOnce({ queued: true });
+    const fetchFeed = vi
+      .fn()
+      .mockResolvedValue(feed({ bandi: [{ id: "z" }] as FeedResponse["bandi"] }));
+    const res = await run(
+      runBoundedRefresh({ enqueue, fetchFeed, baselineMarker: feedMarker(feed()) }),
+    );
+    expect(res.status).toBe("updated");
+    expect(enqueue).toHaveBeenCalledTimes(2);
+    expect(fetchFeed).toHaveBeenCalledTimes(1);
+  });
+
+  it("cadenza 429 non è un fallimento di prodotto: si legge il feed senza ri-accodare", async () => {
+    const enqueue = vi.fn().mockResolvedValue({
+      queued: false,
+      code: "CADENCE_LIMITED",
+      retry_after_seconds: 600,
+    });
+    const fetchFeed = vi.fn().mockResolvedValue(feed({ fetched_at: "2026-08-06T10:00:01.000Z" }));
+    const res = await run(
+      runBoundedRefresh({ enqueue, fetchFeed, baselineMarker: feedMarker(feed()) }),
+    );
+    expect(res.status).toBe("queued");
+    expect(res.reason).toBe("CADENCE_LIMITED");
+    expect(res.retryAfterSeconds).toBe(600);
+    expect(res.enqueued).toBe(0);
+    expect(res.attempts).toBe(1);
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(fetchFeed).toHaveBeenCalledTimes(1);
+  });
+
+  it("cadenza 429 con feed già nuovo applica l'elenco senza ri-accodare", async () => {
+    const enqueue = vi.fn().mockResolvedValue({
+      queued: false,
+      code: "CADENCE_LIMITED",
+      retry_after_seconds: 120,
+    });
+    const fresh = feed({ bandi: [{ id: "z" }] as FeedResponse["bandi"] });
+    const fetchFeed = vi.fn().mockResolvedValue(fresh);
+    const res = await run(
+      runBoundedRefresh({ enqueue, fetchFeed, baselineMarker: feedMarker(feed()) }),
+    );
+    expect(res.status).toBe("updated");
+    expect(res.feed).toBe(fresh);
+    expect(res.enqueued).toBe(0);
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(fetchFeed).toHaveBeenCalledTimes(1);
   });
 
   it("abort (unmount) ferma il polling", async () => {
@@ -132,7 +190,8 @@ describe("runBoundedRefresh", () => {
 
 describe("refresh «Per la mia impresa»", () => {
   it("usa una finestra più lunga ma sempre limitata", async () => {
-    const { PROFILE_REFRESH_DELAYS_MS, DEFAULT_REFRESH_DELAYS_MS } = await import("../feed-refresh");
+    const { PROFILE_REFRESH_DELAYS_MS, DEFAULT_REFRESH_DELAYS_MS } =
+      await import("../feed-refresh");
     expect(PROFILE_REFRESH_DELAYS_MS.length).toBeGreaterThan(DEFAULT_REFRESH_DELAYS_MS.length);
     expect(PROFILE_REFRESH_DELAYS_MS.reduce((a, b) => a + b, 0)).toBeLessThanOrEqual(60_000);
   });
@@ -140,15 +199,18 @@ describe("refresh «Per la mia impresa»", () => {
   it("la dashboard aggiorna la cache della vista profilo e non lascia lo snapshot offline", () => {
     const src = readFileSync("src/routes/_authenticated/dashboard.tsx", "utf8");
     expect(src).toContain("PROFILE_REFRESH_DELAYS_MS");
-    expect(src).toContain('mode: homeView');
+    expect(src).toContain("mode: homeView");
     expect(src).toContain("skip_reuse: true");
     expect(src).toContain('["bandi-feed", homeView], applied');
-    expect(src).toContain('saveOfflineFeed(applied, undefined, homeView)');
-    expect(src).toContain('clearOfflineFeed(undefined, homeView)');
+    expect(src).toContain("saveOfflineFeed(applied, undefined, homeView)");
+    expect(src).toContain("clearOfflineFeed(undefined, homeView)");
     expect(src).toContain("if (!controller.signal.aborted) applied = live");
-    expect(src).toContain('result.enqueued === 1 || result.status === "updated" || result.status === "queued"');
+    expect(src).toContain('result.enqueued === 1 || result.status === "updated"');
     expect(src).toContain("[homeView]: new Date().toISOString()");
-    expect(src).toContain("Restano visibili i dati salvati");
+    expect(src).toContain("refreshNoticeFor");
+    expect(src).toContain("result.reason");
+    expect(src).toContain("CADENCE_LIMITED");
+    expect(src).toContain("retryAfterSeconds");
     expect(src).toContain("isOffline && !isRefreshing");
     expect(src).toContain("Per la mia impresa»");
   });

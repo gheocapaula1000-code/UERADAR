@@ -22,9 +22,11 @@ describe("cadenza consumata solo dal refresh", () => {
 
   it("rilascia la prenotazione se la coda upstream non è confermata", () => {
     expect(edge).toContain("ueradar_release_search_lane");
-    const failure = edge.slice(edge.indexOf("if (!outcome.queued)"));
-    expect(failure.slice(0, 500)).toContain("ueradar_release_search_lane");
-    expect(failure.slice(0, 500)).toContain("UPSTREAM_UNAVAILABLE");
+    const failure = edge.slice(edge.lastIndexOf("if (!outcome.queued)"));
+    expect(failure.slice(0, 700)).toContain("ueradar_release_search_lane");
+    expect(failure.slice(0, 700)).toContain("UPSTREAM_UNAVAILABLE");
+    expect(edge).toContain("REQUEST_REFRESH_TIMEOUT_MS");
+    expect(edge).toContain("isTransientCoreStatus");
   });
 
   it("il feed resta leggibile senza consumare la corsia", () => {
