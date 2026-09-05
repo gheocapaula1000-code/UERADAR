@@ -255,6 +255,7 @@ const OUTPUT_FIELDS = [
   "id", "title", "authority_name", "authority_level", "category", "summary", "official_url",
   ...OPTIONAL_TEXT, ...OPTIONAL_URL, ...OPTIONAL_DATE, ...OPTIONAL_NUMBER, ...OPTIONAL_BOOLEAN,
   ...OPTIONAL_STRING_ARRAY, "verification_status", "trovabandi_evidence", "pdf_field_mapping", "match",
+  "allegati",
 ] as const;
 
 function sanitizeOpportunity(row: ContractRow): ContractRow {
@@ -263,11 +264,17 @@ function sanitizeOpportunity(row: ContractRow): ContractRow {
   for (const field of OUTPUT_FIELDS) {
     const value = row[field];
     if (value === undefined || value === null) continue;
+    if (field === "allegati") {
+      const allegati = sanitizeAllegati(value);
+      if (allegati.length) clean[field] = allegati;
+      continue;
+    }
     if (optionalUrls.includes(field)) {
       const url = coerceOptionalHttpUrl(value);
       if (url) clean[field] = url;
       continue;
     }
+
     if (typeof value === "string" && value.trim() === "") continue;
     if ((OPTIONAL_NUMBER as readonly string[]).includes(field)) {
       const parsed = coerceFiniteNumber(value);
