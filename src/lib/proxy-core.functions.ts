@@ -21,8 +21,7 @@ function asCachedFeed(row: { payload: unknown; fetched_at: string } | null): Fee
     fetched_at: row.fetched_at,
     source: "cache",
     view: feedViewOf(payload),
-    generated_at:
-      typeof payload.generated_at === "string" ? payload.generated_at : row.fetched_at,
+    generated_at: typeof payload.generated_at === "string" ? payload.generated_at : row.fetched_at,
   };
 }
 
@@ -104,11 +103,16 @@ export const fetchFeedFromProxyCore = createServerFn({ method: "POST" })
       const { admitFeed } = await import("./feed-admission");
       const report = admitFeed(mapped, Date.parse(nowIso));
       bandi = report.admitted;
+      if (report.attested_hosts.length > 0) {
+        const { coreAttestedSignal, emitOpsSignal } = await import("./ops-signal");
+        for (const host of report.attested_hosts) emitOpsSignal(coreAttestedSignal(host));
+      }
       admission = {
         admitted_count: report.admitted_count,
         rejected_count: report.rejected_count,
         rejected_by_reason: report.rejected_by_reason as Record<string, number>,
         active_sources: report.active_sources,
+        attested_hosts: report.attested_hosts,
       };
       // `fetched_at` indica quando questa app ha completato con successo la
       // lettura del Core. Il timestamp dell'envelope può essere la data di una

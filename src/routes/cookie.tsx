@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage, LegalSection } from "@/components/bandocore/LegalPage";
-import { CATEGORY_LABELS, CONSENT_VERSION, OPTIONAL_CATEGORIES, hasOptionalVendors } from "@/lib/consent";
+import {
+  CATEGORY_LABELS,
+  CONSENT_VERSION,
+  OPTIONAL_CATEGORIES,
+  hasOptionalVendors,
+} from "@/lib/consent";
 import { openCookiePreferences } from "@/components/bandocore/SiteFooter";
 import { LEGAL, LEGAL_ADDRESS_LINE } from "@/lib/legal";
 import { seoHead } from "@/lib/seo";
@@ -15,9 +20,10 @@ function Cookie() {
     <LegalPage title="Cookie e memoria locale">
       <LegalSection title="Titolare">
         <p>
-          Titolare del sito e del trattamento: <strong className="text-foreground">{LEGAL.owner}</strong>
-          , sede legale in {LEGAL_ADDRESS_LINE}, P. IVA {LEGAL.vatId}. Contatti: {LEGAL.email}, PEC{" "}
-          {LEGAL.pec}, telefono{" "}
+          Titolare del sito e del trattamento:{" "}
+          <strong className="text-foreground">{LEGAL.owner}</strong>, sede legale in{" "}
+          {LEGAL_ADDRESS_LINE}, P. IVA {LEGAL.vatId}. Contatti: {LEGAL.email}, PEC {LEGAL.pec},
+          telefono{" "}
           <a href={LEGAL.phoneHref} className="underline hover:text-foreground">
             {LEGAL.phone}
           </a>
@@ -30,11 +36,23 @@ function Cookie() {
         </p>
       </LegalSection>
       <LegalSection title="Strumenti necessari">
-        <p>UEradar.com usa cookie o memoria locale strettamente necessari per autenticazione, sicurezza, preferenze, installazione PWA e consultazione offline dell'ultimo feed disponibile.</p>
-        <p>Questi strumenti non richiedono consenso: senza di essi il servizio non può essere erogato. Alla memorizzazione della scelta sui cookie serve una sola voce locale, con versione, data e categorie selezionate.</p>
+        <p>
+          UEradar.com usa cookie o memoria locale strettamente necessari per autenticazione,
+          sicurezza, preferenze, installazione PWA e consultazione offline dell'ultimo feed
+          disponibile.
+        </p>
+        <p>
+          Questi strumenti non richiedono consenso: senza di essi il servizio non può essere
+          erogato. Alla memorizzazione della scelta sui cookie serve una sola voce locale, con
+          versione, data e categorie selezionate.
+        </p>
       </LegalSection>
       <LegalSection title="Dati offline">
-        <p>L'ultimo feed consultato può essere salvato nel browser per renderlo disponibile senza rete. Il dato resta sul dispositivo, viene sostituito dagli aggiornamenti successivi e scade automaticamente dopo 30 giorni.</p>
+        <p>
+          L'ultimo feed consultato può essere salvato nel browser per renderlo disponibile senza
+          rete. Il dato resta sul dispositivo, viene sostituito dagli aggiornamenti successivi e
+          scade automaticamente dopo 7 giorni, come la policy del feed.
+        </p>
       </LegalSection>
       <LegalSection title="Categorie e stato attuale">
         <p>
@@ -56,8 +74,16 @@ function Cookie() {
         </ul>
       </LegalSection>
       <LegalSection title="Come esprimere, modificare o revocare la scelta">
-        <p>Prima di una tua scelta non viene attivato alcuno strumento non necessario. Chiudere il banner con la X o con il tasto Escape equivale a rifiutare gli strumenti opzionali: non è mai un consenso.</p>
-        <p>La scelta viene registrata con versione ({CONSENT_VERSION}), data e categorie selezionate, così non ti viene richiesta a ogni visita; ti sarà richiesta di nuovo solo se cambia la versione dell'informativa. Puoi modificarla o revocarla in qualsiasi momento.</p>
+        <p>
+          Prima di una tua scelta non viene attivato alcuno strumento non necessario. Chiudere il
+          banner con la X o con il tasto Escape equivale a rifiutare gli strumenti opzionali: non è
+          mai un consenso.
+        </p>
+        <p>
+          La scelta viene registrata con versione ({CONSENT_VERSION}), data e categorie selezionate,
+          così non ti viene richiesta a ogni visita; ti sarà richiesta di nuovo solo se cambia la
+          versione dell'informativa. Puoi modificarla o revocarla in qualsiasi momento.
+        </p>
         <p>
           <button
             type="button"
@@ -67,7 +93,10 @@ function Cookie() {
             Gestisci cookie
           </button>
         </p>
-        <p>Puoi cancellare cookie e dati locali dalle impostazioni del browser. La cancellazione chiude la sessione e rimuove la disponibilità offline.</p>
+        <p>
+          Puoi cancellare cookie e dati locali dalle impostazioni del browser. La cancellazione
+          chiude la sessione e rimuove la disponibilità offline.
+        </p>
       </LegalSection>
       <LegalSection title="Fonti ufficiali">
         <p>Questa pagina segue le regole delle fonti ufficiali applicabili:</p>

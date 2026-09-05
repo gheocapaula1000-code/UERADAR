@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /auth
+Disallow: /invito
 Disallow: /dashboard
 Disallow: /profilo
 Disallow: /bando

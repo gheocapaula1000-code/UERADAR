@@ -12,8 +12,8 @@
 
 ## Backlog
 - [x] Ridistribuita Edge `trovabandi-feed` (profilo tollerante, timeout 60s, envelope vuoto valido)
-- [ ] Email di invito + rotta pubblica `/invito`
-- [ ] Allineare cache offline (30 gg) alla policy feed (7 gg)
-- [ ] Svuotare la cache React Query al logout
-- [ ] Verificare reinvito dopo rimozione membro
-- [ ] Segnale per eventi Stripe non gestiti e per fonti attestate dal Core
+- [x] Email di invito + rotta pubblica `/invito`
+- [x] Allineare cache offline (30 gg) alla policy feed (7 gg)
+- [x] Svuotare la cache React Query al logout
+- [x] Verificare reinvito dopo rimozione membro
+- [x] Segnale per eventi Stripe non gestiti e per fonti attestate dal Core

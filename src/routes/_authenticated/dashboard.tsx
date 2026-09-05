@@ -305,7 +305,6 @@ function Dashboard() {
     if (query.data?.bandi) setLastKnownCount(query.data.bandi.length);
   }, [query.data?.bandi]);
 
-
   // Filtro sede fail-closed: stessa regola di matchesSede (territori extra-regione esclusi).
   const sedeOk = useMemo(() => (b: Bando) => matchesSede(b, profile), [profile]);
 
@@ -322,11 +321,15 @@ function Dashboard() {
       if (!prefix) return true;
       const consentiti = b.categoria ? SETTORI[b.categoria] : undefined;
       if (consentiti && !consentiti.includes(prefix)) return false;
-      const lista = (b as Bando & { atecoCompatibili?: string[] }).ateco_compatibili ??
+      const lista =
+        (b as Bando & { atecoCompatibili?: string[] }).ateco_compatibili ??
         (b as Bando & { atecoCompatibili?: string[] }).atecoCompatibili;
       if (Array.isArray(lista) && lista.length > 0) {
         return lista.some(
-          (code) => String(code).replace(/[^0-9]/g, "").slice(0, 2) === prefix,
+          (code) =>
+            String(code)
+              .replace(/[^0-9]/g, "")
+              .slice(0, 2) === prefix,
         );
       }
       return true;
@@ -356,12 +359,19 @@ function Dashboard() {
         path = normalized.slice(host.length);
       }
     }
-    if (host === "invitalia.it" && (path.includes("nuove-imprese-tasso-zero") || path.includes("nito"))) {
+    if (
+      host === "invitalia.it" &&
+      (path.includes("nuove-imprese-tasso-zero") || path.includes("nito"))
+    ) {
       return "invitalia:on-nito";
     }
     if (normalized) return normalized;
     const t = (b.titolo ?? "").toLowerCase();
-    if ((t.includes("nuove imprese") && t.includes("tasso zero")) || t.includes("nito-on") || t.includes("nito on")) {
+    if (
+      (t.includes("nuove imprese") && t.includes("tasso zero")) ||
+      t.includes("nito-on") ||
+      t.includes("nito on")
+    ) {
       return "invitalia:on-nito";
     }
     return b.id;
@@ -549,6 +559,13 @@ function Dashboard() {
                 ))
               )}
             </ul>
+            {query.data.admission.attested_hosts &&
+            query.data.admission.attested_hosts.length > 0 ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Schede attestate dal catalogo ufficiale, host non ancora in elenco locale:{" "}
+                {query.data.admission.attested_hosts.join(", ")}.
+              </p>
+            ) : null}
             <p className="mt-2 text-xs text-muted-foreground">
               Mostriamo solo i dati presenti nel testo ufficiale. Se la scadenza o l'importo non
               c'è, quella riga resta vuota: nessuna data e nessun importo viene stimato. I Bandi a
@@ -635,7 +652,9 @@ function Dashboard() {
                   className="rounded-xl border border-border bg-card p-3 text-left transition hover:border-primary/50"
                 >
                   <div className="flex min-w-0 items-start justify-between gap-2">
-                    <span className="min-w-0 wrap-anywhere text-sm font-medium line-clamp-1">{item.title}</span>
+                    <span className="min-w-0 wrap-anywhere text-sm font-medium line-clamp-1">
+                      {item.title}
+                    </span>
                     {item.read_at ? (
                       <CheckCircle2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                     ) : (
@@ -686,8 +705,10 @@ function Dashboard() {
               d: "Solo URL di modulistica o presentazione etichettati. Mai official_url.",
             },
           ].map((s) => (
-
-            <div key={s.l} className="min-w-0 overflow-x-clip rounded-xl border border-border bg-card p-4">
+            <div
+              key={s.l}
+              className="min-w-0 overflow-x-clip rounded-xl border border-border bg-card p-4"
+            >
               <div className="wrap-anywhere text-sm text-muted-foreground">{s.l}</div>
               <div className={`mt-1 wrap-anywhere text-3xl font-bold ${s.c}`}>{s.v}</div>
               <p className="mt-2 text-xs text-muted-foreground">{s.d}</p>
@@ -729,7 +750,9 @@ function Dashboard() {
                 <Zap className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <h2 className="wrap-anywhere text-lg font-semibold">Opportunità locali e scadenze ravvicinate</h2>
+                <h2 className="wrap-anywhere text-lg font-semibold">
+                  Opportunità locali e scadenze ravvicinate
+                </h2>
                 <p className="text-xs text-muted-foreground">
                   Priorità ai bandi comunali e camerali della tua zona e alle scadenze più vicine.
                 </p>
@@ -764,7 +787,9 @@ function Dashboard() {
                 })()}
               </div>
             ) : (
-              flashBandi.map((b, i) => <BandoCard key={b.id} bando={b} index={i} profile={profile} homeView={homeView} />)
+              flashBandi.map((b, i) => (
+                <BandoCard key={b.id} bando={b} index={i} profile={profile} homeView={homeView} />
+              ))
             )}
           </div>
         </section>

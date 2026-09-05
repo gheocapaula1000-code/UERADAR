@@ -32,9 +32,8 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { readBillingEnv, assertBillingMode, providerCall, adminClient } = await import(
-          "@/lib/billing.server"
-        );
+        const { readBillingEnv, assertBillingMode, providerCall, adminClient } =
+          await import("@/lib/billing.server");
         const env = readBillingEnv();
         const mode = assertBillingMode(env);
         if (!mode.ok) return Response.json({ ok: false, code: mode.code }, { status: 503 });
@@ -147,10 +146,10 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
               (data as {
                 status: string | null;
                 provider_customer_id: string | null;
-                 provider_subscription_id: string | null;
-                 last_event_created_at: string | null;
-                 billing_mode: string | null;
-               } | null) ?? null,
+                provider_subscription_id: string | null;
+                last_event_created_at: string | null;
+                billing_mode: string | null;
+              } | null) ?? null,
           };
         }
 
@@ -312,12 +311,11 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           // da rete di sicurezza se i metadata mancano.
           const sessionMeta = asObj(object["metadata"]);
           const reference = str(object["client_reference_id"]);
-          const identity: Obj | null =
-            sessionMeta?.["supabase_user_id"]
-              ? sessionMeta
-              : reference
-                ? { ...(sessionMeta ?? {}), supabase_user_id: reference }
-                : sessionMeta;
+          const identity: Obj | null = sessionMeta?.["supabase_user_id"]
+            ? sessionMeta
+            : reference
+              ? { ...(sessionMeta ?? {}), supabase_user_id: reference }
+              : sessionMeta;
           const lookup = await resolveUserId(identity);
           if (!lookup.ok) return settle("USER_LOOKUP_FAILED", false);
 
@@ -370,6 +368,8 @@ export const Route = createFileRoute("/api/public/billing-webhook")({
           return settle("INVOICE_DOCUMENT_SYNCED", true);
         }
 
+        const { emitOpsSignal, stripeUnhandledSignal } = await import("@/lib/ops-signal");
+        emitOpsSignal(stripeUnhandledSignal(eventType));
         return settle("EVENT_IGNORED", true);
       },
     },

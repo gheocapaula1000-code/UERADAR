@@ -157,5 +157,6 @@ export interface FeedResponse {
     rejected_count: number;
     rejected_by_reason: Record<string, number>;
     active_sources: Array<{ id: string; label: string; count: number }>;
+    attested_hosts?: string[];
   };
 }

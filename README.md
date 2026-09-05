@@ -53,7 +53,7 @@ npm test
 
 ## Ancora bloccato (non risolvibile dal solo frontend)
 
-- Secret di produzione (Core API key, cron digest, Resend).
+- Secret di produzione (Core API key, cron digest, Resend). Senza `RESEND_API_KEY` e `TROVABANDI_EMAIL_FROM` (o `UERADAR_EMAIL_FROM`) l'invito viene registrato e il link `/invito` resta valido, ma l'email non parte.
 - `CORE_ALLOWED_ORIGINS` e release gate del digest.
 
 Stripe LIVE checkout Istruttoria è già configurato e non è un blocco: price ID mensile/annuale e webhook secret sono operativi lato Paula.

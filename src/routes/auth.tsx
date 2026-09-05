@@ -9,15 +9,32 @@ import { seoHead } from "@/lib/seo";
 import { TRIAL_HIGHLIGHT } from "@/lib/coverage";
 import { toast } from "sonner";
 import { authErrorMessage } from "@/lib/auth-errors";
+import { safeAuthNext } from "@/lib/invite-email";
 
 export const Route = createFileRoute("/auth")({
   head: () => seoHead("/auth"),
+  validateSearch: (search: Record<string, unknown>): { next?: string } => {
+    const next = safeAuthNext(search["next"]);
+    return next ? { next } : {};
+  },
   component: AuthPage,
 });
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+
+  const goAfterAuth = () => {
+    if (next) {
+      const token = new URL(next, window.location.origin).searchParams.get("token");
+      if (token) {
+        navigate({ to: "/invito", search: { token }, replace: true });
+        return;
+      }
+    }
+    navigate({ to: "/dashboard", replace: true });
+  };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -25,14 +42,15 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+      if (data.session) goAfterAuth();
     });
-  }, [navigate]);
+  }, [navigate, next]);
 
   const handleGoogle = async () => {
     setLoading(true);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/auth",
+      redirect_uri:
+        window.location.origin + "/auth" + (next ? `?next=${encodeURIComponent(next)}` : ""),
     });
     if (result.error) {
       toast.error("Accesso Google non riuscito");
@@ -40,7 +58,7 @@ function AuthPage() {
       return;
     }
     if (!result.redirected) {
-      navigate({ to: "/dashboard" });
+      goAfterAuth();
     }
   };
 
@@ -66,13 +84,13 @@ function AuthPage() {
     }
     setLoading(true);
     try {
-
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email: emailTrim,
           password,
           options: {
-            emailRedirectTo: window.location.origin + "/auth",
+            emailRedirectTo:
+              window.location.origin + "/auth" + (next ? `?next=${encodeURIComponent(next)}` : ""),
             data: {
               ueradar_trial_days: 7,
               terms_accepted_at: new Date().toISOString(),
@@ -87,14 +105,13 @@ function AuthPage() {
         if (error) throw error;
       }
       const { data } = await supabase.auth.getSession();
-      if (data.session) navigate({ to: "/dashboard" });
+      if (data.session) goAfterAuth();
     } catch (err) {
       toast.error(authErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
-
 
   const handleForgotPassword = async () => {
     const trimmed = email.trim();
@@ -157,9 +174,7 @@ function AuthPage() {
             {mode === "signin" ? "Bentornato" : "Attiva UEradar.com"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {mode === "signin"
-              ? "Accedi al tuo Radar Bandi."
-              : TRIAL_HIGHLIGHT}
+            {mode === "signin" ? "Accedi al tuo Radar Bandi." : TRIAL_HIGHLIGHT}
           </p>
 
           <button
@@ -195,9 +210,14 @@ function AuthPage() {
 
           <form onSubmit={handleEmail} noValidate className="space-y-4">
             <div>
-              <label htmlFor="email" className="text-xs font-medium text-muted-foreground">Email</label>
+              <label htmlFor="email" className="text-xs font-medium text-muted-foreground">
+                Email
+              </label>
               <div className="mt-1 relative">
-                <Mail aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Mail
+                  aria-hidden="true"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                />
                 <input
                   id="email"
                   type="email"
@@ -212,7 +232,9 @@ function AuthPage() {
             </div>
             <div>
               <div className="flex items-center justify-between gap-2">
-                <label htmlFor="password" className="text-xs font-medium text-muted-foreground">Password</label>
+                <label htmlFor="password" className="text-xs font-medium text-muted-foreground">
+                  Password
+                </label>
                 {mode === "signin" ? (
                   <button
                     type="button"
@@ -225,7 +247,10 @@ function AuthPage() {
                 ) : null}
               </div>
               <div className="mt-1 relative">
-                <Lock aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Lock
+                  aria-hidden="true"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                />
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -261,9 +286,15 @@ function AuthPage() {
           </form>
 
           <p className="mt-4 text-center text-xs text-muted-foreground">
-            Continuando accetti i <Link to="/termini" className="text-primary hover:underline">Termini</Link>
-            {" e l'"}<Link to="/privacy" className="text-primary hover:underline">informativa privacy</Link>.
-            La prova gratuita non genera addebiti automatici.
+            Continuando accetti i{" "}
+            <Link to="/termini" className="text-primary hover:underline">
+              Termini
+            </Link>
+            {" e l'"}
+            <Link to="/privacy" className="text-primary hover:underline">
+              informativa privacy
+            </Link>
+            . La prova gratuita non genera addebiti automatici.
           </p>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
