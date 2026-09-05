@@ -72,6 +72,7 @@ describe("dashboard più semplice", () => {
 
   it("l'esito dell'aggiornamento resta a schermo", () => {
     expect(dashboard).toContain("setRefreshNotice");
-    expect(dashboard).toContain("nessuna azione richiesta");
+    expect(dashboard).toContain("refreshNoticeFor");
+    expect(readFileSync("src/lib/refresh-enqueue.ts", "utf8")).toContain("nessuna azione richiesta");
   });
 });
