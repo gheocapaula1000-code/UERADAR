@@ -63,6 +63,7 @@ describe("percorso prova autenticato (Radar + dossier)", () => {
     expect(dashboard).toContain("clearOfflineFeed(undefined, homeView)");
     expect(dashboard).toContain('queryClient.setQueryData(["bandi-feed", homeView], applied)');
     expect(dashboard).toContain('query.data?.source === "cache"');
+    expect(dashboard).toContain("isOffline && !isRefreshing");
     expect(dashboard).toContain("Dati salvati");
     expect(proxy).toContain("skip_reuse");
     expect(proxy).toContain("skipReuse: data.skip_reuse === true");

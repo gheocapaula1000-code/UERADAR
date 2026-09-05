@@ -149,6 +149,7 @@ describe("refresh «Per la mia impresa»", () => {
     expect(src).toContain('result.enqueued === 1 || result.status === "updated" || result.status === "queued"');
     expect(src).toContain("[homeView]: new Date().toISOString()");
     expect(src).toContain("Restano visibili i dati salvati");
+    expect(src).toContain("isOffline && !isRefreshing");
     expect(src).toContain("Per la mia impresa»");
   });
 });

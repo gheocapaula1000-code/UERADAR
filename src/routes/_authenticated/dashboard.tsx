@@ -499,7 +499,7 @@ function Dashboard() {
             ) : null}
           </div>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            {isOffline && (
+            {isOffline && !isRefreshing && (
               <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-warning/15 px-3 py-2 text-xs text-warning">
                 <WifiOff className="h-3.5 w-3.5 shrink-0" /> Dati salvati
               </span>
