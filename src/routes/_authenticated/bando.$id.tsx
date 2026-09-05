@@ -811,10 +811,11 @@ function BandoDetail() {
                               <span className="text-foreground">{doc.label}</span>
                             )}
                             {doc.obbligatorio ? (
-                              <Badge variant="outline" className="ml-2 align-middle text-[10px]">
+                              <span className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-foreground">
                                 Obbligatorio
-                              </Badge>
+                              </span>
                             ) : null}
+
                           </li>
                         ))}
                       </ol>
