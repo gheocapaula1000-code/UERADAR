@@ -450,7 +450,10 @@ export function renderDossierText(d: Dossier, options: DossierRenderOptions = {}
     ),
     block(
       "ALLEGATI UFFICIALI DEL BANDO",
-      d.documents.map((doc, i) => `${i + 1}. ${doc.label}`),
+      d.documents.map(
+        (doc, i) =>
+          `${i + 1}. ${doc.label}${doc.obbligatorio ? " (obbligatorio)" : ""}${doc.url ? ` — ${doc.url}` : ""}`,
+      ),
     ),
     block(
       "TIMELINE OPERATIVA",
