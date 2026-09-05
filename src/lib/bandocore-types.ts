@@ -70,7 +70,15 @@ export interface PdfFieldMapping {
   static_value?: string;
 }
 
+/** Allegato ufficiale nominato dalla fonte (contratto Core). Mai inventato. */
+export interface BandoAllegato {
+  nome: string;
+  url?: string;
+  obbligatorio: boolean;
+}
+
 export interface Bando {
+
   id: string;
   titolo: string;
   ente: string;
